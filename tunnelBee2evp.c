@@ -12,13 +12,24 @@
 // Функция создания SSL контекста
 SSL_CTX *create_ssl_context()
 {
-    SSL_CTX *ctx = SSL_CTX_new(BEE2EVP_client_method());
-    if (ctx == NULL)
-    {
-        perror("Error creating SSL context");
+     // Загрузка bee2evp engine
+    ENGINE_load_bee2evp();
+
+    // Получение метода SSL для bee2evp
+    const SSL_METHOD *method = ENGINE_by_id("bee2evp");
+    if (!method) {
+        ssl_error("Error getting bee2evp SSL method");
+    }
+
+    SSL_CTX *ctx = SSL_CTX_new(method);
+    if (ctx == NULL) {
+        ssl_error("Error creating SSL context");
         exit(EXIT_FAILURE);
     }
+
+    SSL_CTX_set_cipher_list(ctx, CIPHER_ALGORITHM);
     return ctx;
+
 }
 
 // Функция обработки ошибок SSL
