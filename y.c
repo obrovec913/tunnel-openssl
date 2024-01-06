@@ -5,7 +5,8 @@
 #include <openssl/engine.h>
 
 // Функция для обработки ошибок OpenSSL
-void handleErrors(void) {
+void handleErrors(void)
+{
     ERR_print_errors_fp(stderr);
     abort();
 }
@@ -13,10 +14,12 @@ void handleErrors(void) {
 // Функция для шифрования данных с использованием алгоритма belt-cbc128
 void encrypt_belt_cbc(const unsigned char *plaintext, size_t plaintext_len,
                       const unsigned char *key, const unsigned char *iv,
-                      unsigned char **ciphertext, size_t *ciphertext_len) {
+                      unsigned char **ciphertext, size_t *ciphertext_len)
+{
     // Загрузка плагина bee2evp
     ENGINE_load_builtin_engines();
-    ENGINE *engine = ENGINE_by_id("bee2evp");
+    ENGINE *engine = ENGINE_by_id("/home/on/bee2evp/build/local/lib/bee2evp.so");
+
     if (!engine)
         handleErrors();
 
@@ -60,7 +63,8 @@ void encrypt_belt_cbc(const unsigned char *plaintext, size_t plaintext_len,
 // Функция для дешифрования данных с использованием алгоритма belt-cbc128
 void decrypt_belt_cbc(const unsigned char *ciphertext, size_t ciphertext_len,
                       const unsigned char *key, const unsigned char *iv,
-                      unsigned char **decryptedtext, size_t *decryptedtext_len) {
+                      unsigned char **decryptedtext, size_t *decryptedtext_len)
+{
     // Загрузка плагина bee2evp
     ENGINE *engine = ENGINE_by_id("bee2evp");
     if (!engine)
@@ -103,7 +107,8 @@ void decrypt_belt_cbc(const unsigned char *ciphertext, size_t ciphertext_len,
     EVP_CIPHER_CTX_free(ctx);
 }
 
-int main() {
+int main()
+{
     // Входные данные
     const unsigned char *plaintext = (const unsigned char *)"Hello, Bee2evp!";
     const size_t plaintext_len = strlen((const char *)plaintext);
@@ -122,7 +127,8 @@ int main() {
     // Вывод результатов шифрования
     printf("Plaintext: %s\n", plaintext);
     printf("Ciphertext (hex): ");
-    for (size_t i = 0; i < ciphertext_len; ++i) {
+    for (size_t i = 0; i < ciphertext_len; ++i)
+    {
         printf("%02X", ciphertext[i]);
     }
     printf("\n");
