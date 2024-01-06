@@ -18,7 +18,7 @@ void encrypt_belt_cbc(const unsigned char *plaintext, size_t plaintext_len,
 {
     // Загрузка плагина bee2evp
     ENGINE_load_builtin_engines();
-    ENGINE *engine = ENGINE_by_id("/home/on/bee2evp/build/local/lib/bee2evp.so");
+    ENGINE *engine = ENGINE_by_id("/home/on/bee2evp/build/local/lib/libbee2evp.so");
 
     if (!engine)
         handleErrors();
