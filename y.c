@@ -4,7 +4,8 @@
 #include <openssl/evp.h>
 #include <openssl/opensslv.h>
 #include <openssl/engine.h>
-
+#include "bee2evp/bee2evp.h"
+#include "bee2evp_lcl.h"
 // Функция для обработки ошибок OpenSSL
 void handleErrors(void)
 {
