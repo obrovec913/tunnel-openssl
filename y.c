@@ -20,7 +20,15 @@ void encrypt_belt_cbc(const unsigned char *plaintext, size_t plaintext_len,
     ENGINE_load_builtin_engines();
     ENGINE_register_all_DH();
     OpenSSL_add_all_algorithms();
- // ENGINE_load_bee2evp();
+    // ENGINE_load_bee2evp();
+    OPENSSL_init_crypto(OPENSSL_INIT_ADD_ALL_CIPHERS | OPENSSL_INIT_ADD_ALL_DIGESTS, NULL);
+
+    // Создание контекста для OpenSSL
+    SSL_CTX *ctx = SSL_CTX_new(SSLv23_method());
+    if (!ctx)
+    {
+        handleErrors();
+    }
 
     ENGINE *engine = ENGINE_by_id("bee2evp");
     if (!engine)
