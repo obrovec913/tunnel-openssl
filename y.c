@@ -51,7 +51,7 @@ void encrypt_belt_cbc(const unsigned char *plaintext, size_t plaintext_len,
         handleErrors();
 
     // Инициализация контекста шифрования с ключом и IV
-    if (EVP_EncryptInit_ex(ctx, cipher, engine, key, iv) != 1)
+    if (EVP_EncryptInit_ex(ctx, cipher,  key, iv) != 1)
         handleErrors();
 
     // Выделение памяти для зашифрованных данных
