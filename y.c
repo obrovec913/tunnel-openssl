@@ -29,7 +29,7 @@ void encrypt_belt_cbc(const unsigned char *plaintext, size_t plaintext_len,
     // Загрузка вашей библиотеки (замените "/путь/к/вашей/библиотеке" на реальный путь)
     
 
-    ENGINE *engine = ENGINE_by_id("bee2evp");
+   /* ENGINE *engine = ENGINE_by_id("bee2evp");
     if (engine)
     {
         ENGINE_ctrl_cmd_string(engine, "DIR_LOAD", "/home/on/bee2evp/build/local/lib", 0);
@@ -38,7 +38,7 @@ void encrypt_belt_cbc(const unsigned char *plaintext, size_t plaintext_len,
     {
         fprintf(stderr, "Failed to load bee2evp engine: %s\n", ERR_error_string(ERR_get_error(), NULL));
         handleErrors();
-    }
+    }*/
 
     // Создание и инициализация контекста шифрования
     EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
