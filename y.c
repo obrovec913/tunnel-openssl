@@ -16,13 +16,22 @@ void encrypt_belt_cbc(const unsigned char *plaintext, size_t plaintext_len,
                       const unsigned char *key, const unsigned char *iv,
                       unsigned char **ciphertext, size_t *ciphertext_len)
 {
-    // Загрузка плагина bee2evp
-    ENGINE_load_builtin_engines();
-    ENGINE_register_all_DH();
-    OpenSSL_add_all_algorithms();
-    // ENGINE_load_bee2evp();
+     // Инициализация OpenSSL
     OPENSSL_init_crypto(OPENSSL_INIT_ADD_ALL_CIPHERS | OPENSSL_INIT_ADD_ALL_DIGESTS, NULL);
 
+    // Загрузка встроенных движков
+    ENGINE_load_builtin_engines();
+    ENGINE_register_all_complete();
+
+    // Загрузка всех алгоритмов
+    OpenSSL_add_all_algorithms();
+
+    // Загрузка вашей библиотеки (замените "/путь/к/вашей/библиотеке" на реальный путь)
+    if (!ENGINE_ctrl_cmd_string(NULL, "DIR_LOAD", "/home/on/bee2evp/build/local/lib", 0))
+    {
+        fprintf(stderr, "Failed to load the library: %s\n", ERR_error_string(ERR_get_error(), NULL));
+        handleErrors();
+    }
     
     ENGINE *engine = ENGINE_by_id("bee2evp");
     if (!engine)
