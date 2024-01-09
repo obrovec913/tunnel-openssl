@@ -6,10 +6,27 @@
 int encryptWithOpenSSL(const char *inputFile, const char *outputFile, const char *key) {
     FILE *fp;
     char buffer[BUFFER_SIZE];
+    char key[BUFFER_SIZE];
+
+    // Открываем файл с ключом
+    FILE *keyFilePtr = fopen(key, "r");
+    if (keyFilePtr == NULL) {
+        perror("fopen");
+        return EXIT_FAILURE;
+    }
+
+    // Считываем ключ из файла
+    if (fscanf(keyFilePtr, "%s", key) != 1) {
+        fprintf(stderr, "Error reading key from file.\n");
+        fclose(keyFilePtr);
+        return EXIT_FAILURE;
+    }
+
+    fclose(keyFilePtr);
 
     // Формируем команду с использованием аргументов функции
     char command[256];
-    snprintf(command, sizeof(command), "openssl  enc -engine bee2evp -belt-cbc128 -in %s -out %s -k cat(%s)", inputFile, outputFile, key);
+    snprintf(command, sizeof(command), "openssl  enc -engine bee2evp -belt-cbc128 -in %s -out %s -k %s", inputFile, outputFile, key);
 
     // Открываем канал для выполнения команды и чтения её вывода
     fp = popen(command, "r");
