@@ -58,6 +58,20 @@ int encryptWithOpenSSL(const char *input, const char *outputFile, const char *ke
         perror("remove");
         return EXIT_FAILURE;
     }
+       // Открываем дешифрованный файл и выводим его содержимое
+    FILE *ecryptedFile = fopen(outputFile, "r");
+    if (ecryptedFile == NULL) {
+        perror("fopen");
+        return EXIT_FAILURE;
+    }
+
+    printf("ecrypted contents:\n");
+
+    while (fgets(buffer, BUFFER_SIZE, ecryptedFile) != NULL) {
+        printf("%s", buffer);
+    }
+    fclose(ecryptedFile);
+
 
     return EXIT_SUCCESS;
 }
@@ -112,7 +126,7 @@ int decryptWithOpenSSL(const char *inputFile, const char *output, const char *ke
 }
 
 int main() {
-    const char *inputFile = "мама мыла сашу";
+    const char *inputFile = "проверка модуля шифрации и дешифрации";
     const char *encryptedFile = "encrypted.txt";
     const char *decryptedFile = "decrypted.txt";
     const char *key = "symmetric_key.txt";
