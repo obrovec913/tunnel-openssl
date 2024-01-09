@@ -4,7 +4,6 @@
 #define BUFFER_SIZE 1024
 
 int encryptWithOpenSSL(const char *input, const char *outputFile, const char *key) {
-    FILE *fp;
     char buffer[BUFFER_SIZE];
     char keytu[BUFFER_SIZE];
 
@@ -24,36 +23,38 @@ int encryptWithOpenSSL(const char *input, const char *outputFile, const char *ke
 
     fclose(keyFilePtr);
 
-     FILE *tempFile = tmpfile();
-    if (tempFile == NULL) {
-        perror("tmpfile");
+    // Получаем уникальное имя временного файла
+    char tempFileName[L_tmpnam];
+    if (tmpnam(tempFileName) == NULL) {
+        perror("tmpnam");
         return EXIT_FAILURE;
     }
 
-    // Сохраняем ключ во временный файл (вместо этого вы можете использовать fputs или fwrite для сохранения строки)
+    // Открываем временный файл для записи
+    FILE *tempFile = fopen(tempFileName, "w");
+    if (tempFile == NULL) {
+        perror("fopen");
+        return EXIT_FAILURE;
+    }
+
+    // Записываем данные во временный файл
     fprintf(tempFile, "%s", input);
+    fclose(tempFile);
 
     // Формируем команду с использованием аргументов функции
     char command[256];
-    snprintf(command, sizeof(command), "openssl  enc -engine bee2evp -belt-cbc128 -in %s -out %s -k %s", tempFile, outputFile, keytu);
+    snprintf(command, sizeof(command), "openssl enc -engine bee2evp -belt-cbc128 -in %s -out %s -k %s",
+             tempFileName, outputFile, keytu);
 
-    // Открываем канал для выполнения команды и чтения её вывода
-    fp = popen(command, "r");
-    if (fp == NULL) {
-        perror("popen");
-        fclose(tempFile);
+    // Выполняем команду
+    if (system(command) == -1) {
+        perror("system");
         return EXIT_FAILURE;
     }
 
-    // Читаем вывод команды из канала
-    while (fgets(buffer, BUFFER_SIZE, fp) != NULL) {
-        printf("%s", buffer);  // или сохраните в вашу переменную
-    }
-
-    // Закрываем канал
-    if (pclose(fp) == -1) {
-        perror("pclose");
-        fclose(tempFile);
+    // Удаляем временный файл
+    if (remove(tempFileName) != 0) {
+        perror("remove");
         return EXIT_FAILURE;
     }
 
