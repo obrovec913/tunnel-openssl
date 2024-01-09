@@ -35,7 +35,7 @@ int encryptWithOpenSSL(const char *input, const char *outputFile, const char *ke
     FILE *tempFile = fdopen(tempFileDescriptor, "w");
     if (tempFile == NULL) {
         perror("fdopen");
-        close(tempFileDescriptor);
+        fclose(tempFileDescriptor);
         return EXIT_FAILURE;
     }
 
