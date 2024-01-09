@@ -23,21 +23,22 @@ int encryptWithOpenSSL(const char *input, const char *outputFile, const char *ke
 
     fclose(keyFilePtr);
 
-    // Получаем уникальное имя временного файла
-    char tempFileName[L_tmpnam];
-    if (tmpnam(tempFileName) == NULL) {
-        perror("tmpnam");
-        return EXIT_FAILURE;
-    }
-
-    // Открываем временный файл для записи
-    FILE *tempFile = fopen(tempFileName, "w");
-    if (tempFile == NULL) {
-        perror("fopen");
+    // Создаем уникальный временный файл
+    char tempFileName[] = "/tmp/tempfileXXXXXX";
+    int tempFileDescriptor = mkstemp(tempFileName);
+    if (tempFileDescriptor == -1) {
+        perror("mkstemp");
         return EXIT_FAILURE;
     }
 
     // Записываем данные во временный файл
+    FILE *tempFile = fdopen(tempFileDescriptor, "w");
+    if (tempFile == NULL) {
+        perror("fdopen");
+        close(tempFileDescriptor);
+        return EXIT_FAILURE;
+    }
+
     fprintf(tempFile, "%s", input);
     fclose(tempFile);
 
