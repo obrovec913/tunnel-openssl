@@ -23,7 +23,7 @@ int encryptWithOpenSSL(const char *input, const char *outputFile, const char *ke
     }
 
     fclose(keyFilePtr);
-    
+
      FILE *tempFile = tmpfile();
     if (tempFile == NULL) {
         perror("tmpfile");
@@ -61,7 +61,7 @@ int encryptWithOpenSSL(const char *input, const char *outputFile, const char *ke
 }
 
 int main() {
-    const char *inputFile = "";
+    const char *inputFile = "мама мыла сашу";
     const char *outputFile = "encrypted.txt";
     const char *key = "symmetric_key.txt";
 
