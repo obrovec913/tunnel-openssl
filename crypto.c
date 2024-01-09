@@ -3,7 +3,7 @@
 
 #define BUFFER_SIZE 1024
 
-int encryptWithOpenSSL(const char *inputFile, const char *outputFile, const char *key) {
+int encryptWithOpenSSL(const char *input, const char *outputFile, const char *key) {
     FILE *fp;
     char buffer[BUFFER_SIZE];
     char keytu[BUFFER_SIZE];
@@ -23,15 +23,25 @@ int encryptWithOpenSSL(const char *inputFile, const char *outputFile, const char
     }
 
     fclose(keyFilePtr);
+    
+     FILE *tempFile = tmpfile();
+    if (tempFile == NULL) {
+        perror("tmpfile");
+        return EXIT_FAILURE;
+    }
+
+    // Сохраняем ключ во временный файл (вместо этого вы можете использовать fputs или fwrite для сохранения строки)
+    fprintf(tempFile, "%s", input);
 
     // Формируем команду с использованием аргументов функции
     char command[256];
-    snprintf(command, sizeof(command), "openssl  enc -engine bee2evp -belt-cbc128 -in %s -out %s -k %s", inputFile, outputFile, keytu);
+    snprintf(command, sizeof(command), "openssl  enc -engine bee2evp -belt-cbc128 -in %s -out %s -k %s", tempFile, outputFile, keytu);
 
     // Открываем канал для выполнения команды и чтения её вывода
     fp = popen(command, "r");
     if (fp == NULL) {
         perror("popen");
+        fclose(tempFile);
         return EXIT_FAILURE;
     }
 
@@ -43,6 +53,7 @@ int encryptWithOpenSSL(const char *inputFile, const char *outputFile, const char
     // Закрываем канал
     if (pclose(fp) == -1) {
         perror("pclose");
+        fclose(tempFile);
         return EXIT_FAILURE;
     }
 
@@ -50,7 +61,7 @@ int encryptWithOpenSSL(const char *inputFile, const char *outputFile, const char
 }
 
 int main() {
-    const char *inputFile = "README.md";
+    const char *inputFile = "";
     const char *outputFile = "encrypted.txt";
     const char *key = "symmetric_key.txt";
 
