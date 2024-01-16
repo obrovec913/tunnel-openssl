@@ -3,7 +3,7 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 
-int print_cipher_names(const OBJ_NAME *obj_name) {
+int print_cipher_names(const OBJ_NAME *obj_name, void *arg) {
     printf("%s\n", obj_name->name);
     return 1;
 }
@@ -16,7 +16,7 @@ int main() {
 
     printf("Available ciphers:\n");
 
-    OBJ_NAME_do_all(OBJ_NAME_TYPE_CIPHER_METH, print_cipher_names);
+    OBJ_NAME_do_all(OBJ_NAME_TYPE_CIPHER_METH, print_cipher_names, NULL);
 
     ERR_print_errors_fp(stderr);  // Вывести ошибки OpenSSL
 
