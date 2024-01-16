@@ -12,9 +12,11 @@ int main() {
     SSL_library_init();
     OpenSSL_add_all_algorithms();
 
+    ERR_load_crypto_strings();  // Инициализация строк с описанием ошибок OpenSSL
+
     printf("Available ciphers:\n");
 
-    OBJ_NAME_do_all(OBJ_NAME_TYPE_CIPHER_METH, NULL, print_cipher_names);
+    OBJ_NAME_do_all(OBJ_NAME_TYPE_CIPHER_METH, print_cipher_names);
 
     ERR_print_errors_fp(stderr);  // Вывести ошибки OpenSSL
 
