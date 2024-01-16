@@ -1,7 +1,10 @@
 #include <stdio.h>
 #include <openssl/obj_mac.h>
+#include <openssl/ssl.h>
+#include <openssl/err.h>
 
 int main() {
+    SSL_library_init();
     OpenSSL_add_all_algorithms();
 
     printf("Available ciphers:\n");
