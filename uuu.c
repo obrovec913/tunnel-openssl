@@ -1,6 +1,6 @@
 #include <openssl/engine.h>
 #include <openssl/evp.h>
-#include <bee2evp.h>
+#include <openssl/bee2evp.h>
 int main() {
     // Инициализация OpenSSL и загрузка движка Bee2evp
     ENGINE_load_bee2evp();
