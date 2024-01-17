@@ -13,7 +13,7 @@ int main()
     ENGINE *engine = ENGINE_by_id("bee2evp");
     if (!engine)
     {
-        ERR_load_BEE2EVP_strings();
+        ERR_load_EVP_strings();
         ERR_print_errors_fp(stderr);
 
         fprintf(stderr, "Ошибка: не удалось загрузить движок Bee2evp\n");
