@@ -20,6 +20,7 @@ void encrypt_belt_cbc(const unsigned char *plaintext, size_t plaintext_len,
     OPENSSL_init_crypto(OPENSSL_INIT_ADD_ALL_CIPHERS | OPENSSL_INIT_ADD_ALL_DIGESTS, NULL);
 
     // Загрузка встроенных движков
+    
     ENGINE_load_builtin_engines();
     ENGINE_register_all_complete();
 

@@ -5,6 +5,7 @@ int main()
 {
     // Инициализация OpenSSL и загрузка движка Bee2evp
     ENGINE_load_openssl();
+    OpenSSL_add_all_algorithms();
     //   SSL_library_init();
     ENGINE_load_builtin_engines();
     ENGINE_register_all_complete();
