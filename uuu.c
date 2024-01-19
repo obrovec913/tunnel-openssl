@@ -1,12 +1,25 @@
 #include <stdio.h>
 #include <openssl/engine.h>
-
+#include <openssl/conf.h>
+#include <openssl/crypto.h>
 int main()
 {
     ENGINE_load_builtin_engines();
     ENGINE_register_all_complete();
     printf("OpenSSL Version: %s\n", OpenSSL_version(OPENSSL_VERSION));
+    OPENSSL_config(NULL);
+    OPENSSL_no_config();
+    OPENSSL_load_builtin_modules();
 
+    const CONF *conf = NCONF_default();
+    if (conf)
+    {
+        NCONF_dump_fp(conf, stdout);
+    }
+    else
+    {
+        fprintf(stderr, "Failed to load OpenSSL configuration.\n");
+    }
     // Получаем список всех доступных движков
     ENGINE *engine_list = ENGINE_get_first();
     while (engine_list != NULL)
