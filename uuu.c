@@ -1,20 +1,24 @@
 #include <stdio.h>
 #include <openssl/engine.h>
 
-int main() {
+int main()
+{
     ENGINE_load_builtin_engines();
     ENGINE_register_all_complete();
+    printf("OpenSSL Version: %s\n", OpenSSL_version(OPENSSL_VERSION));
 
     // Получаем список всех доступных движков
     ENGINE *engine_list = ENGINE_get_first();
-    while (engine_list != NULL) {
+    while (engine_list != NULL)
+    {
         printf("Доступный движок: %s\n", ENGINE_get_id(engine_list));
         engine_list = ENGINE_get_next(engine_list);
     }
 
     // Теперь попробуем получить движок "bee2evp"
     ENGINE *engine = ENGINE_by_id("bee2evp");
-    if (engine == NULL) {
+    if (engine == NULL)
+    {
         fprintf(stderr, "Ошибка: не удалось загрузить движок Bee2evp\n");
         ERR_print_errors_fp(stderr);
 
