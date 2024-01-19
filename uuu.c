@@ -7,19 +7,21 @@ int main()
     ENGINE_load_builtin_engines();
     ENGINE_register_all_complete();
     printf("OpenSSL Version: %s\n", OpenSSL_version(OPENSSL_VERSION));
-    OPENSSL_config(NULL);
-    OPENSSL_no_config();
-    OPENSSL_load_builtin_modules();
+    OPENSSL_init_crypto(OPENSSL_INIT_ENGINE_ALL_BUILTIN |
+                            OPENSSL_INIT_LOAD_CONFIG,
+                        NULL);
 
     const CONF *conf = NCONF_default();
     if (conf)
     {
         NCONF_dump_fp(conf, stdout);
+
     }
     else
     {
         fprintf(stderr, "Failed to load OpenSSL configuration.\n");
     }
+
     // Получаем список всех доступных движков
     ENGINE *engine_list = ENGINE_get_first();
     while (engine_list != NULL)
