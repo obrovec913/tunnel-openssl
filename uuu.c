@@ -11,22 +11,16 @@ int main()
                             OPENSSL_INIT_LOAD_CONFIG,
                         NULL);
 
-    const CONF_METHOD *conf_method = NCONF_default();
-    if (conf_method)
-    {
-        const CONF *conf = NCONF_new(conf_method);
-        if (conf)
-        {
+    CONF_METHOD *conf_method = NCONF_default();
+    if (conf_method) {
+        CONF *conf = NCONF_new(conf_method);
+        if (conf) {
             NCONF_dump_fp(conf, stdout);
             NCONF_free(conf);
-        }
-        else
-        {
+        } else {
             fprintf(stderr, "Failed to create OpenSSL configuration.\n");
         }
-    }
-    else
-    {
+    } else {
         fprintf(stderr, "Failed to get OpenSSL configuration method.\n");
     }
 
