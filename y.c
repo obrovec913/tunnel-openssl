@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <openssl/conf.h>
+#include <openssl/crypto.h>
 #include <openssl/evp.h>
 #include <openssl/opensslv.h>
 #include <openssl/engine.h>
@@ -16,19 +18,39 @@ void encrypt_belt_cbc(const unsigned char *plaintext, size_t plaintext_len,
                       const unsigned char *key, const unsigned char *iv,
                       unsigned char **ciphertext, size_t *ciphertext_len)
 {
-    // Инициализация OpenSSL
-    OPENSSL_init_crypto(OPENSSL_INIT_ADD_ALL_CIPHERS | OPENSSL_INIT_ADD_ALL_DIGESTS, NULL);
-
-    // Загрузка встроенных движков
-    
     ENGINE_load_builtin_engines();
     ENGINE_register_all_complete();
+    printf("OpenSSL Version: %s\n", OpenSSL_version(OPENSSL_VERSION));
+    OPENSSL_init_crypto(OPENSSL_INIT_ENGINE_ALL_BUILTIN |
+                            OPENSSL_INIT_LOAD_CONFIG,
+                        NULL);
 
-    // Загрузка всех алгоритмов
-    OpenSSL_add_all_algorithms();
+    CONF_METHOD *conf_method = NCONF_default();
+    if (conf_method)
+    {
+        CONF *conf = NCONF_new(conf_method);
+        if (conf)
+        {
+            NCONF_dump_fp(conf, stdout);
+            NCONF_free(conf);
+        }
+        else
+        {
+            fprintf(stderr, "Failed to create OpenSSL configuration.\n");
+        }
+    }
+    else
+    {
+        fprintf(stderr, "Failed to get OpenSSL configuration method.\n");
+    }
 
-    // Загрузка вашей библиотеки (замените "/путь/к/вашей/библиотеке" на реальный путь)
-    
+    // Получаем список всех доступных движков
+    ENGINE *engine_list = ENGINE_get_first();
+    while (engine_list != NULL)
+    {
+        printf("Доступный движок: %s\n", ENGINE_get_id(engine_list));
+        engine_list = ENGINE_get_next(engine_list);
+    }
 
     ENGINE *engine = ENGINE_by_id("bee2evp");
     if (engine)
@@ -83,6 +105,39 @@ void decrypt_belt_cbc(const unsigned char *ciphertext, size_t ciphertext_len,
                       const unsigned char *key, const unsigned char *iv,
                       unsigned char **decryptedtext, size_t *decryptedtext_len)
 {
+    ENGINE_load_builtin_engines();
+    ENGINE_register_all_complete();
+    printf("OpenSSL Version: %s\n", OpenSSL_version(OPENSSL_VERSION));
+    OPENSSL_init_crypto(OPENSSL_INIT_ENGINE_ALL_BUILTIN |
+                            OPENSSL_INIT_LOAD_CONFIG,
+                        NULL);
+
+    CONF_METHOD *conf_method = NCONF_default();
+    if (conf_method)
+    {
+        CONF *conf = NCONF_new(conf_method);
+        if (conf)
+        {
+            NCONF_dump_fp(conf, stdout);
+            NCONF_free(conf);
+        }
+        else
+        {
+            fprintf(stderr, "Failed to create OpenSSL configuration.\n");
+        }
+    }
+    else
+    {
+        fprintf(stderr, "Failed to get OpenSSL configuration method.\n");
+    }
+
+    // Получаем список всех доступных движков
+    ENGINE *engine_list = ENGINE_get_first();
+    while (engine_list != NULL)
+    {
+        printf("Доступный движок: %s\n", ENGINE_get_id(engine_list));
+        engine_list = ENGINE_get_next(engine_list);
+    }
     // Загрузка плагина bee2evp
     ENGINE *engine = ENGINE_by_id("bee2evp");
     if (!engine)
