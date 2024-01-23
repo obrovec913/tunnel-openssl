@@ -48,6 +48,31 @@ int main() {
     OPENSSL_init_crypto(OPENSSL_INIT_ENGINE_ALL_BUILTIN |
                             OPENSSL_INIT_LOAD_CONFIG,
                         NULL);
+    CONF_METHOD *conf_method = NCONF_default();
+    if (conf_method)
+    {
+        CONF *conf = NCONF_new(conf_method);
+        if (conf)
+        {
+            NCONF_dump_fp(conf, stdout);
+            NCONF_free(conf);
+        }
+        else
+        {
+            fprintf(stderr, "Failed to create OpenSSL configuration.\n");
+        }
+    }
+    else
+    {
+        fprintf(stderr, "Failed to get OpenSSL configuration method.\n");
+    }
+      // Получаем список всех доступных движков
+    ENGINE *engine_list = ENGINE_get_first();
+    while (engine_list != NULL)
+    {
+        printf("Доступный движок: %s\n", ENGINE_get_id(engine_list));
+        engine_list = ENGINE_get_next(engine_list);
+    }
 
     ENGINE *engine = ENGINE_by_id("bee2evp");
     if (!engine)
