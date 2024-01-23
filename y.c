@@ -48,12 +48,12 @@ void encrypt_belt_cbc(const unsigned char *plaintext, size_t plaintext_len,
     }
 
     // Получаем список всех доступных движков
-    /*ENGINE *engine_list = ENGINE_get_first();
+    ENGINE *engine_list = ENGINE_get_first();
     while (engine_list != NULL)
     {
         printf("Доступный движок: %s\n", ENGINE_get_id(engine_list));
         engine_list = ENGINE_get_next(engine_list);
-    }*/
+    }
 
     ENGINE *engine =  ENGINE_by_id("bee2evp");
     if (engine)
@@ -131,12 +131,12 @@ void decrypt_belt_cbc(const unsigned char *ciphertext, size_t ciphertext_len,
     }
 
     // Получаем список всех доступных движков
-    /*ENGINE *engine_list = ENGINE_get_first();
+    ENGINE *engine_list = ENGINE_get_first();
     while (engine_list != NULL)
     {
         printf("Доступный движок: %s\n", ENGINE_get_id(engine_list));
         engine_list = ENGINE_get_next(engine_list);
-    }*/
+    }
     // Загрузка плагина bee2evp
     ENGINE *engine =  ENGINE_by_id("bee2evp");
     if (!engine)
