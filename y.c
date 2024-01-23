@@ -18,9 +18,10 @@ void encrypt_belt_cbc(const unsigned char *plaintext, size_t plaintext_len,
                       const unsigned char *key, const unsigned char *iv,
                       unsigned char **ciphertext, size_t *ciphertext_len)
 {
-    ENGINE_load_builtin_engines();
-    ENGINE_register_all_complete();
-    printf("OpenSSL Version: %s\n", OpenSSL_version(OPENSSL_VERSION));
+    OPENSSL_init_crypto(OPENSSL_INIT_ENGINE_ALL_BUILTIN, NULL);
+
+    printf("OpenSSL Version: %s\n", 
+    OpenSSL_version(OPENSSL_VERSION));
     OPENSSL_init_crypto(OPENSSL_INIT_ENGINE_ALL_BUILTIN |
                             OPENSSL_INIT_LOAD_CONFIG,
                         NULL);
@@ -52,12 +53,8 @@ void encrypt_belt_cbc(const unsigned char *plaintext, size_t plaintext_len,
         engine_list = ENGINE_get_next(engine_list);
     }
 
-    ENGINE *engine = ENGINE_by_id("bee2evp");
+    ENGINE *engine = ENGINE_get_builtin_engine_by_id("bee2evp");
     if (engine)
-    {
-        ENGINE_ctrl_cmd_string(engine, "DIR_LOAD", "/home/on/bee2evp/build/local/lib/libbee2evp.so", 0);
-    }
-    else
     {
         fprintf(stderr, "Failed to load bee2evp engine: %s\n", ERR_error_string(ERR_get_error(), NULL));
         handleErrors();
@@ -105,8 +102,8 @@ void decrypt_belt_cbc(const unsigned char *ciphertext, size_t ciphertext_len,
                       const unsigned char *key, const unsigned char *iv,
                       unsigned char **decryptedtext, size_t *decryptedtext_len)
 {
-    ENGINE_load_builtin_engines();
-    ENGINE_register_all_complete();
+ //   OPENSSL_init_crypto(OPENSSL_INIT_ENGINE_ALL_BUILTIN, NULL);
+
     printf("OpenSSL Version: %s\n", OpenSSL_version(OPENSSL_VERSION));
     OPENSSL_init_crypto(OPENSSL_INIT_ENGINE_ALL_BUILTIN |
                             OPENSSL_INIT_LOAD_CONFIG,
@@ -139,7 +136,7 @@ void decrypt_belt_cbc(const unsigned char *ciphertext, size_t ciphertext_len,
         engine_list = ENGINE_get_next(engine_list);
     }
     // Загрузка плагина bee2evp
-    ENGINE *engine = ENGINE_by_id("bee2evp");
+    ENGINE *engine = ENGINE_get_builtin_engine_by_id("bee2evp");
     if (!engine)
         handleErrors();
 
