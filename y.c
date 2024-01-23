@@ -22,7 +22,6 @@ void encrypt_belt_cbc(const unsigned char *plaintext, size_t plaintext_len,
 {
     //OPENSSL_init_crypto(OPENSSL_INIT_ENGINE_ALL_BUILTIN, NULL);
 
-    printf("OpenSSL Version: %s\n", 
     
     OPENSSL_init_crypto(OPENSSL_INIT_ENGINE_ALL_BUILTIN |
                             OPENSSL_INIT_LOAD_CONFIG,
