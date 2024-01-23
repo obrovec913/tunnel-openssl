@@ -55,7 +55,7 @@ int main() {
         fprintf(stderr, "Failed to load bee2evp engine: %s\n", ERR_error_string(ERR_get_error(), NULL));
         handleErrors();
     }
-    // Создание SSL контекста
+      // Создание SSL контекста
     SSL_CTX *ssl_ctx = createSSLContext();
 
     // Устанавливаем серверный сокет
@@ -98,6 +98,11 @@ int main() {
         // Расшифровываем данные
         unsigned char decrypted_text[MAX_BUFFER_SIZE];
         int decrypted_len;
+
+        // Инициализация контекста шифрования с ключом и IV
+        EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
+        if (!ctx)
+            handleErrors();
 
         // (как в предыдущем коде)
 
