@@ -192,7 +192,7 @@ int main()
     // Переменные для хранения зашифрованных и дешифрованных данных
     unsigned char *ciphertext = NULL;
     size_t ciphertext_len;
-    OpenSSL_version(OPENSSL_VERSION));
+    printf("OpenSSL Version: %s\n", OpenSSL_version(OPENSSL_VERSION));
 
     // Вызов функции для шифрования данных
     encrypt_belt_cbc(plaintext, plaintext_len, key, iv, &ciphertext, &ciphertext_len);
