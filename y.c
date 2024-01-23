@@ -55,7 +55,7 @@ void encrypt_belt_cbc(const unsigned char *plaintext, size_t plaintext_len,
         engine_list = ENGINE_get_next(engine_list);
     }*/
 
-    ENGINE *engine = ENGINE_get_builtin_engine_by_id("bee2evp");
+    ENGINE *engine =  ENGINE_by_id("bee2evp");
     if (engine)
     {
         fprintf(stderr, "Failed to load bee2evp engine: %s\n", ERR_error_string(ERR_get_error(), NULL));
@@ -138,7 +138,7 @@ void decrypt_belt_cbc(const unsigned char *ciphertext, size_t ciphertext_len,
         engine_list = ENGINE_get_next(engine_list);
     }*/
     // Загрузка плагина bee2evp
-    ENGINE *engine = ENGINE_get_builtin_engine_by_id("bee2evp");
+    ENGINE *engine =  ENGINE_by_id("bee2evp");
     if (!engine)
         handleErrors();
 
