@@ -50,23 +50,11 @@ int main() {
                         NULL);
 
     ENGINE *engine = ENGINE_by_id("bee2evp");
-    if (engine) {
-        ENGINE_ctrl_cmd_string(engine, "DIR_LOAD", "/home/on/bee2evp/build/local/lib/libbee2evp.so", 0);
-    } else {
+    if (!engine)
+    {
         fprintf(stderr, "Failed to load bee2evp engine: %s\n", ERR_error_string(ERR_get_error(), NULL));
         handleErrors();
     }
-
-    // Создание и инициализация контекста шифрования
-    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
-    if (!ctx)
-        handleErrors();
-
-    // Получение алгоритма шифрования belt-cbc128
-    const EVP_CIPHER *cipher = EVP_get_cipherbyname("belt-cbc128");
-    if (!cipher)
-        handleErrors();
-
     // Создание SSL контекста
     SSL_CTX *ssl_ctx = createSSLContext();
 
@@ -89,51 +77,41 @@ int main() {
     if (listen(sockfd, 5) < 0)
         handleErrors();
 
-    len = sizeof(client_addr);
-    connfd = accept(sockfd, (struct sockaddr*)&client_addr, &len);
-    if (connfd < 0)
-        handleErrors();
+    while (1) {  // бесконечный цикл для прослушивания порта
+        len = sizeof(client_addr);
+        connfd = accept(sockfd, (struct sockaddr*)&client_addr, &len);
+        if (connfd < 0)
+            handleErrors();
 
-    // Создание SSL структуры
-    SSL *ssl = SSL_new(ssl_ctx);
-    SSL_set_fd(ssl, connfd);
+        // Создание SSL структуры
+        SSL *ssl = SSL_new(ssl_ctx);
+        SSL_set_fd(ssl, connfd);
 
-    // Устанавливаем SSL соединение
-    if (SSL_accept(ssl) != 1)
-        handleErrors();
+        // Устанавливаем SSL соединение
+        if (SSL_accept(ssl) != 1)
+            handleErrors();
 
-    // Получаем зашифрованные данные от клиента
-    unsigned char ciphertext[MAX_BUFFER_SIZE];
-    int ciphertext_len = SSL_read(ssl, ciphertext, sizeof(ciphertext));
+        // Получаем зашифрованные данные от клиента
+        unsigned char ciphertext[MAX_BUFFER_SIZE];
+        int ciphertext_len = SSL_read(ssl, ciphertext, sizeof(ciphertext));
 
-    // Расшифровываем данные
-    unsigned char decrypted_text[MAX_BUFFER_SIZE];
-    int decrypted_len;
+        // Расшифровываем данные
+        unsigned char decrypted_text[MAX_BUFFER_SIZE];
+        int decrypted_len;
 
-    // Инициализация контекста шифрования с ключом и IV
-    if (EVP_DecryptInit_ex(ctx, cipher, engine, NULL, NULL) != 1)
-        handleErrors();
+        // (как в предыдущем коде)
 
-    // Расшифровка данных
-    if (EVP_DecryptUpdate(ctx, decrypted_text, &decrypted_len, ciphertext, ciphertext_len) != 1)
-        handleErrors();
+        // Вывод расшифрованного сообщения
+        printf("Decrypted Text: %s\n", decrypted_text);
 
-    int final_len;
-    if (EVP_DecryptFinal_ex(ctx, decrypted_text + decrypted_len, &final_len) != 1)
-        handleErrors();
+        // Освобождение контекста шифрования
+        EVP_CIPHER_CTX_free(ctx);
 
-    decrypted_len += final_len;
-    decrypted_text[decrypted_len] = '\0';
-
-    // Вывод расшифрованного сообщения
-    printf("Decrypted Text: %s\n", decrypted_text);
-
-    // Освобождение контекста шифрования
-    EVP_CIPHER_CTX_free(ctx);
+        close(connfd);
+        SSL_free(ssl);
+    }
 
     close(sockfd);
-    close(connfd);
-    SSL_free(ssl);
     SSL_CTX_free(ssl_ctx);
 
     return 0;
