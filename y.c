@@ -6,6 +6,8 @@
 #include <openssl/evp.h>
 #include <openssl/opensslv.h>
 #include <openssl/engine.h>
+#include <openssl/err.h>
+
 // Функция для обработки ошибок OpenSSL
 void handleErrors(void)
 {
@@ -18,7 +20,7 @@ void encrypt_belt_cbc(const unsigned char *plaintext, size_t plaintext_len,
                       const unsigned char *key, const unsigned char *iv,
                       unsigned char **ciphertext, size_t *ciphertext_len)
 {
-    OPENSSL_init_crypto(OPENSSL_INIT_ENGINE_ALL_BUILTIN, NULL);
+    //OPENSSL_init_crypto(OPENSSL_INIT_ENGINE_ALL_BUILTIN, NULL);
 
     printf("OpenSSL Version: %s\n", 
     OpenSSL_version(OPENSSL_VERSION));
@@ -46,12 +48,12 @@ void encrypt_belt_cbc(const unsigned char *plaintext, size_t plaintext_len,
     }
 
     // Получаем список всех доступных движков
-    ENGINE *engine_list = ENGINE_get_first();
+    /*ENGINE *engine_list = ENGINE_get_first();
     while (engine_list != NULL)
     {
         printf("Доступный движок: %s\n", ENGINE_get_id(engine_list));
         engine_list = ENGINE_get_next(engine_list);
-    }
+    }*/
 
     ENGINE *engine = ENGINE_get_builtin_engine_by_id("bee2evp");
     if (engine)
@@ -129,12 +131,12 @@ void decrypt_belt_cbc(const unsigned char *ciphertext, size_t ciphertext_len,
     }
 
     // Получаем список всех доступных движков
-    ENGINE *engine_list = ENGINE_get_first();
+    /*ENGINE *engine_list = ENGINE_get_first();
     while (engine_list != NULL)
     {
         printf("Доступный движок: %s\n", ENGINE_get_id(engine_list));
         engine_list = ENGINE_get_next(engine_list);
-    }
+    }*/
     // Загрузка плагина bee2evp
     ENGINE *engine = ENGINE_get_builtin_engine_by_id("bee2evp");
     if (!engine)
