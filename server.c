@@ -29,12 +29,12 @@ SSL_CTX *createSSLContext() {
         handleErrors();
 
     // Загрузка корневого сертификата
-    if (SSL_CTX_load_verify_locations(ctx, "root_cert.pem", NULL) != 1)
+    if (SSL_CTX_load_verify_locations(ctx, "./keys/root_cert.pem", NULL) != 1)
         handleErrors();
 
     // Загрузка сертификата и ключа сервера
-    if (SSL_CTX_use_certificate_file(ctx, "server_cert.pem", SSL_FILETYPE_PEM) != 1 ||
-        SSL_CTX_use_PrivateKey_file(ctx, "server_key.pem", SSL_FILETYPE_PEM) != 1)
+    if (SSL_CTX_use_certificate_file(ctx, "./keys/server_cert.pem", SSL_FILETYPE_PEM) != 1 ||
+        SSL_CTX_use_PrivateKey_file(ctx, "./keys/server_key.pem", SSL_FILETYPE_PEM) != 1)
         handleErrors();
 
     // Проверка правильности ключа
@@ -45,6 +45,10 @@ SSL_CTX *createSSLContext() {
 }
 
 int main() {
+    OPENSSL_init_crypto(OPENSSL_INIT_ENGINE_ALL_BUILTIN |
+                            OPENSSL_INIT_LOAD_CONFIG,
+                        NULL);
+
     ENGINE *engine = ENGINE_by_id("bee2evp");
     if (engine) {
         ENGINE_ctrl_cmd_string(engine, "DIR_LOAD", "/home/on/bee2evp/build/local/lib/libbee2evp.so", 0);
