@@ -7,6 +7,11 @@
 #include <openssl/engine.h>
 #include <openssl/ssl.h>
 
+
+
+const unsigned char *key = (const unsigned char *)"0123456789ABCDEF";
+const unsigned char *iv = (const unsigned char *)"FEDCBA9876543210";
+
 #define PORT 12345
 #define MAX_BUFFER_SIZE 1024
 
@@ -83,6 +88,33 @@ int main() {
       // Создание SSL контекста
     SSL_CTX *ssl_ctx = createSSLContext();
 
+    // Показываем пользователю доступные алгоритмы шифрования
+    printf("Available ciphers:\n");
+    const char *cipherName;
+    for (int i = 0; (cipherName = SSL_get_cipher_list(NULL, i)) != NULL; i++) {
+        printf("%d. %s\n", i + 1, cipherName);
+    }
+
+    // Выбираем алгоритм шифрования
+    int choice;
+    printf("Choose a cipher (1-%d): ", i);
+    scanf("%d", &choice);
+    if (choice < 1 || choice > i) {
+        fprintf(stderr, "Invalid choice.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    // Получение алгоритма шифрования
+    const EVP_CIPHER *cipher = SSL_get_cipher_by_value(choice);
+
+    // Инициализация контекста шифрования с ключом и IV
+    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
+    if (!ctx)
+        handleErrors();
+
+    if (EVP_DecryptInit_ex(ctx, cipher, engine, key, iv) != 1)
+        handleErrors();
+
     // Устанавливаем серверный сокет
     int sockfd, connfd;
     struct sockaddr_in server_addr, client_addr;
@@ -124,22 +156,26 @@ int main() {
         unsigned char decrypted_text[MAX_BUFFER_SIZE];
         int decrypted_len;
 
-        // Инициализация контекста шифрования с ключом и IV
-        EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
-        if (!ctx)
+        // Расшифровка данных
+        if (EVP_DecryptUpdate(ctx, decrypted_text, &decrypted_len, ciphertext, ciphertext_len) != 1)
             handleErrors();
 
-        // (как в предыдущем коде)
+        int final_len;
+        if (EVP_DecryptFinal_ex(ctx, decrypted_text + decrypted_len, &final_len) != 1)
+            handleErrors();
+
+        decrypted_len += final_len;
+        decrypted_text[decrypted_len] = '\0';
 
         // Вывод расшифрованного сообщения
         printf("Decrypted Text: %s\n", decrypted_text);
 
-        // Освобождение контекста шифрования
-        EVP_CIPHER_CTX_free(ctx);
-
         close(connfd);
         SSL_free(ssl);
     }
+
+    // Освобождение контекста шифрования
+    EVP_CIPHER_CTX_free(ctx);
 
     close(sockfd);
     SSL_CTX_free(ssl_ctx);
