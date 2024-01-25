@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <openssl/conf.h>
+#include <openssl/crypto.h>
 #include <arpa/inet.h>
 #include <openssl/evp.h>
 #include <openssl/engine.h>
@@ -9,6 +11,11 @@
 
 #define PORT 12345
 #define MAX_BUFFER_SIZE 1024
+
+const unsigned char *key = (const unsigned char *)"0123456789ABCDEF";
+const unsigned char *iv = (const unsigned char *)"FEDCBA9876543210";
+
+
 
 void handleErrors() {
     fprintf(stderr, "Error occurred.\n");
@@ -124,7 +131,7 @@ int main() {
     int ciphertext_len;
 
     // Инициализация контекста шифрования с ключом и IV
-    if (EVP_EncryptInit_ex(ctx, cipher, engine, NULL, NULL) != 1)
+    if (EVP_EncryptInit_ex(ctx, cipher, engine, key, iv) != 1)
         handleErrors();
 
     // Зашифрование данных
