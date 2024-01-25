@@ -45,10 +45,38 @@ SSL_CTX *createSSLContext() {
 }
 
 int main() {
+    OPENSSL_init_crypto(OPENSSL_INIT_ENGINE_ALL_BUILTIN |
+                            OPENSSL_INIT_LOAD_CONFIG,
+                        NULL);
+    CONF_METHOD *conf_method = NCONF_default();
+    if (conf_method)
+    {
+        CONF *conf = NCONF_new(conf_method);
+        if (conf)
+        {
+            NCONF_dump_fp(conf, stdout);
+            NCONF_free(conf);
+        }
+        else
+        {
+            fprintf(stderr, "Failed to create OpenSSL configuration.\n");
+        }
+    }
+    else
+    {
+        fprintf(stderr, "Failed to get OpenSSL configuration method.\n");
+    }
+     // Получаем список всех доступных движков
+    ENGINE *engine_list = ENGINE_get_first();
+    while (engine_list != NULL)
+    {
+        printf("Доступный движок: %s\n", ENGINE_get_id(engine_list));
+        engine_list = ENGINE_get_next(engine_list);
+    }
+
     ENGINE *engine = ENGINE_by_id("bee2evp");
-    if (engine) {
-        ENGINE_ctrl_cmd_string(engine, "DIR_LOAD", "/home/on/bee2evp/build/local/lib/libbee2evp.so", 0);
-    } else {
+    if (!engine)
+    {
         fprintf(stderr, "Failed to load bee2evp engine: %s\n", ERR_error_string(ERR_get_error(), NULL));
         handleErrors();
     }
@@ -76,7 +104,7 @@ int main() {
     memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(PORT);
-    server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    server_addr.sin_addr.s_addr = inet_addr("192.168.1.5");
 
     if (connect(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0)
         handleErrors();
