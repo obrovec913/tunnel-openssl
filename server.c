@@ -85,27 +85,30 @@ int main() {
         fprintf(stderr, "Failed to load bee2evp engine: %s\n", ERR_error_string(ERR_get_error(), NULL));
         handleErrors();
     }
-      // Создание SSL контекста
+     // Создание SSL контекста
     SSL_CTX *ssl_ctx = createSSLContext();
 
     // Показываем пользователю доступные алгоритмы шифрования
     printf("Available ciphers:\n");
-    const char *cipherName;
-    for (int i = 0; (cipherName = SSL_get_cipher_list(NULL, i)) != NULL; i++) {
+    STACK_OF(SSL_CIPHER) *ciphers = SSL_get_ciphers(ssl_ctx);
+    for (int i = 0; i < sk_SSL_CIPHER_num(ciphers); i++) {
+        SSL_CIPHER *cipher = sk_SSL_CIPHER_value(ciphers, i);
+        const char *cipherName = SSL_CIPHER_get_name(cipher);
         printf("%d. %s\n", i + 1, cipherName);
     }
 
     // Выбираем алгоритм шифрования
     int choice;
-    printf("Choose a cipher (1-%d): ", i);
+    printf("Choose a cipher (1-%d): ", sk_SSL_CIPHER_num(ciphers));
     scanf("%d", &choice);
-    if (choice < 1 || choice > i) {
+    if (choice < 1 || choice > sk_SSL_CIPHER_num(ciphers)) {
         fprintf(stderr, "Invalid choice.\n");
         exit(EXIT_FAILURE);
     }
 
     // Получение алгоритма шифрования
-    const EVP_CIPHER *cipher = SSL_get_cipher_by_value(choice);
+    SSL_CIPHER *selectedCipher = sk_SSL_CIPHER_value(ciphers, choice - 1);
+    const EVP_CIPHER *cipher = EVP_get_cipherbyname(SSL_CIPHER_get_name(selectedCipher));
 
     // Инициализация контекста шифрования с ключом и IV
     EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
