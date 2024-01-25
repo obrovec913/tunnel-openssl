@@ -89,7 +89,7 @@ int main() {
     SSL_CTX *ssl_ctx = createSSLContext();
 
     // Показываем пользователю доступные алгоритмы шифрования
-    printf("Available ciphers:\n");
+   /* printf("Available ciphers:\n");
     STACK_OF(SSL_CIPHER) *ciphers = SSL_get_ciphers(ssl_ctx);
     for (int i = 0; i < sk_SSL_CIPHER_num(ciphers); i++) {
         SSL_CIPHER *cipher = sk_SSL_CIPHER_value(ciphers, i);
@@ -107,8 +107,8 @@ int main() {
     }
 
     // Получение алгоритма шифрования
-    SSL_CIPHER *selectedCipher = sk_SSL_CIPHER_value(ciphers, choice - 1);
-    const EVP_CIPHER *cipher = EVP_get_cipherbyname(SSL_CIPHER_get_name(selectedCipher));
+    SSL_CIPHER *selectedCipher = sk_SSL_CIPHER_value(ciphers, choice - 1);*/
+    const EVP_CIPHER *cipher = EVP_get_cipherbyname("belt-cbc128");
 
     // Инициализация контекста шифрования с ключом и IV
     EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
