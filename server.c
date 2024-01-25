@@ -7,21 +7,21 @@
 #include <openssl/engine.h>
 #include <openssl/ssl.h>
 
-
-
 const unsigned char *key = (const unsigned char *)"0123456789ABCDEF";
 const unsigned char *iv = (const unsigned char *)"FEDCBA9876543210";
 
 #define PORT 12345
 #define MAX_BUFFER_SIZE 1024
 
-void handleErrors() {
+void handleErrors()
+{
     fprintf(stderr, "Error occurred.\n");
     ERR_print_errors_fp(stderr);
     exit(EXIT_FAILURE);
 }
 
-SSL_CTX *createSSLContext() {
+SSL_CTX *createSSLContext()
+{
     SSL_CTX *ctx;
 
     // Инициализация OpenSSL
@@ -49,7 +49,8 @@ SSL_CTX *createSSLContext() {
     return ctx;
 }
 
-int main() {
+int main()
+{
     OPENSSL_init_crypto(OPENSSL_INIT_ENGINE_ALL_BUILTIN |
                             OPENSSL_INIT_LOAD_CONFIG,
                         NULL);
@@ -71,7 +72,7 @@ int main() {
     {
         fprintf(stderr, "Failed to get OpenSSL configuration method.\n");
     }
-      // Получаем список всех доступных движков
+    // Получаем список всех доступных движков
     ENGINE *engine_list = ENGINE_get_first();
     while (engine_list != NULL)
     {
@@ -85,29 +86,29 @@ int main() {
         fprintf(stderr, "Failed to load bee2evp engine: %s\n", ERR_error_string(ERR_get_error(), NULL));
         handleErrors();
     }
-     // Создание SSL контекста
+    // Создание SSL контекста
     SSL_CTX *ssl_ctx = createSSLContext();
 
     // Показываем пользователю доступные алгоритмы шифрования
-   /* printf("Available ciphers:\n");
-    STACK_OF(SSL_CIPHER) *ciphers = SSL_get_ciphers(ssl_ctx);
-    for (int i = 0; i < sk_SSL_CIPHER_num(ciphers); i++) {
-        SSL_CIPHER *cipher = sk_SSL_CIPHER_value(ciphers, i);
-        const char *cipherName = SSL_CIPHER_get_name(cipher);
-        printf("%d. %s\n", i + 1, cipherName);
-    }
+    /* printf("Available ciphers:\n");
+     STACK_OF(SSL_CIPHER) *ciphers = SSL_get_ciphers(ssl_ctx);
+     for (int i = 0; i < sk_SSL_CIPHER_num(ciphers); i++) {
+         SSL_CIPHER *cipher = sk_SSL_CIPHER_value(ciphers, i);
+         const char *cipherName = SSL_CIPHER_get_name(cipher);
+         printf("%d. %s\n", i + 1, cipherName);
+     }
 
-    // Выбираем алгоритм шифрования
-    int choice;
-    printf("Choose a cipher (1-%d): ", sk_SSL_CIPHER_num(ciphers));
-    scanf("%d", &choice);
-    if (choice < 1 || choice > sk_SSL_CIPHER_num(ciphers)) {
-        fprintf(stderr, "Invalid choice.\n");
-        exit(EXIT_FAILURE);
-    }
+     // Выбираем алгоритм шифрования
+     int choice;
+     printf("Choose a cipher (1-%d): ", sk_SSL_CIPHER_num(ciphers));
+     scanf("%d", &choice);
+     if (choice < 1 || choice > sk_SSL_CIPHER_num(ciphers)) {
+         fprintf(stderr, "Invalid choice.\n");
+         exit(EXIT_FAILURE);
+     }
 
-    // Получение алгоритма шифрования
-    SSL_CIPHER *selectedCipher = sk_SSL_CIPHER_value(ciphers, choice - 1);*/
+     // Получение алгоритма шифрования
+     SSL_CIPHER *selectedCipher = sk_SSL_CIPHER_value(ciphers, choice - 1);*/
     const EVP_CIPHER *cipher = EVP_get_cipherbyname("belt-cbc128");
 
     // Инициализация контекста шифрования с ключом и IV
@@ -131,15 +132,16 @@ int main() {
     server_addr.sin_port = htons(PORT);
     server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
-    if (bind(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0)
+    if (bind(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
         handleErrors();
 
     if (listen(sockfd, 5) < 0)
         handleErrors();
 
-    while (1) {  // бесконечный цикл для прослушивания порта
+    while (1)
+    { // бесконечный цикл для прослушивания порта
         len = sizeof(client_addr);
-        connfd = accept(sockfd, (struct sockaddr*)&client_addr, &len);
+        connfd = accept(sockfd, (struct sockaddr *)&client_addr, &len);
         if (connfd < 0)
             handleErrors();
 
@@ -154,6 +156,13 @@ int main() {
         // Получаем зашифрованные данные от клиента
         unsigned char ciphertext[MAX_BUFFER_SIZE];
         int ciphertext_len = SSL_read(ssl, ciphertext, sizeof(ciphertext));
+        // Выводим зашифрованные данные
+        printf("Encrypted Text: ");
+        for (int i = 0; i < ciphertext_len; i++)
+        {
+            printf("%02x ", ciphertext[i]);
+        }
+        printf("\n");
 
         // Расшифровываем данные
         unsigned char decrypted_text[MAX_BUFFER_SIZE];
