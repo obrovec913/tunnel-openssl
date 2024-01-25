@@ -29,12 +29,12 @@ SSL_CTX *createSSLContext() {
         handleErrors();
 
     // Загрузка корневого сертификата
-    if (SSL_CTX_load_verify_locations(ctx, "root_cert.pem", NULL) != 1)
+    if (SSL_CTX_load_verify_locations(ctx, "./keys/root_cert.pem", NULL) != 1)
         handleErrors();
 
     // Загрузка сертификата и ключа клиента
-    if (SSL_CTX_use_certificate_file(ctx, "client_cert.pem", SSL_FILETYPE_PEM) != 1 ||
-        SSL_CTX_use_PrivateKey_file(ctx, "client_key.pem", SSL_FILETYPE_PEM) != 1)
+    if (SSL_CTX_use_certificate_file(ctx, "./keys/client_cert.pem", SSL_FILETYPE_PEM) != 1 ||
+        SSL_CTX_use_PrivateKey_file(ctx, "./keys/client_key.pem", SSL_FILETYPE_PEM) != 1)
         handleErrors();
 
     // Проверка правильности ключа
