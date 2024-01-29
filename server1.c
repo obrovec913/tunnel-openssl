@@ -118,7 +118,7 @@ int main()
     if (!ctx)
         handleErrors();
 
-    if (EVP_DecryptInit_ex(ctx, cipher, engine, key, iv) != 1)
+    if (EVP_DecryptInit_ex(ctx, cipher, engine, NULL, NULL) != 1)
         handleErrors();
 
     // Устанавливаем серверный сокет

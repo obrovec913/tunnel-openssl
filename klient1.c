@@ -124,56 +124,67 @@ int main() {
     if (SSL_connect(ssl) != 1)
         handleErrors();
 
-    // Отправляем зашифрованное сообщение на сервер
+    // Отправляем длину файла на сервер
     FILE *file = fopen("test_data.txt", "r");
     if (!file) {
         fprintf(stderr, "Failed to open test_data.txt.\n");
         handleErrors();
     }
 
-    unsigned char buffer[MAX_BUFFER_SIZE];
-    size_t bytes_read;
+    fseek(file, 0, SEEK_END);
+    size_t file_size = ftell(file);
+    fseek(file, 0, SEEK_SET);
 
-    struct timeval start, end;
-    gettimeofday(&start, NULL);
+    if (SSL_write(ssl, &file_size, sizeof(file_size)) <= 0)
+    {
+        handleErrors();
+    }
 
-     while ((bytes_read = fread(buffer, 1, sizeof(buffer), file)) > 0) {
-        int ciphertext_len;
-        unsigned char ciphertext[MAX_BUFFER_SIZE];
+    // Читаем данные файла целиком в буфер
+    unsigned char *file_buffer = (unsigned char *)malloc(file_size);
+    if (!file_buffer)
+    {
+        fclose(file);
+        handleErrors();
+    }
 
-        if (EVP_EncryptInit_ex(ctx, cipher, engine, NULL, NULL) != 1)
-            handleErrors();
-
-        int update_len, final_len;
-
-        if (EVP_EncryptUpdate(ctx, ciphertext, &update_len, buffer, bytes_read) != 1)
-            handleErrors();
-
-        if (EVP_EncryptFinal_ex(ctx, ciphertext + update_len, &final_len) != 1)
-            handleErrors();
-
-        ciphertext_len = update_len + final_len;
-
-        int bytes_sent = SSL_write(ssl, &ciphertext_len, sizeof(ciphertext_len));  // Отправляем длину данных
-        if (bytes_sent <= 0)
-        {
-            handleErrors();
-        }
-
-        bytes_sent = SSL_write(ssl, ciphertext, ciphertext_len);  // Отправляем сами данные
-        if (bytes_sent <= 0)
-        {
-            handleErrors();
-        }
+    if (fread(file_buffer, 1, file_size, file) != file_size)
+    {
+        fclose(file);
+        free(file_buffer);
+        handleErrors();
     }
 
     fclose(file);
 
+    // Зашифровываем и отправляем данные файла целиком
+    int ciphertext_len;
+    unsigned char ciphertext[MAX_BUFFER_SIZE];
+
+    if (EVP_EncryptInit_ex(ctx, cipher, engine, NULL, NULL) != 1)
+        handleErrors();
+
+    int update_len, final_len;
+
+    if (EVP_EncryptUpdate(ctx, ciphertext, &update_len, file_buffer, file_size) != 1)
+        handleErrors();
+
+    if (EVP_EncryptFinal_ex(ctx, ciphertext + update_len, &final_len) != 1)
+        handleErrors();
+
+    ciphertext_len = update_len + final_len;
+
+    if (SSL_write(ssl, ciphertext, ciphertext_len) <= 0)
+    {
+        free(file_buffer);
+        handleErrors();
+    }
+
+    free(file_buffer);
+
     // Получаем зашифрованный ответ от сервера
     unsigned char encrypted_response[MAX_BUFFER_SIZE];
     int encrypted_len = SSL_read(ssl, encrypted_response, sizeof(encrypted_response));
-
-    gettimeofday(&end, NULL);
 
     // Выводим зашифрованный ответ
     printf("Encrypted Response: ");
@@ -209,11 +220,6 @@ int main() {
     SSL_free(ssl);
     SSL_CTX_free(ssl_ctx);
 
-    // Вычисляем и выводим время отправки и получения
-    long seconds = end.tv_sec - start.tv_sec;
-    long microseconds = end.tv_usec - start.tv_usec;
-    double elapsed = seconds + microseconds * 1e-6;
-    printf("Time taken: %f seconds\n", elapsed);
-
     return 0;
 }
+\
