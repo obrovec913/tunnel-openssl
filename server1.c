@@ -155,10 +155,20 @@ int main()
 
         // Получаем зашифрованные данные от клиента
         unsigned char ciphertext[MAX_BUFFER_SIZE];
-        int ciphertext_len = SSL_read(ssl, ciphertext, sizeof(ciphertext));
+        int total_received = 0;
+        int bytes_received;
+
+        // Читаем данные по частям
+        while ((bytes_received = SSL_read(ssl, ciphertext + total_received, sizeof(ciphertext) - total_received)) > 0)
+        {
+            total_received += bytes_received;
+
+            // Обработка данных (ваш код обработки)
+        }
+
         // Выводим зашифрованные данные
         printf("Encrypted Text: ");
-        for (int i = 0; i < 16 && i < ciphertext_len; i++)
+        for (int i = 0; i < 16 && i < total_received; i++)
         {
             printf("%02x ", ciphertext[i]);
         }
@@ -169,7 +179,7 @@ int main()
         int decrypted_len;
 
         // Расшифровка данных
-        if (EVP_DecryptUpdate(ctx, decrypted_text, &decrypted_len, ciphertext, ciphertext_len) != 1)
+        if (EVP_DecryptUpdate(ctx, decrypted_text, &decrypted_len, ciphertext, total_received) != 1)
             handleErrors();
 
         int final_len;
@@ -180,7 +190,7 @@ int main()
         decrypted_text[decrypted_len] = '\0';
 
         // Вывод расшифрованного сообщения
-        printf("Decrypted Text: 100\n" );
+        printf("Decrypted Text: %s\n", decrypted_text);
 
         // Обрабатываем данные (например, меняем местами слова)
         char processed_text[MAX_BUFFER_SIZE];
@@ -203,10 +213,18 @@ int main()
         encrypted_len += final_enc_len;
 
         // Отправляем зашифрованный ответ клиенту
-        int bytes_sent = SSL_write(ssl, encrypted_response, encrypted_len);
-        if (bytes_sent <= 0)
+        int total_sent = 0;
+        int bytes_sent;
+
+        // Отправляем данные по частям
+        while (total_sent < encrypted_len)
         {
-            handleErrors();
+            bytes_sent = SSL_write(ssl, encrypted_response + total_sent, encrypted_len - total_sent);
+            if (bytes_sent <= 0)
+            {
+                handleErrors();
+            }
+            total_sent += bytes_sent;
         }
 
         close(connfd);
