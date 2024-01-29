@@ -142,10 +142,14 @@ int main()
 
         int message_size;
         int bytes_size_received = SSL_read(ssl, &message_size, sizeof(message_size));
-        if (bytes_size_received != sizeof(message_size)) {
+        if (bytes_size_received != sizeof(message_size))
+        {
             fprintf(stderr, "Error reading message size.\n");
             handleErrors();
         }
+        // Инициализация контекста шифрования с ключом и IV
+        if (EVP_EncryptInit_ex(ctx, cipher, engine, NULL, NULL) != 1)
+            handleErrors();
 
         // Читаем данные по частям
         while ((bytes_received = SSL_read(ssl, ciphertext + total_received, sizeof(ciphertext) - total_received)) > 0)
@@ -188,7 +192,8 @@ int main()
             encrypted_len += final_enc_len;
 
             // Отправляем размер зашифрованного ответа
-            if (SSL_write(ssl, &encrypted_len, sizeof(encrypted_len)) != sizeof(encrypted_len)) {
+            if (SSL_write(ssl, &encrypted_len, sizeof(encrypted_len)) != sizeof(encrypted_len))
+            {
                 fprintf(stderr, "Error writing encrypted response size.\n");
                 handleErrors();
             }
