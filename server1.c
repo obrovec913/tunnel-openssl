@@ -161,6 +161,7 @@ int main()
         {
             handleErrors();
         }
+        printf("Dy\n");
 
         // Далее вы можете расшифровать данные, используя ваш код расшифровки
         unsigned char decrypted_text[MAX_BUFFER_SIZE];
