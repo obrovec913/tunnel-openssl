@@ -147,6 +147,7 @@ int main()
             fprintf(stderr, "Error reading message size.\n");
             handleErrors();
         }
+        unsigned char ciphertext[MAX_BUFFER_SIZE];
         // Инициализация контекста шифрования с ключом и IV
         if (EVP_EncryptInit_ex(ctx, cipher, engine, NULL, NULL) != 1)
             handleErrors();
