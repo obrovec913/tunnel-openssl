@@ -205,7 +205,7 @@ int main() {
     decrypted_response[decrypted_len] = '\0';
 
     // Вывод расшифрованного ответа
-    printf("Decrypted Response: 100мб\n", );
+    printf("Decrypted Response: 100\n");
 
     // Завершение соединения
     SSL_shutdown(ssl);

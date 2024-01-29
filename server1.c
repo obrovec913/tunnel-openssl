@@ -180,7 +180,7 @@ int main()
         decrypted_text[decrypted_len] = '\0';
 
         // Вывод расшифрованного сообщения
-        printf("Decrypted Text: 100мб\n", );
+        printf("Decrypted Text: 100\n" );
 
         // Обрабатываем данные (например, меняем местами слова)
         char processed_text[MAX_BUFFER_SIZE];
