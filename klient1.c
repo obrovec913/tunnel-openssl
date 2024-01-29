@@ -124,71 +124,71 @@ int main() {
     if (SSL_connect(ssl) != 1)
         handleErrors();
 
-    // Отправляем длину файла на сервер
+    // Открываем файл для чтения
     FILE *file = fopen("test_data.txt", "r");
     if (!file) {
         fprintf(stderr, "Failed to open test_data.txt.\n");
         handleErrors();
     }
 
+    // Получаем размер файла
     fseek(file, 0, SEEK_END);
     size_t file_size = ftell(file);
     fseek(file, 0, SEEK_SET);
 
-    if (SSL_write(ssl, &file_size, sizeof(file_size)) <= 0)
-    {
+    // Выделяем буфер для данных файла
+    unsigned char *file_data = (unsigned char *)malloc(file_size);
+    if (!file_data) {
+        fprintf(stderr, "Failed to allocate memory.\n");
         handleErrors();
     }
 
-    // Читаем данные файла целиком в буфер
-    unsigned char *file_buffer = (unsigned char *)malloc(file_size);
-    if (!file_buffer)
-    {
-        fclose(file);
+    // Читаем данные файла
+    size_t bytes_read = fread(file_data, 1, file_size, file);
+
+    // Инициализируем контекст шифрования
+    if (EVP_EncryptInit_ex(ctx, cipher, engine, NULL, NULL) != 1)
+        handleErrors();
+
+    // Выделяем буфер для зашифрованных данных
+    unsigned char *encrypted_data = (unsigned char *)malloc(file_size + EVP_CIPHER_block_size(cipher));
+    if (!encrypted_data) {
+        fprintf(stderr, "Failed to allocate memory.\n");
         handleErrors();
     }
 
-    if (fread(file_buffer, 1, file_size, file) != file_size)
-    {
-        fclose(file);
-        free(file_buffer);
+    int encrypted_len;
+
+    // Шифруем данные
+    if (EVP_EncryptUpdate(ctx, encrypted_data, &encrypted_len, file_data, bytes_read) != 1)
+        handleErrors();
+
+    int final_len;
+    if (EVP_EncryptFinal_ex(ctx, encrypted_data + encrypted_len, &final_len) != 1)
+        handleErrors();
+
+    encrypted_len += final_len;
+
+    // Отправляем размер файла и зашифрованные данные на сервер
+    if (SSL_write(ssl, &file_size, sizeof(file_size)) <= 0) {
+        handleErrors();
+    }
+
+    if (SSL_write(ssl, encrypted_data, encrypted_len) <= 0) {
         handleErrors();
     }
 
     fclose(file);
-
-    // Зашифровываем и отправляем данные файла целиком
-    int ciphertext_len;
-    unsigned char ciphertext[MAX_BUFFER_SIZE];
-
-    if (EVP_EncryptInit_ex(ctx, cipher, engine, NULL, NULL) != 1)
-        handleErrors();
-
-    int update_len, final_len;
-
-    if (EVP_EncryptUpdate(ctx, ciphertext, &update_len, file_buffer, file_size) != 1)
-        handleErrors();
-
-    if (EVP_EncryptFinal_ex(ctx, ciphertext + update_len, &final_len) != 1)
-        handleErrors();
-
-    ciphertext_len = update_len + final_len;
-
-    if (SSL_write(ssl, ciphertext, ciphertext_len) <= 0)
-    {
-        free(file_buffer);
-        handleErrors();
-    }
-
-    free(file_buffer);
+    free(file_data);
+    free(encrypted_data);
 
     // Получаем зашифрованный ответ от сервера
     unsigned char encrypted_response[MAX_BUFFER_SIZE];
-    int encrypted_len = SSL_read(ssl, encrypted_response, sizeof(encrypted_response));
+    int encrypted_response_len = SSL_read(ssl, encrypted_response, sizeof(encrypted_response));
 
     // Выводим зашифрованный ответ
     printf("Encrypted Response: ");
-    for (int i = 0; i < encrypted_len; i++)
+    for (int i = 0; i < encrypted_response_len; i++)
     {
         printf("%02x ", encrypted_response[i]);
     }
@@ -198,10 +198,12 @@ int main() {
     unsigned char decrypted_response[MAX_BUFFER_SIZE];
     int decrypted_len;
 
+    // Инициализируем контекст шифрования для расшифровки
     if (EVP_DecryptInit_ex(ctx, cipher, engine, NULL, NULL) != 1)
         handleErrors();
 
-    if (EVP_DecryptUpdate(ctx, decrypted_response, &decrypted_len, encrypted_response, encrypted_len) != 1)
+    // Расшифровываем данные
+    if (EVP_DecryptUpdate(ctx, decrypted_response, &decrypted_len, encrypted_response, encrypted_response_len) != 1)
         handleErrors();
 
     int final_dec_len;
