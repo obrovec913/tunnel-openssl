@@ -11,7 +11,7 @@ const unsigned char *key = (const unsigned char *)"0123456789ABCDEF";
 const unsigned char *iv = (const unsigned char *)"FEDCBA9876543210";
 
 #define PORT 12345
-#define MAX_BUFFER_SIZE 10024
+#define MAX_BUFFER_SIZE 2024
 
 void handleErrors()
 {
@@ -91,34 +91,13 @@ int main()
     // Создание SSL контекста
     SSL_CTX *ssl_ctx = createSSLContext();
 
-    // Показываем пользователю доступные алгоритмы шифрования
-    /* printf("Available ciphers:\n");
-     STACK_OF(SSL_CIPHER) *ciphers = SSL_get_ciphers(ssl_ctx);
-     for (int i = 0; i < sk_SSL_CIPHER_num(ciphers); i++) {
-         SSL_CIPHER *cipher = sk_SSL_CIPHER_value(ciphers, i);
-         const char *cipherName = SSL_CIPHER_get_name(cipher);
-         printf("%d. %s\n", i + 1, cipherName);
-     }
-
-     // Выбираем алгоритм шифрования
-     int choice;
-     printf("Choose a cipher (1-%d): ", sk_SSL_CIPHER_num(ciphers));
-     scanf("%d", &choice);
-     if (choice < 1 || choice > sk_SSL_CIPHER_num(ciphers)) {
-         fprintf(stderr, "Invalid choice.\n");
-         exit(EXIT_FAILURE);
-     }
-
-     // Получение алгоритма шифрования
-     SSL_CIPHER *selectedCipher = sk_SSL_CIPHER_value(ciphers, choice - 1);*/
-    const EVP_CIPHER *cipher = EVP_get_cipherbyname("belt-cbc128");
-
     // Инициализация контекста шифрования с ключом и IV
+    const EVP_CIPHER *cipher = EVP_get_cipherbyname("belt-cbc128");
     EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
     if (!ctx)
         handleErrors();
 
-    if (EVP_DecryptInit_ex(ctx, cipher, engine, NULL, NULL) != 1)
+    if (EVP_DecryptInit_ex(ctx, cipher, engine, key, iv) != 1)
         handleErrors();
 
     // Устанавливаем серверный сокет
@@ -141,7 +120,8 @@ int main()
         handleErrors();
 
     while (1)
-    { // бесконечный цикл для прослушивания порта
+    {
+        // бесконечный цикл для прослушивания порта
         len = sizeof(client_addr);
         connfd = accept(sockfd, (struct sockaddr *)&client_addr, &len);
         if (connfd < 0)
@@ -154,6 +134,8 @@ int main()
         // Устанавливаем SSL соединение
         if (SSL_accept(ssl) != 1)
             handleErrors();
+        
+        printf("got server\n");
 
         // Получаем зашифрованные данные от клиента
         int ciphertext_len;
@@ -163,6 +145,7 @@ int main()
         {
             handleErrors();
         }
+        printf("res\n");
 
         // Выделяем буфер для зашифрованных данных
         unsigned char *ciphertext = (unsigned char *)malloc(ciphertext_len);
@@ -201,26 +184,30 @@ int main()
         snprintf(processed_text, MAX_BUFFER_SIZE, "Processed: %s", decrypted_text);
 
         // Зашифровываем обработанный ответ
-        if (EVP_EncryptInit_ex(ctx, cipher, engine, NULL, NULL) != 1)
+        if (EVP_EncryptInit_ex(ctx, cipher, engine, key, iv) != 1)
             handleErrors();
 
-        int encrypted_len = decrypted_len + EVP_CIPHER_block_size(cipher);
-        unsigned char *encrypted_response = (unsigned char *)malloc(encrypted_len);
+        unsigned char *encrypted_response;
+        int encrypted_len;
+
+        if (EVP_EncryptUpdate(ctx, NULL, &encrypted_len, (const unsigned char *)processed_text, strlen(processed_text)) != 1)
+            handleErrors();
+
+        encrypted_response = (unsigned char *)malloc(encrypted_len);
         if (!encrypted_response)
         {
             fprintf(stderr, "Memory allocation failed.\n");
             exit(EXIT_FAILURE);
         }
 
-        int update_len, final_enc_len;
-
-        if (EVP_EncryptUpdate(ctx, encrypted_response, &update_len, (const unsigned char *)processed_text, decrypted_len) != 1)
+        if (EVP_EncryptUpdate(ctx, encrypted_response, &encrypted_len, (const unsigned char *)processed_text, strlen(processed_text)) != 1)
             handleErrors();
 
-        if (EVP_EncryptFinal_ex(ctx, encrypted_response + update_len, &final_enc_len) != 1)
+        int final_enc_len;
+        if (EVP_EncryptFinal_ex(ctx, encrypted_response + encrypted_len, &final_enc_len) != 1)
             handleErrors();
 
-        encrypted_len = update_len + final_enc_len;
+        encrypted_len += final_enc_len;
 
         // Отправляем зашифрованный ответ клиенту
         int total_sent = 0;
