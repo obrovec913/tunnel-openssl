@@ -111,7 +111,7 @@ int main()
 
      // Получение алгоритма шифрования
      SSL_CIPHER *selectedCipher = sk_SSL_CIPHER_value(ciphers, choice - 1);*/
-    const EVP_CIPHER *cipher =  EVP_get_cipherbyname("belt-cbc128");
+    const EVP_CIPHER *cipher = EVP_get_cipherbyname("belt-cbc128");
 
     // Инициализация контекста шифрования с ключом и IV
     EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
@@ -165,7 +165,7 @@ int main()
         }
 
         // Выделяем буфер для зашифрованных данных
-        unsigned char *ciphertext = (unsigned char *)malloc(ciphertext_len);
+        unsigned char *ciphertext = (unsigned char *)malloc(ciphertext_len + EVP_CIPHER_block_size(cipher));
         if (!ciphertext)
         {
             fprintf(stderr, "Memory allocation failed.\n");
@@ -204,27 +204,23 @@ int main()
         if (EVP_EncryptInit_ex(ctx, cipher, engine, NULL, NULL) != 1)
             handleErrors();
 
-        unsigned char *encrypted_response;
-        int encrypted_len;
-
-        if (EVP_EncryptUpdate(ctx, NULL, &encrypted_len, (const unsigned char *)processed_text, strlen(processed_text)) != 1)
-            handleErrors();
-
-        encrypted_response = (unsigned char *)malloc(encrypted_len);
+        int encrypted_len = decrypted_len + EVP_CIPHER_block_size(cipher);
+        unsigned char *encrypted_response = (unsigned char *)malloc(encrypted_len);
         if (!encrypted_response)
         {
             fprintf(stderr, "Memory allocation failed.\n");
             exit(EXIT_FAILURE);
         }
 
-        if (EVP_EncryptUpdate(ctx, encrypted_response, &encrypted_len, (const unsigned char *)processed_text, strlen(processed_text)) != 1)
+        int update_len, final_enc_len;
+
+        if (EVP_EncryptUpdate(ctx, encrypted_response, &update_len, (const unsigned char *)processed_text, decrypted_len) != 1)
             handleErrors();
 
-        int final_enc_len;
-        if (EVP_EncryptFinal_ex(ctx, encrypted_response + encrypted_len, &final_enc_len) != 1)
+        if (EVP_EncryptFinal_ex(ctx, encrypted_response + update_len, &final_enc_len) != 1)
             handleErrors();
 
-        encrypted_len += final_enc_len;
+        encrypted_len = update_len + final_enc_len;
 
         // Отправляем зашифрованный ответ клиенту
         int total_sent = 0;
