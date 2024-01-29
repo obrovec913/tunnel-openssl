@@ -125,7 +125,7 @@ int main() {
         handleErrors();
 
     // Отправляем зашифрованное сообщение на сервер
-    FILE *file = fopen("test_data.bin", "rb");
+    FILE *file = fopen("test_data.txt", "rb");
     if (!file) {
         fprintf(stderr, "Failed to open test_data.bin.\n");
         handleErrors();
