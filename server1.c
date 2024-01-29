@@ -72,6 +72,7 @@ int main()
     {
         fprintf(stderr, "Failed to get OpenSSL configuration method.\n");
     }
+
     // Получаем список всех доступных движков
     ENGINE *engine_list = ENGINE_get_first();
     while (engine_list != NULL)
@@ -86,29 +87,11 @@ int main()
         fprintf(stderr, "Failed to load bee2evp engine: %s\n", ERR_error_string(ERR_get_error(), NULL));
         handleErrors();
     }
+
     // Создание SSL контекста
     SSL_CTX *ssl_ctx = createSSLContext();
 
     // Показываем пользователю доступные алгоритмы шифрования
-    /* printf("Available ciphers:\n");
-     STACK_OF(SSL_CIPHER) *ciphers = SSL_get_ciphers(ssl_ctx);
-     for (int i = 0; i < sk_SSL_CIPHER_num(ciphers); i++) {
-         SSL_CIPHER *cipher = sk_SSL_CIPHER_value(ciphers, i);
-         const char *cipherName = SSL_CIPHER_get_name(cipher);
-         printf("%d. %s\n", i + 1, cipherName);
-     }
-
-     // Выбираем алгоритм шифрования
-     int choice;
-     printf("Choose a cipher (1-%d): ", sk_SSL_CIPHER_num(ciphers));
-     scanf("%d", &choice);
-     if (choice < 1 || choice > sk_SSL_CIPHER_num(ciphers)) {
-         fprintf(stderr, "Invalid choice.\n");
-         exit(EXIT_FAILURE);
-     }
-
-     // Получение алгоритма шифрования
-     SSL_CIPHER *selectedCipher = sk_SSL_CIPHER_value(ciphers, choice - 1);*/
     const EVP_CIPHER *cipher = EVP_get_cipherbyname("belt-cbc128");
 
     // Инициализация контекста шифрования с ключом и IV
@@ -153,80 +136,83 @@ int main()
         if (SSL_accept(ssl) != 1)
             handleErrors();
 
-        // Получаем зашифрованные данные от клиента
-        unsigned char ciphertext[MAX_BUFFER_SIZE];
+        // Получаем размер зашифрованных данных от клиента
         int total_received = 0;
         int bytes_received;
+
+        int message_size;
+        int bytes_size_received = SSL_read(ssl, &message_size, sizeof(message_size));
+        if (bytes_size_received != sizeof(message_size)) {
+            fprintf(stderr, "Error reading message size.\n");
+            handleErrors();
+        }
 
         // Читаем данные по частям
         while ((bytes_received = SSL_read(ssl, ciphertext + total_received, sizeof(ciphertext) - total_received)) > 0)
         {
             total_received += bytes_received;
 
-            // Обработка данных (ваш код обработки)
-        }
+            // Расшифровываем данные
+            unsigned char decrypted_text[MAX_BUFFER_SIZE];
+            int decrypted_len;
 
-        // Выводим зашифрованные данные
-        printf("Encrypted Text: ");
-        for (int i = 0; i < 16 && i < total_received; i++)
-        {
-            printf("%02x ", ciphertext[i]);
-        }
-        printf("\n");
+            // Расшифровка данных
+            if (EVP_DecryptUpdate(ctx, decrypted_text, &decrypted_len, ciphertext, total_received) != 1)
+                handleErrors();
 
-        // Расшифровываем данные
-        unsigned char decrypted_text[MAX_BUFFER_SIZE];
-        int decrypted_len;
+            int final_len;
+            if (EVP_DecryptFinal_ex(ctx, decrypted_text + decrypted_len, &final_len) != 1)
+                handleErrors();
 
-        // Расшифровка данных
-        if (EVP_DecryptUpdate(ctx, decrypted_text, &decrypted_len, ciphertext, total_received) != 1)
-            handleErrors();
+            decrypted_len += final_len;
+            decrypted_text[decrypted_len] = '\0';
 
-        int final_len;
-        if (EVP_DecryptFinal_ex(ctx, decrypted_text + decrypted_len, &final_len) != 1)
-            handleErrors();
+            // Вывод расшифрованного сообщения
+            printf("Decrypted Text: %s\n", decrypted_text);
 
-        decrypted_len += final_len;
-        decrypted_text[decrypted_len] = '\0';
+            // Обрабатываем данные (например, меняем местами слова)
+            char processed_text[MAX_BUFFER_SIZE];
+            snprintf(processed_text, MAX_BUFFER_SIZE, "Processed: %s", decrypted_text);
 
-        // Вывод расшифрованного сообщения
-        printf("Decrypted Text: %s\n", decrypted_text);
+            // Зашифровываем обработанный ответ
+            unsigned char encrypted_response[MAX_BUFFER_SIZE];
+            int encrypted_len;
 
-        // Обрабатываем данные (например, меняем местами слова)
-        char processed_text[MAX_BUFFER_SIZE];
-        snprintf(processed_text, MAX_BUFFER_SIZE, "Processed: %s", decrypted_text);
+            if (EVP_EncryptUpdate(ctx, encrypted_response, &encrypted_len, (const unsigned char *)processed_text, strlen(processed_text)) != 1)
+                handleErrors();
 
-        if (EVP_EncryptInit_ex(ctx, cipher, engine, NULL, NULL) != 1)
-            handleErrors();
+            int final_enc_len;
+            if (EVP_EncryptFinal_ex(ctx, encrypted_response + encrypted_len, &final_enc_len) != 1)
+                handleErrors();
 
-        // Зашифровываем обработанный ответ
-        unsigned char encrypted_response[MAX_BUFFER_SIZE];
-        int encrypted_len;
+            encrypted_len += final_enc_len;
 
-        if (EVP_EncryptUpdate(ctx, encrypted_response, &encrypted_len, (const unsigned char *)processed_text, strlen(processed_text)) != 1)
-            handleErrors();
-
-        int final_enc_len;
-        if (EVP_EncryptFinal_ex(ctx, encrypted_response + encrypted_len, &final_enc_len) != 1)
-            handleErrors();
-
-        encrypted_len += final_enc_len;
-
-        // Отправляем зашифрованный ответ клиенту
-        int total_sent = 0;
-        int bytes_sent;
-
-        // Отправляем данные по частям
-        while (total_sent < encrypted_len)
-        {
-            bytes_sent = SSL_write(ssl, encrypted_response + total_sent, encrypted_len - total_sent);
-            if (bytes_sent <= 0)
-            {
+            // Отправляем размер зашифрованного ответа
+            if (SSL_write(ssl, &encrypted_len, sizeof(encrypted_len)) != sizeof(encrypted_len)) {
+                fprintf(stderr, "Error writing encrypted response size.\n");
                 handleErrors();
             }
-            total_sent += bytes_sent;
+
+            // Отправляем зашифрованный ответ клиенту
+            int total_sent = 0;
+            int bytes_sent;
+
+            // Отправляем данные по частям
+            while (total_sent < encrypted_len)
+            {
+                bytes_sent = SSL_write(ssl, encrypted_response + total_sent, encrypted_len - total_sent);
+                if (bytes_sent <= 0)
+                {
+                    handleErrors();
+                }
+                total_sent += bytes_sent;
+            }
+
+            // Очищаем буфер для следующей порции данных
+            total_received = 0;
         }
 
+        // Закрываем соединение и освобождаем ресурсы
         close(connfd);
         SSL_free(ssl);
     }
@@ -239,4 +225,3 @@ int main()
 
     return 0;
 }
-
