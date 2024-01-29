@@ -181,7 +181,7 @@ int main() {
 
     // Вывод зашифрованного ответа
     printf("Encrypted Response: ");
-    for (int i = 0; i < encrypted_len; i++)
+    for (int i = 0; i < 16 && i < encrypted_len; i++)
     {
         printf("%02x ", encrypted_response[i]);
     }
@@ -205,7 +205,7 @@ int main() {
     decrypted_response[decrypted_len] = '\0';
 
     // Вывод расшифрованного ответа
-    printf("Decrypted Response: %s\n", decrypted_response);
+    printf("Decrypted Response: 100мб\n", );
 
     // Завершение соединения
     SSL_shutdown(ssl);

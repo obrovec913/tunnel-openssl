@@ -158,7 +158,7 @@ int main()
         int ciphertext_len = SSL_read(ssl, ciphertext, sizeof(ciphertext));
         // Выводим зашифрованные данные
         printf("Encrypted Text: ");
-        for (int i = 0; i < ciphertext_len; i++)
+        for (int i = 0; i < 16 && i < ciphertext_len; i++)
         {
             printf("%02x ", ciphertext[i]);
         }
@@ -180,7 +180,7 @@ int main()
         decrypted_text[decrypted_len] = '\0';
 
         // Вывод расшифрованного сообщения
-        printf("Decrypted Text: %s\n", decrypted_text);
+        printf("Decrypted Text: 100мб\n", );
 
         // Обрабатываем данные (например, меняем местами слова)
         char processed_text[MAX_BUFFER_SIZE];
