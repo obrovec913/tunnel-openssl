@@ -154,6 +154,7 @@ int main()
             fprintf(stderr, "Memory allocation failed.\n");
             exit(EXIT_FAILURE);
         }
+        printf("memory got\n");
 
         bytes_received = SSL_read(ssl, ciphertext, ciphertext_len);
         if (bytes_received <= 0)
