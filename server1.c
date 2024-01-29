@@ -186,6 +186,9 @@ int main()
         char processed_text[MAX_BUFFER_SIZE];
         snprintf(processed_text, MAX_BUFFER_SIZE, "Processed: %s", decrypted_text);
 
+        if (EVP_EncryptInit_ex(ctx, cipher, engine, NULL, NULL) != 1)
+            handleErrors();
+
         // Зашифровываем обработанный ответ
         unsigned char encrypted_response[MAX_BUFFER_SIZE];
         int encrypted_len;
