@@ -125,9 +125,9 @@ int main() {
         handleErrors();
 
     // Отправляем зашифрованное сообщение на сервер
-    FILE *file = fopen("test_data.txt", "rb");
+    FILE *file = fopen("test_data.txt", "r");
     if (!file) {
-        fprintf(stderr, "Failed to open test_data.bin.\n");
+        fprintf(stderr, "Failed to open test_data.txt.\n");
         handleErrors();
     }
 
@@ -158,6 +158,8 @@ int main() {
         if (bytes_sent <= 0)
         {
             handleErrors();
+
+
         }
     }
 
@@ -165,26 +167,17 @@ int main() {
 
     // Получаем зашифрованный ответ от сервера
     unsigned char encrypted_response[MAX_BUFFER_SIZE];
-    int total_received = 0;
-    int bytes_received;
+    int encrypted_len = SSL_read(ssl, encrypted_response, sizeof(encrypted_response));
 
-    // Читаем ответ по частям
-    while ((bytes_received = SSL_read(ssl, encrypted_response + total_received, sizeof(encrypted_response) - total_received)) > 0)
+    gettimeofday(&end, NULL);
+
+    // Выводим зашифрованный ответ
+    printf("Encrypted Response: ");
+    for (int i = 0; i < encrypted_len; i++)
     {
-        total_received += bytes_received;
-
-        // Печатаем первые 5 символов
-        if (total_received >= 5)
-        {
-            printf("First 5 characters of Encrypted Response: ");
-            for (int i = 0; i < 5; i++)
-            {
-                printf("%02x ", encrypted_response[i]);
-            }
-            printf("\n");
-            break;
-        }
+        printf("%02x ", encrypted_response[i]);
     }
+    printf("\n");
 
     // Расшифровываем ответ
     unsigned char decrypted_response[MAX_BUFFER_SIZE];
@@ -193,7 +186,7 @@ int main() {
     if (EVP_DecryptInit_ex(ctx, cipher, engine, NULL, NULL) != 1)
         handleErrors();
 
-    if (EVP_DecryptUpdate(ctx, decrypted_response, &decrypted_len, encrypted_response, total_received) != 1)
+    if (EVP_DecryptUpdate(ctx, decrypted_response, &decrypted_len, encrypted_response, encrypted_len) != 1)
         handleErrors();
 
     int final_dec_len;
@@ -213,7 +206,6 @@ int main() {
     SSL_CTX_free(ssl_ctx);
 
     // Вычисляем и выводим время отправки и получения
-    gettimeofday(&end, NULL);
     long seconds = end.tv_sec - start.tv_sec;
     long microseconds = end.tv_usec - start.tv_usec;
     double elapsed = seconds + microseconds * 1e-6;
