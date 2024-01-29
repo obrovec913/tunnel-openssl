@@ -164,8 +164,9 @@ int main()
         printf("Dy\n");
 
         // Далее вы можете расшифровать данные, используя ваш код расшифровки
-        unsigned char decrypted_text[MAX_BUFFER_SIZE];
+        unsigned char decrypted_text[MAX_BUFFER_SIZE + ciphertext_len];
         int decrypted_len;
+        printf("D \n");
 
         // Расшифровка данных
         if (EVP_DecryptUpdate(ctx, decrypted_text, &decrypted_len, ciphertext, ciphertext_len) != 1)
