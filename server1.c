@@ -11,7 +11,7 @@ const unsigned char *key = (const unsigned char *)"0123456789ABCDEF";
 const unsigned char *iv = (const unsigned char *)"FEDCBA9876543210";
 
 #define PORT 12345
-#define MAX_BUFFER_SIZE 1024
+#define MAX_BUFFER_SIZE 2024
 
 void handleErrors()
 {
@@ -239,3 +239,4 @@ int main()
 
     return 0;
 }
+

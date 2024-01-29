@@ -11,7 +11,7 @@
 #include <sys/time.h>
 
 #define PORT 12345
-#define MAX_BUFFER_SIZE 1024
+#define MAX_BUFFER_SIZE 2024
 
 const unsigned char *key = (const unsigned char *)"0123456789ABCDEF";
 const unsigned char *iv = (const unsigned char *)"FEDCBA9876543210";
@@ -137,7 +137,7 @@ int main() {
     struct timeval start, end;
     gettimeofday(&start, NULL);
 
-    while ((bytes_read = fread(buffer, 1, sizeof(buffer), file)) > 0) {
+     while ((bytes_read = fread(buffer, 1, sizeof(buffer), file)) > 0) {
         int ciphertext_len;
         unsigned char ciphertext[MAX_BUFFER_SIZE];
 
@@ -154,12 +154,16 @@ int main() {
 
         ciphertext_len = update_len + final_len;
 
-        int bytes_sent = SSL_write(ssl, ciphertext, ciphertext_len);
+        int bytes_sent = SSL_write(ssl, &ciphertext_len, sizeof(ciphertext_len));  // Отправляем длину данных
         if (bytes_sent <= 0)
         {
             handleErrors();
+        }
 
-
+        bytes_sent = SSL_write(ssl, ciphertext, ciphertext_len);  // Отправляем сами данные
+        if (bytes_sent <= 0)
+        {
+            handleErrors();
         }
     }
 
