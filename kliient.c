@@ -131,7 +131,7 @@ int main() {
     int ciphertext_len;
 
     // Инициализация контекста шифрования с ключом и IV
-    if (EVP_EncryptInit_ex(ctx, cipher, engine, key, iv) != 1)
+    if (EVP_EncryptInit_ex(ctx, cipher, engine, NULL, NULL) != 1)
         handleErrors();
 
     // Зашифрование данных
