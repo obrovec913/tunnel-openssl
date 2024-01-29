@@ -165,7 +165,7 @@ int main()
         }
 
         // Выделяем буфер для зашифрованных данных
-        unsigned char *ciphertext = (unsigned char *)malloc(ciphertext_len + EVP_CIPHER_block_size(cipher));
+        unsigned char *ciphertext = (unsigned char *)malloc(ciphertext_len);
         if (!ciphertext)
         {
             fprintf(stderr, "Memory allocation failed.\n");
