@@ -341,7 +341,7 @@ int main()
         printf("\nEncrypted Response: ");
 
         // Освобождаем память
-        free(ciphertext);
+    
 
         close(connfd);
         SSL_free(ssl);
