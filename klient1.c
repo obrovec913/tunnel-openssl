@@ -224,7 +224,7 @@ int main()
         encrypted_len += final_len;
 
         // Отправляем размер текущего блока
-        if (SSL_write(ssl, &chunk_size, sizeof(chunk_size)) <= 0)
+        if (SSL_write(ssl, chunk_size, sizeof(chunk_size)) <= 0)
         {
             handleErrors();
         }
