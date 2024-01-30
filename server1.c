@@ -202,6 +202,7 @@ int main()
             {
                 handleErrors();
             }
+             printf("Received \n");
 
             // Дешифруем данные
             int decrypted_len;
