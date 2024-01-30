@@ -209,20 +209,11 @@ int main()
             {
                 handleErrors();
             }
-            int final_len;
-            if (EVP_DecryptFinal_ex(ctx, received_data + total_received, &final_len) != 1)
-            {
-                handleErrors();
-            }
-
             total_received += decrypted_len;
-            total_received += final_len;
 
             // Выводим прогресс
             printProgressBar(total_received, file_size);
         }
-
-        free(ciphertext);
 
         // Расшифровка последнего блока
         int final_len;
@@ -239,6 +230,7 @@ int main()
 
         // Освобождаем память
         free(received_data);
+        free(ciphertext);
 
         // Обрабатываем данные (например, меняем местами слова)
         /*char processed_text[MAX_BUFFER_SIZE];
