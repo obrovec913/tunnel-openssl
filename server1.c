@@ -159,109 +159,145 @@ int main()
         printf("got server\n");
 
         // Получаем зашифрованные данные от клиента
-        int ciphertext_len;
-        int bytes_received = SSL_read(ssl, &ciphertext_len, sizeof(ciphertext_len));
-
-        if (bytes_received <= 0)
+        // Получаем размер файла от клиента
+        size_t file_size;
+        if (SSL_read(ssl, &file_size, sizeof(file_size)) <= 0)
         {
             handleErrors();
         }
-        printf("res\n");
+
+        printf("Received file size: %zu\n", file_size);
+
+        // Получаем размер блока от клиента
+        size_t block_size;
+        if (SSL_read(ssl, &block_size, sizeof(block_size)) <= 0)
+        {
+            handleErrors();
+        }
+
+        printf("Received block size: %zu\n", block_size);
 
         // Выделяем буфер для зашифрованных данных
-        unsigned char *ciphertext = (unsigned char *)malloc(ciphertext_len);
+        unsigned char *ciphertext = (unsigned char *)malloc(block_size);
         if (!ciphertext)
         {
             fprintf(stderr, "Memory allocation failed.\n");
             exit(EXIT_FAILURE);
         }
-        printf("memory got\n");
 
-        int total_received = 0;
-        while (total_received < ciphertext_len)
+        // Общий буфер для приема данных частями
+        unsigned char *received_data = (unsigned char *)malloc(file_size);
+        if (!received_data)
         {
-            // Принимаем данные частями
-            bytes_received = SSL_read(ssl, ciphertext + total_received, ciphertext_len - total_received);
+            fprintf(stderr, "Memory allocation failed.\n");
+            exit(EXIT_FAILURE);
+        }
+
+        size_t total_received = 0;
+        while (total_received < file_size)
+        {
+            // Принимаем размер текущего блока
+            size_t chunk_size;
+            if (SSL_read(ssl, &chunk_size, sizeof(chunk_size)) <= 0)
+            {
+                handleErrors();
+            }
+
+            // Принимаем зашифрованные данные частями
+            int bytes_received = SSL_read(ssl, ciphertext, chunk_size);
             if (bytes_received <= 0)
             {
                 handleErrors();
             }
 
-            total_received += bytes_received;
-
-            // Расшифровываем данные
-            unsigned char decrypted_text[MAX_BUFFER_SIZE];
+            // Дешифруем данные
             int decrypted_len;
-
-            if (EVP_DecryptUpdate(ctx, decrypted_text, &decrypted_len, ciphertext, total_received) != 1)
-                handleErrors();
-
-            int final_len;
-            if (EVP_DecryptFinal_ex(ctx, decrypted_text + decrypted_len, &final_len) != 1)
-                handleErrors();
-
-            decrypted_len += final_len;
-            decrypted_text[decrypted_len] = '\0';
-
-            // Обрабатываем данные (например, меняем местами слова)
-            /*char processed_text[MAX_BUFFER_SIZE];
-            snprintf(processed_text, MAX_BUFFER_SIZE, "Processed: %s", decrypted_text);
-
-            // Зашифровываем обработанный ответ
-            if (EVP_EncryptInit_ex(ctx, cipher, engine, key, iv) != 1)
-                handleErrors();
-
-            unsigned char *encrypted_response;
-            int encrypted_len;
-
-            if (EVP_EncryptUpdate(ctx, NULL, &encrypted_len, (const unsigned char *)processed_text, strlen(processed_text)) != 1)
-                handleErrors();
-
-            encrypted_response = (unsigned char *)malloc(encrypted_len);
-            if (!encrypted_response)
+            if (EVP_DecryptUpdate(ctx, received_data + total_received, &decrypted_len, ciphertext, bytes_received) != 1)
             {
-                fprintf(stderr, "Memory allocation failed.\n");
-                exit(EXIT_FAILURE);
+                handleErrors();
             }
 
-            if (EVP_EncryptUpdate(ctx, encrypted_response, &encrypted_len, (const unsigned char *)processed_text, strlen(processed_text)) != 1)
-                handleErrors();
+            total_received += decrypted_len;
 
-            int final_enc_len;
-            if (EVP_EncryptFinal_ex(ctx, encrypted_response + encrypted_len, &final_enc_len) != 1)
-                handleErrors();
-
-            encrypted_len += final_enc_len;
-
-            // Отправляем зашифрованный ответ клиенту
-            int total_sent = 0;
-            int bytes_sent;
-
-            // Отправляем длину зашифрованных данных
-            bytes_sent = SSL_write(ssl, &encrypted_len, sizeof(encrypted_len));
-            if (bytes_sent <= 0)
-            {
-                handleErrors();
-            }*/
-
-            // Отправляем сами зашифрованные данные частями с прогресс-баром
-            /*for (size_t offset = 0; offset < encrypted_len; offset += CHUNK_SIZE) {
-                size_t chunk_size = (offset + CHUNK_SIZE <= encrypted_len) ? CHUNK_SIZE : (encrypted_len - offset);
-
-                // Отправляем зашифрованные данные на сервер
-                bytes_sent = SSL_write(ssl, encrypted_response + offset, chunk_size);
-                if (bytes_sent <= 0) {
-                    handleErrors();
-                }
-
-                printProgressBar(offset + chunk_size, encrypted_len);
-            }*/
-
-            // Освобождаем память
-            // free(encrypted_response);
-            printf("\nEncrypted Response: ");
-
+            // Выводим прогресс
+            printProgressBar(total_received, file_size);
         }
+
+        free(ciphertext);
+
+        // Расшифровка последнего блока
+        int final_len;
+        if (EVP_DecryptFinal_ex(ctx, received_data + total_received, &final_len) != 1)
+        {
+            handleErrors();
+        }
+
+        total_received += final_len;
+
+        printf("\nReceived %zu bytes in total.\n", total_received);
+
+        // Обрабатываем расшифрованные данные (если нужно)
+
+        // Освобождаем память
+        free(received_data);
+
+        // Обрабатываем данные (например, меняем местами слова)
+        /*char processed_text[MAX_BUFFER_SIZE];
+        snprintf(processed_text, MAX_BUFFER_SIZE, "Processed: %s", decrypted_text);
+
+        // Зашифровываем обработанный ответ
+        if (EVP_EncryptInit_ex(ctx, cipher, engine, key, iv) != 1)
+            handleErrors();
+
+        unsigned char *encrypted_response;
+        int encrypted_len;
+
+        if (EVP_EncryptUpdate(ctx, NULL, &encrypted_len, (const unsigned char *)processed_text, strlen(processed_text)) != 1)
+            handleErrors();
+
+        encrypted_response = (unsigned char *)malloc(encrypted_len);
+        if (!encrypted_response)
+        {
+            fprintf(stderr, "Memory allocation failed.\n");
+            exit(EXIT_FAILURE);
+        }
+
+        if (EVP_EncryptUpdate(ctx, encrypted_response, &encrypted_len, (const unsigned char *)processed_text, strlen(processed_text)) != 1)
+            handleErrors();
+
+        int final_enc_len;
+        if (EVP_EncryptFinal_ex(ctx, encrypted_response + encrypted_len, &final_enc_len) != 1)
+            handleErrors();
+
+        encrypted_len += final_enc_len;
+
+        // Отправляем зашифрованный ответ клиенту
+        int total_sent = 0;
+        int bytes_sent;
+
+        // Отправляем длину зашифрованных данных
+        bytes_sent = SSL_write(ssl, &encrypted_len, sizeof(encrypted_len));
+        if (bytes_sent <= 0)
+        {
+            handleErrors();
+        }*/
+
+        // Отправляем сами зашифрованные данные частями с прогресс-баром
+        /*for (size_t offset = 0; offset < encrypted_len; offset += CHUNK_SIZE) {
+            size_t chunk_size = (offset + CHUNK_SIZE <= encrypted_len) ? CHUNK_SIZE : (encrypted_len - offset);
+
+            // Отправляем зашифрованные данные на сервер
+            bytes_sent = SSL_write(ssl, encrypted_response + offset, chunk_size);
+            if (bytes_sent <= 0) {
+                handleErrors();
+            }
+
+            printProgressBar(offset + chunk_size, encrypted_len);
+        }*/
+
+        // Освобождаем память
+        // free(encrypted_response);
+        printf("\nEncrypted Response: ");
 
         // Освобождаем память
         free(ciphertext);

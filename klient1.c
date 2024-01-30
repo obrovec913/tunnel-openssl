@@ -17,13 +17,15 @@
 const unsigned char *key = (const unsigned char *)"0123456789ABCDEF";
 const unsigned char *iv = (const unsigned char *)"FEDCBA9876543210";
 
-void handleErrors() {
+void handleErrors()
+{
     fprintf(stderr, "Error occurred.\n");
     ERR_print_errors_fp(stderr);
     exit(EXIT_FAILURE);
 }
 
-SSL_CTX *createSSLContext() {
+SSL_CTX *createSSLContext()
+{
     SSL_CTX *ctx;
 
     // Инициализация OpenSSL
@@ -51,18 +53,25 @@ SSL_CTX *createSSLContext() {
     return ctx;
 }
 
-void printProgressBar(int progress, int total) {
+void printProgressBar(int progress, int total)
+{
     const int barWidth = 70;
     float percentage = (float)progress / total;
     int pos = (int)(barWidth * percentage);
 
     printf("[");
-    for (int i = 0; i < barWidth; ++i) {
-        if (i < pos) {
+    for (int i = 0; i < barWidth; ++i)
+    {
+        if (i < pos)
+        {
             printf("=");
-        } else if (i == pos) {
+        }
+        else if (i == pos)
+        {
             printf(">");
-        } else {
+        }
+        else
+        {
             printf(" ");
         }
     }
@@ -70,7 +79,8 @@ void printProgressBar(int progress, int total) {
     fflush(stdout);
 }
 
-int main() {
+int main()
+{
     OPENSSL_init_crypto(OPENSSL_INIT_ENGINE_ALL_BUILTIN |
                             OPENSSL_INIT_LOAD_CONFIG,
                         NULL);
@@ -133,7 +143,7 @@ int main() {
     server_addr.sin_port = htons(PORT);
     server_addr.sin_addr.s_addr = inet_addr("192.168.1.5");
 
-    if (connect(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0)
+    if (connect(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
         handleErrors();
 
     // Создание SSL структуры
@@ -146,7 +156,8 @@ int main() {
 
     // Открываем файл для чтения
     FILE *file = fopen("test_data.txt", "r");
-    if (!file) {
+    if (!file)
+    {
         fprintf(stderr, "Failed to open test_data.txt.\n");
         handleErrors();
     }
@@ -158,7 +169,8 @@ int main() {
 
     // Выделяем буфер для данных файла
     unsigned char *file_data = (unsigned char *)malloc(file_size);
-    if (!file_data) {
+    if (!file_data)
+    {
         fprintf(stderr, "Failed to allocate memory.\n");
         handleErrors();
     }
@@ -172,34 +184,54 @@ int main() {
 
     // Выделяем буфер для зашифрованных данных
     unsigned char *encrypted_chunk = (unsigned char *)malloc(CHUNK_SIZE + EVP_CIPHER_block_size(cipher));
-    if (!encrypted_chunk) {
+    if (!encrypted_chunk)
+    {
         fprintf(stderr, "Failed to allocate memory.\n");
         handleErrors();
     }
 
     int encrypted_len;
 
-    // Отправляем размер файла на сервер
-    if (SSL_write(ssl, &file_size, sizeof(file_size)) <= 0) {
+    // Отправляем размер файла
+    if (SSL_write(ssl, &file_size, sizeof(file_size)) <= 0)
+    {
+        handleErrors();
+    }
+
+    // Отправляем размер блока
+    if (SSL_write(ssl, &CHUNK_SIZE, sizeof(CHUNK_SIZE)) <= 0)
+    {
         handleErrors();
     }
 
     // Отправляем данные частями с прогресс-баром
-    for (size_t offset = 0; offset < bytes_read; offset += CHUNK_SIZE) {
+    for (size_t offset = 0; offset < bytes_read; offset += CHUNK_SIZE)
+    {
         size_t chunk_size = (offset + CHUNK_SIZE <= bytes_read) ? CHUNK_SIZE : (bytes_read - offset);
 
         // Шифруем данные
         if (EVP_EncryptUpdate(ctx, encrypted_chunk, &encrypted_len, file_data + offset, chunk_size) != 1)
+        {
             handleErrors();
+        }
 
         int final_len;
         if (EVP_EncryptFinal_ex(ctx, encrypted_chunk + encrypted_len, &final_len) != 1)
+        {
             handleErrors();
+        }
 
         encrypted_len += final_len;
 
+        // Отправляем размер текущего блока
+        if (SSL_write(ssl, &chunk_size, sizeof(chunk_size)) <= 0)
+        {
+            handleErrors();
+        }
+
         // Отправляем зашифрованные данные на сервер
-        if (SSL_write(ssl, encrypted_chunk, encrypted_len) <= 0) {
+        if (SSL_write(ssl, encrypted_chunk, encrypted_len) <= 0)
+        {
             handleErrors();
         }
 
@@ -209,6 +241,7 @@ int main() {
     fclose(file);
     free(file_data);
     free(encrypted_chunk);
+
     /*
 
     // Получаем зашифрованный ответ от сервера
