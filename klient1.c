@@ -255,7 +255,7 @@ int main()
     free(encrypted_chunk);
 
     // Получаем зашифрованный ответ от сервера
-    unsigned char encrypted_response[MAX_BUFFER_SIZE];
+    /*unsigned char encrypted_response[MAX_BUFFER_SIZE];
     int encrypted_response_len = SSL_read(ssl, encrypted_response, sizeof(encrypted_response));
 
     // Выводим зашифрованный ответ
@@ -287,7 +287,7 @@ int main()
 
     // Выводим расшифрованный ответ
     printf("Decrypted Response: %s\n", decrypted_response);
-    * /
+    */
 
         // Завершаем соединение
         SSL_shutdown(ssl);
