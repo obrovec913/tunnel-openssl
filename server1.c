@@ -193,7 +193,7 @@ int main()
             {
                 handleErrors();
             }
-            printf("Received chunk: %zu\n", chunk_size);
+            printf("Received chunk size: %zu\n", chunk_size);
 
             // Принимаем зашифрованные данные частями
             int bytes_received = SSL_read(ssl, ciphertext, chunk_size);
