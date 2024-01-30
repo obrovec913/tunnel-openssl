@@ -160,7 +160,7 @@ int main()
 
         // Получаем зашифрованные данные от клиента
         // Получаем размер файла от клиента
-        size_t file_size;
+        /*size_t file_size;
         if (SSL_read(ssl, &file_size, sizeof(file_size)) <= 0)
         {
             handleErrors();
@@ -174,17 +174,17 @@ int main()
         {
             fprintf(stderr, "Memory allocation failed.\n");
             exit(EXIT_FAILURE);
-        }
-
-        // Общий буфер для приема данных частями
-        unsigned char *received_data = (unsigned char *)malloc(file_size);
-        if (!received_data)
+        }*/
+        // Принимаем размер файла
+        size_t file_size;
+        if (SSL_read(ssl, &file_size, sizeof(file_size)) <= 0)
         {
-            fprintf(stderr, "Memory allocation failed.\n");
-            exit(EXIT_FAILURE);
+            handleErrors();
         }
+        printf("Received file size: %zu\n", file_size);
 
         size_t total_received = 0;
+
         while (total_received < file_size)
         {
             // Принимаем размер текущего блока
@@ -195,13 +195,21 @@ int main()
             }
             printf("Received chunk size: %zu\n", chunk_size);
 
-            // Принимаем зашифрованные данные частями
-            int bytes_received = SSL_read(ssl, ciphertext, chunk_size);
+            // Выделяем буфер для зашифрованных данных
+            unsigned char *ciphertext = (unsigned char *)malloc(chunk_size);
+            if (!ciphertext)
+            {
+                fprintf(stderr, "Memory allocation failed.\n");
+                exit(EXIT_FAILURE);
+            }
+            printf("Memory allocated\n");
+
+            size_t bytes_received = SSL_read(ssl, ciphertext, chunk_size);
             if (bytes_received <= 0)
             {
                 handleErrors();
             }
-            printf("Received \n");
+            printf("Received\n");
 
             // Дешифруем данные
             int decrypted_len;
@@ -209,27 +217,63 @@ int main()
             {
                 handleErrors();
             }
-            total_received += chunk_size;
 
             // Выводим прогресс
             printProgressBar(total_received, file_size);
+
+            total_received += bytes_received;
+
+            // Освобождаем память
+            free(ciphertext);
         }
 
-        // Расшифровка последнего блока
-        int final_len;
-        if (EVP_DecryptFinal_ex(ctx, received_data + total_received, &final_len) != 1)
+        // Принимаем размер последнего блока
+        size_t last_chunk_size;
+        if (SSL_read(ssl, &last_chunk_size, sizeof(last_chunk_size)) <= 0)
+        {
+            handleErrors();
+        }
+        printf("Received last chunk size: %zu\n", last_chunk_size);
+
+        // Выделяем буфер для зашифрованных данных последнего блока
+        unsigned char *last_ciphertext = (unsigned char *)malloc(last_chunk_size);
+        if (!last_ciphertext)
+        {
+            fprintf(stderr, "Memory allocation failed.\n");
+            exit(EXIT_FAILURE);
+        }
+        printf("Memory allocated for last chunk\n");
+
+        size_t last_bytes_received = SSL_read(ssl, last_ciphertext, last_chunk_size);
+        if (last_bytes_received <= 0)
+        {
+            handleErrors();
+        }
+        printf("Received last chunk\n");
+
+        // Дешифруем последний блок
+        int last_decrypted_len;
+        if (EVP_DecryptUpdate(ctx, received_data + total_received, &last_decrypted_len, last_ciphertext, last_bytes_received) != 1)
         {
             handleErrors();
         }
 
-        total_received += final_len;
+        // Завершаем процесс дешифрации последнего блока
+        int final_len;
+        if (EVP_DecryptFinal_ex(ctx, received_data + total_received + last_decrypted_len, &final_len) != 1)
+        {
+            handleErrors();
+        }
+
+        total_received += last_decrypted_len + final_len;
 
         printf("\nReceived %zu bytes in total.\n", total_received);
 
         // Обрабатываем расшифрованные данные (если нужно)
 
         // Освобождаем память
-        free(received_data);
+        free(last_ciphertext);
+
         free(ciphertext);
 
         // Обрабатываем данные (например, меняем местами слова)

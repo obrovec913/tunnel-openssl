@@ -201,6 +201,7 @@ int main()
     // Отправляем размер блока
 
     // Отправляем данные частями с прогресс-баром
+    // Шифруем данные
     for (size_t offset = 0; offset < bytes_read; offset += CHUNK_SIZE)
     {
         size_t chunk_size = (offset + CHUNK_SIZE <= bytes_read) ? CHUNK_SIZE : (bytes_read - offset);
@@ -210,14 +211,6 @@ int main()
         {
             handleErrors();
         }
-
-        int final_len;
-        if (EVP_EncryptFinal_ex(ctx, encrypted_chunk + encrypted_len, &final_len) != 1)
-        {
-            handleErrors();
-        }
-
-        encrypted_len += final_len;
 
         // Отправляем размер текущего блока
         if (SSL_write(ssl, &chunk_size, sizeof(chunk_size)) <= 0)
@@ -235,11 +228,31 @@ int main()
         printProgressBar(offset + chunk_size, bytes_read);
     }
 
+    // Финализируем шифрование после обработки всех данных
+    int final_len;
+    if (EVP_EncryptFinal_ex(ctx, encrypted_chunk + encrypted_len, &final_len) != 1)
+    {
+        handleErrors();
+    }
+
+    encrypted_len += final_len;
+
+    // Отправляем размер финального блока (если необходимо)
+    size_t final_chunk_size = final_len;
+    if (SSL_write(ssl, &final_chunk_size, sizeof(final_chunk_size)) <= 0)
+    {
+        handleErrors();
+    }
+
+    // Отправляем зашифрованный финальный блок
+    if (SSL_write(ssl, encrypted_chunk, final_len) <= 0)
+    {
+        handleErrors();
+    }
+
     fclose(file);
     free(file_data);
     free(encrypted_chunk);
-
-    /*
 
     // Получаем зашифрованный ответ от сервера
     unsigned char encrypted_response[MAX_BUFFER_SIZE];
@@ -247,7 +260,8 @@ int main()
 
     // Выводим зашифрованный ответ
     printf("\nEncrypted Response: ");
-    for (int i = 0; i < encrypted_response_len; i++) {
+    for (int i = 0; i < encrypted_response_len; i++)
+    {
         printf("%02x ", encrypted_response[i]);
     }
     printf("\n");
@@ -272,10 +286,11 @@ int main()
     decrypted_response[decrypted_len] = '\0';
 
     // Выводим расшифрованный ответ
-    printf("Decrypted Response: %s\n", decrypted_response);*/
+    printf("Decrypted Response: %s\n", decrypted_response);
+    * /
 
-    // Завершаем соединение
-    SSL_shutdown(ssl);
+        // Завершаем соединение
+        SSL_shutdown(ssl);
     close(sockfd);
     SSL_free(ssl);
     SSL_CTX_free(ssl_ctx);
