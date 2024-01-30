@@ -4,6 +4,12 @@ if (SSL_read(ssl, &file_size, sizeof(file_size)) <= 0)
 {
     handleErrors();
 }
+        int final_len;
+        if (EVP_DecryptFinal_ex(ctx, received_data + total_received + last_decrypted_len, &final_len) != 1)
+        {
+            handleErrors();
+        }
+
 
 printf("Received file size: %zu\n", file_size);
 

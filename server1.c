@@ -175,6 +175,7 @@ int main()
             fprintf(stderr, "Memory allocation failed.\n");
             exit(EXIT_FAILURE);
         }*/
+        
         // Принимаем размер файла
         size_t file_size;
         if (SSL_read(ssl, &file_size, sizeof(file_size)) <= 0)
@@ -182,6 +183,13 @@ int main()
             handleErrors();
         }
         printf("Received file size: %zu\n", file_size);
+        
+        unsigned char *received_data = (unsigned char *)malloc(file_size);
+        if (!received_data)
+        {
+            fprintf(stderr, "Memory allocation failed.\n");
+            exit(EXIT_FAILURE);
+        }
 
         size_t total_received = 0;
 
@@ -273,8 +281,6 @@ int main()
 
         // Освобождаем память
         free(last_ciphertext);
-
-        free(ciphertext);
 
         // Обрабатываем данные (например, меняем местами слова)
         /*char processed_text[MAX_BUFFER_SIZE];
