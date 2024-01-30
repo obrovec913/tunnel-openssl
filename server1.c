@@ -50,22 +50,28 @@ SSL_CTX *createSSLContext()
     return ctx;
 }
 
-void printProgressBar(size_t current, size_t total) {
+void printProgressBar(size_t current, size_t total)
+{
     const size_t barWidth = 70;
     float progress = (float)current / (float)total;
     int pos = barWidth * progress;
 
     printf("[");
-    for (int i = 0; i < barWidth; ++i) {
-        if (i < pos) printf("=");
-        else if (i == pos) printf(">");
-        else printf(" ");
+    for (int i = 0; i < barWidth; ++i)
+    {
+        if (i < pos)
+            printf("=");
+        else if (i == pos)
+            printf(">");
+        else
+            printf(" ");
     }
     printf("] %.2f%%\r", progress * 100.0);
     fflush(stdout);
 }
 
-int main() {
+int main()
+{
     OPENSSL_init_crypto(OPENSSL_INIT_ENGINE_ALL_BUILTIN |
                             OPENSSL_INIT_LOAD_CONFIG,
                         NULL);
@@ -112,7 +118,7 @@ int main() {
     if (!ctx)
         handleErrors();
 
-    if (EVP_DecryptInit_ex(ctx, cipher, engine, key, iv) != 1)
+    if (EVP_DecryptInit_ex(ctx, cipher, engine, NULL, NULL) != 1)
         handleErrors();
 
     // Устанавливаем серверный сокет
@@ -149,7 +155,7 @@ int main() {
         // Устанавливаем SSL соединение
         if (SSL_accept(ssl) != 1)
             handleErrors();
-        
+
         printf("got server\n");
 
         // Получаем зашифрованные данные от клиента
@@ -184,7 +190,7 @@ int main() {
             total_received += bytes_received;
 
             // Расшифровываем данные
-            unsigned char decrypted_text[MAX_BUFFER_SIZE ];
+            unsigned char decrypted_text[MAX_BUFFER_SIZE + total_received];
             int decrypted_len;
 
             if (EVP_DecryptUpdate(ctx, decrypted_text, &decrypted_len, ciphertext, total_received) != 1)
@@ -198,7 +204,7 @@ int main() {
             decrypted_text[decrypted_len] = '\0';
 
             // Обрабатываем данные (например, меняем местами слова)
-           /* char processed_text[MAX_BUFFER_SIZE];
+            /*char processed_text[MAX_BUFFER_SIZE];
             snprintf(processed_text, MAX_BUFFER_SIZE, "Processed: %s", decrypted_text);
 
             // Зашифровываем обработанный ответ
@@ -233,26 +239,28 @@ int main() {
 
             // Отправляем длину зашифрованных данных
             bytes_sent = SSL_write(ssl, &encrypted_len, sizeof(encrypted_len));
-            if (bytes_sent <= 0)            {
+            if (bytes_sent <= 0)
+            {
                 handleErrors();
-            }
+            }*/
 
             // Отправляем сами зашифрованные данные частями с прогресс-баром
-            for (size_t offset = 0; offset < encrypted_len; offset += CHUNK_SIZE) {
+            /*for (size_t offset = 0; offset < encrypted_len; offset += CHUNK_SIZE) {
                 size_t chunk_size = (offset + CHUNK_SIZE <= encrypted_len) ? CHUNK_SIZE : (encrypted_len - offset);
 
                 // Отправляем зашифрованные данные на сервер
                 bytes_sent = SSL_write(ssl, encrypted_response + offset, chunk_size);
                 if (bytes_sent <= 0) {
                     handleErrors();
-                }*/
+                }
 
                 printProgressBar(offset + chunk_size, encrypted_len);
-            }
+            }*/
 
             // Освобождаем память
-            //free(encrypted_response);
+            // free(encrypted_response);
             printf("\nEncrypted Response: ");
+            
         }
 
         // Освобождаем память
