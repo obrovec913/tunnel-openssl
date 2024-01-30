@@ -224,6 +224,7 @@ int main()
         {
             handleErrors();
         }
+        printf("Sent chunk size: %zu\n", chunk_size);
 
         // Отправляем зашифрованные данные на сервер
         if (SSL_write(ssl, encrypted_chunk, encrypted_len) <= 0)
