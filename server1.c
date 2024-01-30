@@ -168,17 +168,9 @@ int main()
 
         printf("Received file size: %zu\n", file_size);
 
-        // Получаем размер блока от клиента
-        size_t block_size;
-        if (SSL_read(ssl, &block_size, sizeof(block_size)) <= 0)
-        {
-            handleErrors();
-        }
-
-        printf("Received block size: %zu\n", block_size);
 
         // Выделяем буфер для зашифрованных данных
-        unsigned char *ciphertext = (unsigned char *)malloc(block_size);
+        unsigned char *ciphertext = (unsigned char *)malloc(file_size);
         if (!ciphertext)
         {
             fprintf(stderr, "Memory allocation failed.\n");

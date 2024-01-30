@@ -199,10 +199,6 @@ int main()
     }
 
     // Отправляем размер блока
-    if (SSL_write(ssl, CHUNK_SIZE, sizeof(CHUNK_SIZE)) <= 0)
-    {
-        handleErrors();
-    }
 
     // Отправляем данные частями с прогресс-баром
     for (size_t offset = 0; offset < bytes_read; offset += CHUNK_SIZE)
