@@ -12,6 +12,7 @@
 
 #define PORT 12345
 #define MAX_BUFFER_SIZE 2024
+#define CHUNK_SIZE 1024
 
 const unsigned char *key = (const unsigned char *)"0123456789ABCDEF";
 const unsigned char *iv = (const unsigned char *)"FEDCBA9876543210";
@@ -48,6 +49,25 @@ SSL_CTX *createSSLContext() {
         handleErrors();
 
     return ctx;
+}
+
+void printProgressBar(int progress, int total) {
+    const int barWidth = 70;
+    float percentage = (float)progress / total;
+    int pos = (int)(barWidth * percentage);
+
+    printf("[");
+    for (int i = 0; i < barWidth; ++i) {
+        if (i < pos) {
+            printf("=");
+        } else if (i == pos) {
+            printf(">");
+        } else {
+            printf(" ");
+        }
+    }
+    printf("] %.2f%%\r", percentage * 100.0);
+    fflush(stdout);
 }
 
 int main() {
@@ -151,45 +171,53 @@ int main() {
         handleErrors();
 
     // Выделяем буфер для зашифрованных данных
-    unsigned char *encrypted_data = (unsigned char *)malloc(file_size + EVP_CIPHER_block_size(cipher));
-    if (!encrypted_data) {
+    unsigned char *encrypted_chunk = (unsigned char *)malloc(CHUNK_SIZE + EVP_CIPHER_block_size(cipher));
+    if (!encrypted_chunk) {
         fprintf(stderr, "Failed to allocate memory.\n");
         handleErrors();
     }
 
     int encrypted_len;
 
-    // Шифруем данные
-    if (EVP_EncryptUpdate(ctx, encrypted_data, &encrypted_len, file_data, bytes_read) != 1)
-        handleErrors();
-
-    int final_len;
-    if (EVP_EncryptFinal_ex(ctx, encrypted_data + encrypted_len, &final_len) != 1)
-        handleErrors();
-
-    encrypted_len += final_len;
-
-    // Отправляем размер файла и зашифрованные данные на сервер
+    // Отправляем размер файла на сервер
     if (SSL_write(ssl, &file_size, sizeof(file_size)) <= 0) {
         handleErrors();
     }
 
-    if (SSL_write(ssl, encrypted_data, encrypted_len) <= 0) {
-        handleErrors();
+    // Отправляем данные частями с прогресс-баром
+    for (size_t offset = 0; offset < bytes_read; offset += CHUNK_SIZE) {
+        size_t chunk_size = (offset + CHUNK_SIZE <= bytes_read) ? CHUNK_SIZE : (bytes_read - offset);
+
+        // Шифруем данные
+        if (EVP_EncryptUpdate(ctx, encrypted_chunk, &encrypted_len, file_data + offset, chunk_size) != 1)
+            handleErrors();
+
+        int final_len;
+        if (EVP_EncryptFinal_ex(ctx, encrypted_chunk + encrypted_len, &final_len) != 1)
+            handleErrors();
+
+        encrypted_len += final_len;
+
+        // Отправляем зашифрованные данные на сервер
+        if (SSL_write(ssl, encrypted_chunk, encrypted_len) <= 0) {
+            handleErrors();
+        }
+
+        printProgressBar(offset + chunk_size, bytes_read);
     }
 
     fclose(file);
     free(file_data);
-    free(encrypted_data);
+    free(encrypted_chunk);
+    /*
 
     // Получаем зашифрованный ответ от сервера
     unsigned char encrypted_response[MAX_BUFFER_SIZE];
     int encrypted_response_len = SSL_read(ssl, encrypted_response, sizeof(encrypted_response));
 
     // Выводим зашифрованный ответ
-    printf("Encrypted Response: ");
-    for (int i = 0; i < encrypted_response_len; i++)
-    {
+    printf("\nEncrypted Response: ");
+    for (int i = 0; i < encrypted_response_len; i++) {
         printf("%02x ", encrypted_response[i]);
     }
     printf("\n");
@@ -214,7 +242,7 @@ int main() {
     decrypted_response[decrypted_len] = '\0';
 
     // Выводим расшифрованный ответ
-    printf("Decrypted Response: %s\n", decrypted_response);
+    printf("Decrypted Response: %s\n", decrypted_response);*/
 
     // Завершаем соединение
     SSL_shutdown(ssl);

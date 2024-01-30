@@ -11,7 +11,8 @@ const unsigned char *key = (const unsigned char *)"0123456789ABCDEF";
 const unsigned char *iv = (const unsigned char *)"FEDCBA9876543210";
 
 #define PORT 12345
-#define MAX_BUFFER_SIZE 4024
+#define MAX_BUFFER_SIZE 2024
+#define CHUNK_SIZE 1024
 
 void handleErrors()
 {
@@ -49,8 +50,22 @@ SSL_CTX *createSSLContext()
     return ctx;
 }
 
-int main()
-{
+void printProgressBar(size_t current, size_t total) {
+    const size_t barWidth = 70;
+    float progress = (float)current / (float)total;
+    int pos = barWidth * progress;
+
+    printf("[");
+    for (int i = 0; i < barWidth; ++i) {
+        if (i < pos) printf("=");
+        else if (i == pos) printf(">");
+        else printf(" ");
+    }
+    printf("] %.2f%%\r", progress * 100.0);
+    fflush(stdout);
+}
+
+int main() {
     OPENSSL_init_crypto(OPENSSL_INIT_ENGINE_ALL_BUILTIN |
                             OPENSSL_INIT_LOAD_CONFIG,
                         NULL);
@@ -156,83 +171,92 @@ int main()
         }
         printf("memory got\n");
 
-        bytes_received = SSL_read(ssl, ciphertext, ciphertext_len);
-        if (bytes_received <= 0)
+        int total_received = 0;
+        while (total_received < ciphertext_len)
         {
-            handleErrors();
-        }
-        printf("Dy\n");
+            // Принимаем данные частями
+            bytes_received = SSL_read(ssl, ciphertext + total_received, ciphertext_len - total_received);
+            if (bytes_received <= 0)
+            {
+                handleErrors();
+            }
 
-        // Далее вы можете расшифровать данные, используя ваш код расшифровки
-        unsigned char decrypted_text[MAX_BUFFER_SIZE + ciphertext_len];
-        int decrypted_len;
-        printf("D \n");
+            total_received += bytes_received;
 
-        // Расшифровка данных
-        if (EVP_DecryptUpdate(ctx, decrypted_text, &decrypted_len, ciphertext, ciphertext_len) != 1)
-            handleErrors();
+            // Расшифровываем данные
+            unsigned char decrypted_text[MAX_BUFFER_SIZE ];
+            int decrypted_len;
 
-        int final_len;
-        if (EVP_DecryptFinal_ex(ctx, decrypted_text + decrypted_len, &final_len) != 1)
-            handleErrors();
+            if (EVP_DecryptUpdate(ctx, decrypted_text, &decrypted_len, ciphertext, total_received) != 1)
+                handleErrors();
 
-        decrypted_len += final_len;
-        decrypted_text[decrypted_len] = '\0';
+            int final_len;
+            if (EVP_DecryptFinal_ex(ctx, decrypted_text + decrypted_len, &final_len) != 1)
+                handleErrors();
 
-        // Вывод расшифрованного сообщения
-        printf("Decrypted Text: %s\n", decrypted_text);
+            decrypted_len += final_len;
+            decrypted_text[decrypted_len] = '\0';
 
-        // Обрабатываем данные (например, меняем местами слова)
-        char processed_text[MAX_BUFFER_SIZE];
-        snprintf(processed_text, MAX_BUFFER_SIZE, "Processed: %s", decrypted_text);
+            // Обрабатываем данные (например, меняем местами слова)
+           /* char processed_text[MAX_BUFFER_SIZE];
+            snprintf(processed_text, MAX_BUFFER_SIZE, "Processed: %s", decrypted_text);
 
-        // Зашифровываем обработанный ответ
-        if (EVP_EncryptInit_ex(ctx, cipher, engine, key, iv) != 1)
-            handleErrors();
+            // Зашифровываем обработанный ответ
+            if (EVP_EncryptInit_ex(ctx, cipher, engine, key, iv) != 1)
+                handleErrors();
 
-        unsigned char *encrypted_response;
-        int encrypted_len;
+            unsigned char *encrypted_response;
+            int encrypted_len;
 
-        if (EVP_EncryptUpdate(ctx, NULL, &encrypted_len, (const unsigned char *)processed_text, strlen(processed_text)) != 1)
-            handleErrors();
+            if (EVP_EncryptUpdate(ctx, NULL, &encrypted_len, (const unsigned char *)processed_text, strlen(processed_text)) != 1)
+                handleErrors();
 
-        encrypted_response = (unsigned char *)malloc(encrypted_len);
-        if (!encrypted_response)
-        {
-            fprintf(stderr, "Memory allocation failed.\n");
-            exit(EXIT_FAILURE);
-        }
+            encrypted_response = (unsigned char *)malloc(encrypted_len);
+            if (!encrypted_response)
+            {
+                fprintf(stderr, "Memory allocation failed.\n");
+                exit(EXIT_FAILURE);
+            }
 
-        if (EVP_EncryptUpdate(ctx, encrypted_response, &encrypted_len, (const unsigned char *)processed_text, strlen(processed_text)) != 1)
-            handleErrors();
+            if (EVP_EncryptUpdate(ctx, encrypted_response, &encrypted_len, (const unsigned char *)processed_text, strlen(processed_text)) != 1)
+                handleErrors();
 
-        int final_enc_len;
-        if (EVP_EncryptFinal_ex(ctx, encrypted_response + encrypted_len, &final_enc_len) != 1)
-            handleErrors();
+            int final_enc_len;
+            if (EVP_EncryptFinal_ex(ctx, encrypted_response + encrypted_len, &final_enc_len) != 1)
+                handleErrors();
 
-        encrypted_len += final_enc_len;
+            encrypted_len += final_enc_len;
 
-        // Отправляем зашифрованный ответ клиенту
-        int total_sent = 0;
-        int bytes_sent;
+            // Отправляем зашифрованный ответ клиенту
+            int total_sent = 0;
+            int bytes_sent;
 
-        // Отправляем длину зашифрованных данных
-        bytes_sent = SSL_write(ssl, &encrypted_len, sizeof(encrypted_len));
-        if (bytes_sent <= 0)
-        {
-            handleErrors();
-        }
+            // Отправляем длину зашифрованных данных
+            bytes_sent = SSL_write(ssl, &encrypted_len, sizeof(encrypted_len));
+            if (bytes_sent <= 0)            {
+                handleErrors();
+            }
 
-        // Отправляем сами зашифрованные данные
-        bytes_sent = SSL_write(ssl, encrypted_response, encrypted_len);
-        if (bytes_sent <= 0)
-        {
-            handleErrors();
+            // Отправляем сами зашифрованные данные частями с прогресс-баром
+            for (size_t offset = 0; offset < encrypted_len; offset += CHUNK_SIZE) {
+                size_t chunk_size = (offset + CHUNK_SIZE <= encrypted_len) ? CHUNK_SIZE : (encrypted_len - offset);
+
+                // Отправляем зашифрованные данные на сервер
+                bytes_sent = SSL_write(ssl, encrypted_response + offset, chunk_size);
+                if (bytes_sent <= 0) {
+                    handleErrors();
+                }*/
+
+                printProgressBar(offset + chunk_size, encrypted_len);
+            }
+
+            // Освобождаем память
+            //free(encrypted_response);
+            printf("\nEncrypted Response: ");
         }
 
         // Освобождаем память
         free(ciphertext);
-        free(encrypted_response);
 
         close(connfd);
         SSL_free(ssl);
