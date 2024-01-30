@@ -209,7 +209,7 @@ int main()
             {
                 handleErrors();
             }
-            total_received += decrypted_len;
+            total_received += chunk_size;
 
             // Выводим прогресс
             printProgressBar(total_received, file_size);
