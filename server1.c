@@ -190,7 +190,7 @@ int main()
             total_received += bytes_received;
 
             // Расшифровываем данные
-            unsigned char decrypted_text[MAX_BUFFER_SIZE + total_received];
+            unsigned char decrypted_text[MAX_BUFFER_SIZE];
             int decrypted_len;
 
             if (EVP_DecryptUpdate(ctx, decrypted_text, &decrypted_len, ciphertext, total_received) != 1)
@@ -260,7 +260,7 @@ int main()
             // Освобождаем память
             // free(encrypted_response);
             printf("\nEncrypted Response: ");
-            
+
         }
 
         // Освобождаем память
