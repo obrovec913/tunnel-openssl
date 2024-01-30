@@ -174,6 +174,9 @@ int main()
         fprintf(stderr, "Failed to allocate memory.\n");
         handleErrors();
     }
+    // Засекаем время начала отправки
+    struct timeval start_time, end_time;
+    gettimeofday(&start_time, NULL);
 
     // Читаем данные файла
     size_t bytes_read = fread(file_data, 1, file_size, file);
@@ -290,7 +293,12 @@ int main()
     */
 
         // Завершаем соединение
-        SSL_shutdown(ssl);
+     // Засекаем время окончания отправки
+    gettimeofday(&end_time, NULL);
+    long elapsed_time = (end_time.tv_sec - start_time.tv_sec) * 1000000 + (end_time.tv_usec - start_time.tv_usec);
+    printf("Time taken to send: %ld microseconds\n", elapsed_time);
+
+    SSL_shutdown(ssl);
     close(sockfd);
     SSL_free(ssl);
     SSL_CTX_free(ssl_ctx);
