@@ -168,7 +168,6 @@ int main()
 
         printf("Received file size: %zu\n", file_size);
 
-
         // Выделяем буфер для зашифрованных данных
         unsigned char *ciphertext = (unsigned char *)malloc(file_size);
         if (!ciphertext)
@@ -194,7 +193,7 @@ int main()
             {
                 handleErrors();
             }
-             printf("Received chunk: %zu\n", chunk_size);
+            printf("Received chunk: %zu\n", chunk_size);
 
             // Принимаем зашифрованные данные частями
             int bytes_received = SSL_read(ssl, ciphertext, chunk_size);
@@ -202,7 +201,7 @@ int main()
             {
                 handleErrors();
             }
-             printf("Received \n");
+            printf("Received \n");
 
             // Дешифруем данные
             int decrypted_len;
@@ -210,8 +209,14 @@ int main()
             {
                 handleErrors();
             }
+            int final_len;
+            if (EVP_DecryptFinal_ex(ctx, received_data + total_received, &final_len) != 1)
+            {
+                handleErrors();
+            }
 
             total_received += decrypted_len;
+            total_received += final_len;
 
             // Выводим прогресс
             printProgressBar(total_received, file_size);
