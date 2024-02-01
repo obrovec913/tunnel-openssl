@@ -129,12 +129,36 @@ void encryptAndSendData(SSL *ssl, const char *data, int data_len)
 
     EVP_CIPHER_CTX_free(ctx);
 }
+void waitForUnencryptedData(int unencrypted_sockfd)
+{
+    char buffer[MAX_BUFFER_SIZE];
+    int bytes_received;
+
+    while (1)
+    {
+        int unencrypted_connfd = accept(unencrypted_sockfd, NULL, NULL);
+        if (unencrypted_connfd < 0)
+            handleErrors();
+
+        // Принимаем данные с незашифрованного порта
+        bytes_received = recv(unencrypted_connfd, buffer, sizeof(buffer), 0);
+
+        if (bytes_received > 0)
+        {
+            printf("Received unencrypted data. Establishing encrypted connection.\n");
+            close(unencrypted_connfd);
+            break; // Прерываем цикл, если поступили данные на незашифрованный порт
+        }
+
+        close(unencrypted_connfd);
+    }
+}
 
 int main()
 {
     // Инициализация OpenSSL и создание контекста для защищенного соединения
     OPENSSL_init_crypto(OPENSSL_INIT_ENGINE_ALL_BUILTIN | OPENSSL_INIT_LOAD_CONFIG, NULL);
-      // Получаем список всех доступных движков
+    // Получаем список всех доступных движков
     ENGINE *engine_list = ENGINE_get_first();
     while (engine_list != NULL)
     {
@@ -142,13 +166,11 @@ int main()
         engine_list = ENGINE_get_next(engine_list);
     }
 
-
     SSL_CTX *ssl_ctx = createSSLContext();
 
     // Создание структуры для незашифрованного соединения
-    int unencrypted_sockfd, unencrypted_connfd;
-    struct sockaddr_in unencrypted_serv_addr, unencrypted_cli_addr;
-    socklen_t unencrypted_cli_len = sizeof(unencrypted_cli_addr);
+    int unencrypted_sockfd;
+    struct sockaddr_in unencrypted_serv_addr;
 
     if ((unencrypted_sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
         handleErrors();
@@ -163,6 +185,9 @@ int main()
 
     if (listen(unencrypted_sockfd, 1) < 0)
         handleErrors();
+
+    // Ожидание данных на незашифрованном порту перед установкой защищенного соединения
+    waitForUnencryptedData(unencrypted_sockfd);
 
     // Создание структуры для защищенного соединения
     int encrypted_sockfd;
@@ -186,37 +211,22 @@ int main()
     if (SSL_connect(ssl) != 1)
         handleErrors();
 
-    // Запуск потока для отправки данных
-    pthread_t sendThread;
-    if (pthread_create(&sendThread, NULL, sendThreadFunction, (void *)ssl) != 0)
-    {
-        fprintf(stderr, "Failed to create send thread.\n");
-        handleErrors();
-    }
-
     // Принятие данных с незашифрованного порта и отправка на сервер
     char buffer[MAX_BUFFER_SIZE];
     int bytes_received;
 
     while (1)
     {
-        unencrypted_connfd = accept(unencrypted_sockfd, (struct sockaddr *)&unencrypted_cli_addr, &unencrypted_cli_len);
-        if (unencrypted_connfd < 0)
-            handleErrors();
-
         // Принимаем данные с незашифрованного порта и отправляем зашифрованные на сервер
-        while ((bytes_received = recv(unencrypted_connfd, buffer, sizeof(buffer), 0)) > 0)
+        bytes_received = recv(unencrypted_sockfd, buffer, sizeof(buffer), 0);
+
+        if (bytes_received > 0)
         {
             // Здесь можно обработать данные перед шифрованием, если необходимо
             // В данном примере просто шифруем все принятые данные
             encryptAndSendData(ssl, buffer, bytes_received);
         }
-
-        close(unencrypted_connfd);
     }
-
-    // Завершение потока отправки данных
-    pthread_cancel(sendThread);
 
     // Закрытие соединений и освобождение ресурсов
     SSL_shutdown(ssl);
