@@ -73,7 +73,7 @@ void printProgressBar(size_t current, size_t total)
     fflush(stdout);
 }
 
-oid decryptAndProcessData(SSL *ssl, EVP_CIPHER_CTX *ctx)
+void decryptAndProcessData(SSL *ssl, EVP_CIPHER_CTX *ctx)
 {
     // Получаем размер данных от клиента
     size_t encrypted_data_size;
