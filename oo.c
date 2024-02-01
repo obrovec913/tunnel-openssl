@@ -1,87 +1,155 @@
-// Получаем размер файла от клиента
-size_t file_size;
-if (SSL_read(ssl, &file_size, sizeof(file_size)) <= 0)
-{
-    handleErrors();
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <openssl/conf.h>
+#include <openssl/crypto.h>
+#include <arpa/inet.h>
+#include <openssl/evp.h>
+#include <openssl/engine.h>
+#include <openssl/ssl.h>
+#include <sys/time.h>
+
+#define PORT 12345
+#define MAX_BUFFER_SIZE 2024
+#define CHUNK_SIZE 1024
+
+const unsigned char *key = (const unsigned char *)"0123456789ABCDEF";
+const unsigned char *iv = (const unsigned char *)"FEDCBA9876543210";
+
+void handleErrors() {
+    fprintf(stderr, "Error occurred.\n");
+    ERR_print_errors_fp(stderr);
+    exit(EXIT_FAILURE);
 }
-        int final_len;
-        if (EVP_DecryptFinal_ex(ctx, received_data + total_received + last_decrypted_len, &final_len) != 1)
-        {
-            handleErrors();
+
+SSL_CTX *createSSLContext() {
+    SSL_CTX *ctx;
+
+    SSL_library_init();
+    OpenSSL_add_all_algorithms();
+    SSL_load_error_strings();
+
+    if ((ctx = SSL_CTX_new(SSLv23_client_method())) == NULL)
+        handleErrors();
+
+    if (SSL_CTX_load_verify_locations(ctx, "./keys/root_cert.pem", NULL) != 1)
+        handleErrors();
+
+    if (SSL_CTX_use_certificate_file(ctx, "./keys/client_cert.pem", SSL_FILETYPE_PEM) != 1 ||
+        SSL_CTX_use_PrivateKey_file(ctx, "./keys/client_key.pem", SSL_FILETYPE_PEM) != 1)
+        handleErrors();
+
+    if (SSL_CTX_check_private_key(ctx) != 1)
+        handleErrors();
+
+    return ctx;
+}
+
+void printProgressBar(int progress, int total) {
+    const int barWidth = 70;
+    float percentage = (float)progress / total;
+    int pos = (int)(barWidth * percentage);
+
+    printf("[");
+    for (int i = 0; i < barWidth; ++i) {
+        if (i < pos)
+            printf("=");
+        else if (i == pos)
+            printf(">");
+        else
+            printf(" ");
+    }
+    printf("] %.2f%%\r", percentage * 100.0);
+    fflush(stdout);
+}
+
+void encryptAndSendData(SSL *ssl, EVP_CIPHER_CTX *ctx, const char *plaintext, int plaintext_len) {
+    unsigned char ciphertext[MAX_BUFFER_SIZE];
+    int ciphertext_len;
+    int update_len, final_len;
+
+    // Инициализация контекста шифрования с ключом и IV
+    if (EVP_EncryptInit_ex(ctx, EVP_get_cipherbyname("belt-cbc128"), NULL, key, iv) != 1)
+        handleErrors();
+
+    // Зашифрование данных
+    if (EVP_EncryptUpdate(ctx, ciphertext, &update_len, (unsigned char *)plaintext, plaintext_len) != 1)
+        handleErrors();
+
+    if (EVP_EncryptFinal_ex(ctx, ciphertext + update_len, &final_len) != 1)
+        handleErrors();
+
+    ciphertext_len = update_len + final_len;
+
+    // Отправка зашифрованных данных на сервер
+    if (SSL_write(ssl, ciphertext, ciphertext_len) <= 0)
+        handleErrors();
+}
+
+int main() {
+    OPENSSL_init_crypto(OPENSSL_INIT_ENGINE_ALL_BUILTIN | OPENSSL_INIT_LOAD_CONFIG, NULL);
+    CONF_METHOD *conf_method = NCONF_default();
+
+    if (conf_method) {
+        CONF *conf = NCONF_new(conf_method);
+        if (conf) {
+            NCONF_dump_fp(conf, stdout);
+            NCONF_free(conf);
+        } else {
+            fprintf(stderr, "Failed to create OpenSSL configuration.\n");
         }
+    } else {
+        fprintf(stderr, "Failed to get OpenSSL configuration method.\n");
+    }
 
+    ENGINE *engine_list = ENGINE_get_first();
+    while (engine_list != NULL) {
+        printf("Available engine: %s\n", ENGINE_get_id(engine_list));
+        engine_list = ENGINE_get_next(engine_list);
+    }
 
-printf("Received file size: %zu\n", file_size);
-
-// Получаем размер блока от клиента
-size_t block_size;
-if (SSL_read(ssl, &block_size, sizeof(block_size)) <= 0)
-{
-    handleErrors();
-}
-
-printf("Received block size: %zu\n", block_size);
-
-// Выделяем буфер для зашифрованных данных
-unsigned char *ciphertext = (unsigned char *)malloc(block_size);
-if (!ciphertext)
-{
-    fprintf(stderr, "Memory allocation failed.\n");
-    exit(EXIT_FAILURE);
-}
-
-// Общий буфер для приема данных частями
-unsigned char *received_data = (unsigned char *)malloc(file_size);
-if (!received_data)
-{
-    fprintf(stderr, "Memory allocation failed.\n");
-    exit(EXIT_FAILURE);
-}
-
-size_t total_received = 0;
-while (total_received < file_size)
-{
-    // Принимаем размер текущего блока
-    size_t chunk_size;
-    if (SSL_read(ssl, &chunk_size, sizeof(chunk_size)) <= 0)
-    {
+    ENGINE *engine = ENGINE_by_id("bee2evp");
+    if (!engine) {
+        fprintf(stderr, "Failed to load bee2evp engine: %s\n", ERR_error_string(ERR_get_error(), NULL));
         handleErrors();
     }
 
-    // Принимаем зашифрованные данные частями
-    int bytes_received = SSL_read(ssl, ciphertext, chunk_size);
-    if (bytes_received <= 0)
-    {
+    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
+    if (!ctx)
         handleErrors();
-    }
 
-    // Дешифруем данные
-    int decrypted_len;
-    if (EVP_DecryptUpdate(ctx, received_data + total_received, &decrypted_len, ciphertext, bytes_received) != 1)
-    {
+    SSL_CTX *ssl_ctx = createSSLContext();
+
+    int sockfd;
+    struct sockaddr_in server_addr;
+
+    if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
         handleErrors();
-    }
 
-    total_received += decrypted_len;
+    memset(&server_addr, 0, sizeof(server_addr));
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(PORT);
+    server_addr.sin_addr.s_addr = inet_addr("192.168.1.5");
 
-    // Выводим прогресс
-    printProgressBar(total_received, file_size);
+    if (connect(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
+        handleErrors();
+
+    SSL *ssl = SSL_new(ssl_ctx);
+    SSL_set_fd(ssl, sockfd);
+
+    if (SSL_connect(ssl) != 1)
+        handleErrors();
+
+    const char *plaintext = "Hello, Server!";
+    int plaintext_len = strlen(plaintext);
+
+    encryptAndSendData(ssl, ctx, plaintext, plaintext_len);
+
+    SSL_shutdown(ssl);
+    close(sockfd);
+    SSL_free(ssl);
+    SSL_CTX_free(ssl_ctx);
+
+    return 0;
 }
-
-free(ciphertext);
-
-// Расшифровка последнего блока
-int final_len;
-if (EVP_DecryptFinal_ex(ctx, received_data + total_received, &final_len) != 1)
-{
-    handleErrors();
-}
-
-total_received += final_len;
-
-printf("\nReceived %zu bytes in total.\n", total_received);
-
-// Обрабатываем расшифрованные данные (если нужно)
-
-// Освобождаем память
-free(received_data);

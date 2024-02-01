@@ -258,40 +258,10 @@ int main()
     free(encrypted_chunk);
 
     // Получаем зашифрованный ответ от сервера
-    /*unsigned char encrypted_response[MAX_BUFFER_SIZE];
+    unsigned char encrypted_response[MAX_BUFFER_SIZE];
     int encrypted_response_len = SSL_read(ssl, encrypted_response, sizeof(encrypted_response));
 
-    // Выводим зашифрованный ответ
-    printf("\nEncrypted Response: ");
-    for (int i = 0; i < encrypted_response_len; i++)
-    {
-        printf("%02x ", encrypted_response[i]);
-    }
-    printf("\n");
-
-    // Расшифровываем ответ
-    unsigned char decrypted_response[MAX_BUFFER_SIZE];
-    int decrypted_len;
-
-    // Инициализируем контекст шифрования для расшифровки
-    if (EVP_DecryptInit_ex(ctx, cipher, engine, NULL, NULL) != 1)
-        handleErrors();
-
-    // Расшифровываем данные
-    if (EVP_DecryptUpdate(ctx, decrypted_response, &decrypted_len, encrypted_response, encrypted_response_len) != 1)
-        handleErrors();
-
-    int final_dec_len;
-    if (EVP_DecryptFinal_ex(ctx, decrypted_response + decrypted_len, &final_dec_len) != 1)
-        handleErrors();
-
-    decrypted_len += final_dec_len;
-    decrypted_response[decrypted_len] = '\0';
-
-    // Выводим расшифрованный ответ
-    printf("Decrypted Response: %s\n", decrypted_response);
-    */
-
+    
         // Завершаем соединение
      // Засекаем время окончания отправки
     gettimeofday(&end_time, NULL);
