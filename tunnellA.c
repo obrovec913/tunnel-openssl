@@ -133,7 +133,7 @@ void encryptAndSendData(SSL *ssl, const char *data, int data_len)
     // Отправка зашифрованных данных на сервер
     if (SSL_write(ssl, ciphertext, ciphertext_len) <= 0)
         handleErrors();
-    rintf("Encrypted WRITE: ");
+    printf("Encrypted WRITE: ");
     EVP_CIPHER_CTX_free(ctx);
 }
 SSL *sslNewConnect(int encrypted_sockfd)
