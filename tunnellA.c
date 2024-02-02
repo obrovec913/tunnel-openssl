@@ -154,7 +154,7 @@ SSL sslNewConnect(int *encrypted_sockfd)
     if (SSL_connect(ssl) != 1)
         handleErrors();
     printf("Received encrypted connection.\n");
-    return ssl
+    return ssl;
 }
 
 void waitForUnencryptedData(int unencrypted_sockfd)
