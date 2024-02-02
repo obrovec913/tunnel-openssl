@@ -123,11 +123,17 @@ void encryptAndSendData(SSL *ssl, const char *data, int data_len)
         handleErrors();
 
     ciphertext_len = update_len + final_len;
+    printf("Encrypted Text: ");
+    for (int i = 0; i < ciphertext_len; i++)
+    {
+        printf("%02x ", ciphertext[i]);
+    }
+    printf("\n");
 
     // Отправка зашифрованных данных на сервер
     if (SSL_write(ssl, ciphertext, ciphertext_len) <= 0)
         handleErrors();
-
+    rintf("Encrypted WRITE: ");
     EVP_CIPHER_CTX_free(ctx);
 }
 SSL *sslNewConnect(int encrypted_sockfd)
@@ -176,7 +182,7 @@ void waitForUnencryptedData(int unencrypted_sockfd)
         if (bytes_received > 0)
         {
             printf("Received unencrypted data. Establishing encrypted connection.\n");
-            
+
             SSL *ssl = sslNewConnect(&encrypted_sockfd);
             encryptAndSendData(ssl, buffer, bytes_received);
             printf("Received connection.\n");
