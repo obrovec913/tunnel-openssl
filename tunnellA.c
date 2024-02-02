@@ -129,10 +129,37 @@ void encryptAndSendData(SSL *ssl, const char *data, int data_len)
 
     EVP_CIPHER_CTX_free(ctx);
 }
+SSL sslNewConnect(int encrypted_sockfd)
+{
+
+    struct sockaddr_in encrypted_serv_addr;
+    SSL_CTX *ssl_ctx = createSSLContext();
+
+    if ((encrypted_sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+        handleErrors();
+
+    memset(&encrypted_serv_addr, 0, sizeof(encrypted_serv_addr));
+    encrypted_serv_addr.sin_family = AF_INET;
+    encrypted_serv_addr.sin_port = htons(ENCRYPTED_PORT);
+    encrypted_serv_addr.sin_addr.s_addr = inet_addr("192.168.1.5"); // Замените на IP вашего сервера
+
+    // Установка защищенного соединения
+    SSL *ssl = SSL_new(ssl_ctx);
+    SSL_set_fd(ssl, encrypted_sockfd);
+
+    if (connect(encrypted_sockfd, (struct sockaddr *)&encrypted_serv_addr, sizeof(encrypted_serv_addr)) < 0)
+        handleErrors();
+
+    if (SSL_connect(ssl) != 1)
+        handleErrors();
+    return ssl
+}
+
 void waitForUnencryptedData(int unencrypted_sockfd)
 {
     char buffer[MAX_BUFFER_SIZE];
     int bytes_received;
+    int encrypted_sockfd;
 
     while (1)
     {
@@ -146,12 +173,16 @@ void waitForUnencryptedData(int unencrypted_sockfd)
         if (bytes_received > 0)
         {
             printf("Received unencrypted data. Establishing encrypted connection.\n");
-            close(unencrypted_connfd);
+            SSL *ssl = sslNewConnect(&encrypted_sockfd)
+                encryptAndSendData(ssl, buffer, bytes_received);
             break; // Прерываем цикл, если поступили данные на незашифрованный порт
         }
 
         close(unencrypted_connfd);
     }
+    close(encrypted_sockfd);
+    SSL_shutdown(ssl);
+    SSL_free(ssl);
 }
 
 int main()
@@ -165,8 +196,6 @@ int main()
         printf("Доступный движок: %s\n", ENGINE_get_id(engine_list));
         engine_list = ENGINE_get_next(engine_list);
     }
-
-    SSL_CTX *ssl_ctx = createSSLContext();
 
     // Создание структуры для незашифрованного соединения
     int unencrypted_sockfd;
@@ -189,51 +218,11 @@ int main()
     // Ожидание данных на незашифрованном порту перед установкой защищенного соединения
     waitForUnencryptedData(unencrypted_sockfd);
 
-    // Создание структуры для защищенного соединения
-    int encrypted_sockfd;
-    struct sockaddr_in encrypted_serv_addr;
-
-    if ((encrypted_sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-        handleErrors();
-
-    memset(&encrypted_serv_addr, 0, sizeof(encrypted_serv_addr));
-    encrypted_serv_addr.sin_family = AF_INET;
-    encrypted_serv_addr.sin_port = htons(ENCRYPTED_PORT);
-    encrypted_serv_addr.sin_addr.s_addr = inet_addr("192.168.1.5"); // Замените на IP вашего сервера
-
-    // Установка защищенного соединения
-    SSL *ssl = SSL_new(ssl_ctx);
-    SSL_set_fd(ssl, encrypted_sockfd);
-
-    if (connect(encrypted_sockfd, (struct sockaddr *)&encrypted_serv_addr, sizeof(encrypted_serv_addr)) < 0)
-        handleErrors();
-
-    if (SSL_connect(ssl) != 1)
-        handleErrors();
-
-    // Принятие данных с незашифрованного порта и отправка на сервер
-    char buffer[MAX_BUFFER_SIZE];
-    int bytes_received;
-
-    while (1)
-    {
-        // Принимаем данные с незашифрованного порта и отправляем зашифрованные на сервер
-        bytes_received = recv(unencrypted_sockfd, buffer, sizeof(buffer), 0);
-
-        if (bytes_received > 0)
-        {
-            // Здесь можно обработать данные перед шифрованием, если необходимо
-            // В данном примере просто шифруем все принятые данные
-            encryptAndSendData(ssl, buffer, bytes_received);
-        }
-    }
-
     // Закрытие соединений и освобождение ресурсов
-    SSL_shutdown(ssl);
-    close(encrypted_sockfd);
+
     close(unencrypted_sockfd);
-    SSL_free(ssl);
-    SSL_CTX_free(ssl_ctx);
+   // SSL_free(ssl);
+ //   SSL_CTX_free(ssl_ctx);
 
     return 0;
 }
