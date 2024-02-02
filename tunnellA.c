@@ -130,7 +130,7 @@ void encryptAndSendData(SSL *ssl, const char *data, int data_len)
 
     EVP_CIPHER_CTX_free(ctx);
 }
-SSL sslNewConnect(int *encrypted_sockfd)
+SSL sslNewConnect(int encrypted_sockfd)
 {
 
     struct sockaddr_in encrypted_serv_addr;
