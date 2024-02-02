@@ -128,8 +128,8 @@ void decryptAndProcessData(SSL *ssl, EVP_CIPHER_CTX *ctx)
     close(unsecured_sockfd);
 
     // Освобождаем память
-    free(ciphertext);
-    free(decrypted_data);
+    //free(ciphertext);
+    //free(decrypted_data);
 }
 
 // Функция для расшифровки данных и их обработки
