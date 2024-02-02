@@ -90,7 +90,7 @@ void decryptAndProcessData(SSL *ssl, EVP_CIPHER_CTX *ctx)
         printf("\n");
 
         // Расшифровываем данные
-        unsigned char decrypted_data[ciphertext_len];
+        unsigned char decrypted_data[MAX_BUFFER_SIZE];
         int decrypted_len;
 
         // Расшифровка данных
