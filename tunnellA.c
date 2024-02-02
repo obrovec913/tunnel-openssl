@@ -103,6 +103,7 @@ void encryptAndSendData(SSL *ssl, const char *data, int data_len)
         fprintf(stderr, "Failed to load bee2evp engine: %s\n", ERR_error_string(ERR_get_error(), NULL));
         handleErrors();
     }
+    printf("Received encrypted data. Establishing encrypted. \n");
 
     // Получение алгоритма шифрования belt-cbc128
     const EVP_CIPHER *cipher = EVP_get_cipherbyname("belt-cbc128");
@@ -152,6 +153,7 @@ SSL sslNewConnect(int encrypted_sockfd)
 
     if (SSL_connect(ssl) != 1)
         handleErrors();
+    printf("Received encrypted connection.\n");
     return ssl
 }
 
@@ -174,7 +176,8 @@ void waitForUnencryptedData(int unencrypted_sockfd)
         {
             printf("Received unencrypted data. Establishing encrypted connection.\n");
             SSL *ssl = sslNewConnect(&encrypted_sockfd)
-                encryptAndSendData(ssl, buffer, bytes_received);
+            encryptAndSendData(ssl, buffer, bytes_received);
+            
             break; // Прерываем цикл, если поступили данные на незашифрованный порт
         }
 
@@ -221,8 +224,8 @@ int main()
     // Закрытие соединений и освобождение ресурсов
 
     close(unencrypted_sockfd);
-   // SSL_free(ssl);
- //   SSL_CTX_free(ssl_ctx);
+    // SSL_free(ssl);
+    //   SSL_CTX_free(ssl_ctx);
 
     return 0;
 }
