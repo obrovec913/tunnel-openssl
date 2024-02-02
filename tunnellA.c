@@ -130,7 +130,7 @@ void encryptAndSendData(SSL *ssl, const char *data, int data_len)
 
     EVP_CIPHER_CTX_free(ctx);
 }
-SSL sslNewConnect(int encrypted_sockfd)
+SSL *sslNewConnect(int encrypted_sockfd)
 {
 
     struct sockaddr_in encrypted_serv_addr;
@@ -177,7 +177,7 @@ void waitForUnencryptedData(int unencrypted_sockfd)
         {
             printf("Received unencrypted data. Establishing encrypted connection.\n");
             
-            ssl = sslNewConnect(&encrypted_sockfd);
+            SSL *ssl = sslNewConnect(&encrypted_sockfd);
             encryptAndSendData(ssl, buffer, bytes_received);
             printf("Received connection.\n");
             break; // Прерываем цикл, если поступили данные на незашифрованный порт
