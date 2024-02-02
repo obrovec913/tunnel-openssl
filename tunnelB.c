@@ -75,57 +75,31 @@ void printProgressBar(size_t current, size_t total)
 
 void decryptAndProcessData(SSL *ssl, EVP_CIPHER_CTX *ctx)
 {
-    // Получаем размер данных от клиента
-    size_t encrypted_data_size;
-    if (SSL_read(ssl, &encrypted_data_size, sizeof(encrypted_data_size)) <= 0)
-    {
-        handleErrors();
-    }
-    printf("Received encrypted data size: %zu\n", encrypted_data_size);
+ 
 
-    unsigned char *encrypted_data = (unsigned char *)malloc(encrypted_data_size);
-    if (!encrypted_data)
-    {
-        fprintf(stderr, "Memory allocation failed.\n");
-        exit(EXIT_FAILURE);
-    }
-
-    // Принимаем зашифрованные данные целиком
-    size_t total_received = 0;
-    while (total_received < encrypted_data_size)
-    {
-        size_t bytes_received = SSL_read(ssl, encrypted_data + total_received, encrypted_data_size - total_received);
-        if (bytes_received <= 0)
-        {
-            handleErrors();
-        }
-        total_received += bytes_received;
-    }
-
-    printf("\nReceived %zu bytes of encrypted data.\n", total_received);
-
+    
     // Выделяем буфер для расшифрованных данных
-    unsigned char *decrypted_data = (unsigned char *)malloc(total_received + EVP_CIPHER_block_size(EVP_get_cipherbyname("belt-cbc128")));
-    if (!decrypted_data)
-    {
-        fprintf(stderr, "Memory allocation failed.\n");
-        exit(EXIT_FAILURE);
-    }
+      unsigned char ciphertext[MAX_BUFFER_SIZE];
+        int ciphertext_len = SSL_read(ssl, ciphertext, sizeof(ciphertext));
+        // Выводим зашифрованные данные
+        printf("Encrypted Text: ");
+        for (int i = 0; i < ciphertext_len; i++)
+        {
+            printf("%02x ", ciphertext[i]);
+        }
+        printf("\n");
 
-    int decrypted_len;
+        // Расшифровываем данные
+        unsigned char decrypted_data[ciphertext_len];
+        int decrypted_len;
 
-    // Дешифруем данные
-    if (EVP_DecryptUpdate(ctx, decrypted_data, &decrypted_len, encrypted_data, total_received) != 1)
-    {
-        handleErrors();
-    }
+        // Расшифровка данных
+        if (EVP_DecryptUpdate(ctx, decrypted_data, &decrypted_len, ciphertext, ciphertext_len) != 1)
+            handleErrors();
 
-    // Завершаем процесс дешифрации
-    int final_len;
-    if (EVP_DecryptFinal_ex(ctx, decrypted_data + decrypted_len, &final_len) != 1)
-    {
-        handleErrors();
-    }
+        int final_len;
+        if (EVP_DecryptFinal_ex(ctx, decrypted_data + decrypted_len, &final_len) != 1)
+            handleErrors();
 
     decrypted_len += final_len;
 
@@ -140,7 +114,7 @@ void decryptAndProcessData(SSL *ssl, EVP_CIPHER_CTX *ctx)
 
     memset(&unsecured_server_addr, 0, sizeof(unsecured_server_addr));
     unsecured_server_addr.sin_family = AF_INET;
-    unsecured_server_addr.sin_port = htons(5512); // Порт 5512
+    unsecured_server_addr.sin_port = htons(5412); // Порт 5512
     unsecured_server_addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK); // Адрес localhost
 
     if (connect(unsecured_sockfd, (struct sockaddr *)&unsecured_server_addr, sizeof(unsecured_server_addr)) < 0)
@@ -154,7 +128,7 @@ void decryptAndProcessData(SSL *ssl, EVP_CIPHER_CTX *ctx)
     close(unsecured_sockfd);
 
     // Освобождаем память
-    free(encrypted_data);
+    free(ciphertext);
     free(decrypted_data);
 }
 
