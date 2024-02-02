@@ -162,6 +162,7 @@ void waitForUnencryptedData(int unencrypted_sockfd)
     char buffer[MAX_BUFFER_SIZE];
     int bytes_received;
     int encrypted_sockfd;
+    SSL *ssl;
 
     while (1)
     {
@@ -175,7 +176,8 @@ void waitForUnencryptedData(int unencrypted_sockfd)
         if (bytes_received > 0)
         {
             printf("Received unencrypted data. Establishing encrypted connection.\n");
-            SSL *ssl = sslNewConnect(&encrypted_sockfd);
+            
+            ssl = sslNewConnect(&encrypted_sockfd);
             encryptAndSendData(ssl, buffer, bytes_received);
             printf("Received connection.\n");
             break; // Прерываем цикл, если поступили данные на незашифрованный порт
