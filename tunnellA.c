@@ -144,36 +144,11 @@ void encryptAndSendData(SSL *ssl, const char *data, int data_len)
     if (SSL_write(ssl, ciphertext, ciphertext_len) <= 0)
         handleErrors();
     printf("Encrypted WRITE ");
+    memset(ciphertext, 0, sizeof(ciphertext));
 
 }
 
 
-SSL *sslNewConnect(int encrypted_sockfd)
-{
-
-    struct sockaddr_in encrypted_serv_addr;
-    SSL_CTX *ssl_ctx = createSSLContext();
-
-    if ((encrypted_sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-        handleErrors();
-
-    memset(&encrypted_serv_addr, 0, sizeof(encrypted_serv_addr));
-    encrypted_serv_addr.sin_family = AF_INET;
-    encrypted_serv_addr.sin_port = htons(ENCRYPTED_PORT);
-    encrypted_serv_addr.sin_addr.s_addr = inet_addr("192.168.1.5"); // Замените на IP вашего сервера
-
-    // Установка защищенного соединения
-    SSL *ssl = SSL_new(ssl_ctx);
-    SSL_set_fd(ssl, encrypted_sockfd);
-
-    if (connect(encrypted_sockfd, (struct sockaddr *)&encrypted_serv_addr, sizeof(encrypted_serv_addr)) < 0)
-        handleErrors();
-
-    if (SSL_connect(ssl) != 1)
-        handleErrors();
-    printf("Received encrypted connection.\n");
-    return ssl;
-}
 void *receiveThreadFunction(void *arg)
 {
     char buffer[MAX_BUFFER_SIZE];
