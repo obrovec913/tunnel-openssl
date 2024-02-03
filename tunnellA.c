@@ -24,7 +24,7 @@ int unencrypted_sockfd;
 SSL *ssl;
 
 void handleErrors()
-{ 
+{
     fprintf(stderr, "Error occurred.\n");
     ERR_print_errors_fp(stderr);
     exit(EXIT_FAILURE);
@@ -59,7 +59,7 @@ void setupUnencryptedSocket()
     struct sockaddr_in unencrypted_serv_addr;
 
     if ((unencrypted_sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-       handleErrors();
+        handleErrors();
 
     memset(&unencrypted_serv_addr, 0, sizeof(unencrypted_serv_addr));
     unencrypted_serv_addr.sin_family = AF_INET;
@@ -99,6 +99,46 @@ SSL *establishEncryptedConnection()
         handleErrors();
 
     return ssl;
+}
+void decryptAndProcessData(const char *data, int data_len)
+{
+    // Выделяем буфер для расшифрованных данных
+    // Расшифровываем данные
+    ENGINE *engine = ENGINE_by_id("bee2evp");
+    if (!engine)
+    {
+        fprintf(stderr, "Failed to load bee2evp engine: %s\n", ERR_error_string(ERR_get_error(), NULL));
+        handleErrors();
+    }
+    printf("Received encrypted data. Establishing encrypted. \n");
+
+    // Получение алгоритма шифрования belt-cbc128
+    const EVP_CIPHER *cipher = EVP_get_cipherbyname("belt-cbc128");
+    if (!cipher)
+        handleErrors();
+    
+    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
+
+    if (EVP_DecryptInit_ex(ctx, EVP_get_cipherbyname("belt-cbc128"), engine, NULL, NULL) != 1)
+        handleErrors();
+    unsigned char decrypted_data[MAX_BUFFER_SIZE];
+    int decrypted_len;
+
+    // Расшифровка данных
+    if (EVP_DecryptUpdate(ctx, decrypted_data, &decrypted_len, data, data_len) != 1)
+        handleErrors();
+    int final_len;
+    if (EVP_DecryptFinal_ex(ctx, decrypted_data + decrypted_len, &final_len) != 1)
+        handleErrors();
+
+    decrypted_len += final_len;
+    printf("Decrypted data: %s\n", decrypted_data);
+    // Отправляем расшифрованные данные на не защищенный порт
+    // Отправляем расшифрованные данные
+    if (send(unencrypted_sockfd, decrypted_data, decrypted_len, 0) < 0)
+        handleErrors();
+    memset(decrypted_data, 0, sizeof(decrypted_data));
+    EVP_CIPHER_CTX_free(ctx);
 }
 
 // Шифрование данных и отправка на сервер
@@ -145,9 +185,8 @@ void encryptAndSendData(SSL *ssl, const char *data, int data_len)
         handleErrors();
     printf("Encrypted WRITE ");
     memset(ciphertext, 0, sizeof(ciphertext));
-
+    EVP_CIPHER_CTX_free(ctx);
 }
-
 
 void *receiveThreadFunction(void *arg)
 {
@@ -196,7 +235,7 @@ void *sendThreadFunction(void *arg)
                 printf("%02x ", buffer[i]);
             }
             printf("\n");
-
+            decryptAndProcessData(buffer, bytes_received);
             // Очистка буфера
             memset(buffer, 0, sizeof(buffer));
         }

@@ -283,7 +283,7 @@ int main()
         free(last_ciphertext);
 
         // Обрабатываем данные (например, меняем местами слова)
-        /*char processed_text[MAX_BUFFER_SIZE];
+        char processed_text[MAX_BUFFER_SIZE];
         snprintf(processed_text, MAX_BUFFER_SIZE, "Processed: %s", decrypted_text);
 
         // Зашифровываем обработанный ответ
@@ -321,7 +321,7 @@ int main()
         if (bytes_sent <= 0)
         {
             handleErrors();
-        }*/
+        }
 
         // Отправляем сами зашифрованные данные частями с прогресс-баром
         /*for (size_t offset = 0; offset < encrypted_len; offset += CHUNK_SIZE) {
