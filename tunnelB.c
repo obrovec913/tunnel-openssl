@@ -293,7 +293,7 @@ int main()
         engine_list = ENGINE_get_next(engine_list);
     }
 
-    setupUnencryptedSocket();
+    
 
     ssl = establishEncryptedConnection();
 
@@ -305,6 +305,7 @@ int main()
 
     // Ожидаем завершения первого потока
     pthread_join(sendThread, NULL);
+    setupUnencryptedSocket();
 
     // Второй поток
     if (pthread_create(&receiveThread, NULL, receiveThreadFunction, NULL) != 0)
