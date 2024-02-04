@@ -172,7 +172,25 @@ void decryptAndProcessData(const char *data, int data_len)
     printf("Decrypted data: %s\n", decrypted_data);
     // Отправляем расшифрованные данные на не защищенный порт
     // Отправляем расшифрованные данные
-    setupUnencryptedSocket();
+    struct sockaddr_in unencrypted_serv_addr;
+
+    if ((unencrypted_sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+        handleErrors();
+
+    // Опция для повторного использования адреса
+    int enable = 1;
+    if (setsockopt(unencrypted_sockfd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)
+        handleErrors();
+    memset(&unencrypted_serv_addr, 0, sizeof(unencrypted_serv_addr));
+    unencrypted_serv_addr.sin_family = AF_INET;
+    unencrypted_serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    unencrypted_serv_addr.sin_port = htons(UNENCRYPTED_PORT);
+
+    if (bind(unencrypted_sockfd, (struct sockaddr *)&unencrypted_serv_addr, sizeof(unencrypted_serv_addr)) < 0)
+        handleErrors();
+
+    if (listen(unencrypted_sockfd, 1) < 0)
+        handleErrors();
     int unencrypted_connfd = accept(unencrypted_sockfd, NULL, NULL);
     if (unencrypted_connfd < 0)
         handleErrors();
@@ -313,7 +331,7 @@ int main()
 
     // Ожидаем завершения первого потока
     pthread_join(sendThread, NULL);
-    setupUnencryptedSocket();
+    //setupUnencryptedSocket();
 
     // Второй поток
     if (pthread_create(&receiveThread, NULL, receiveThreadFunction, NULL) != 0)
