@@ -73,7 +73,7 @@ void setupUnencryptedSocket()
         handleErrors();
     memset(&unencrypted_serv_addr, 0, sizeof(unencrypted_serv_addr));
     unencrypted_serv_addr.sin_family = AF_INET;
-    unencrypted_serv_addr.sin_addr.s_addr = inet_addr("192.168.1.5");
+    unencrypted_serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
     unencrypted_serv_addr.sin_port = htons(UNENCRYPTED_PORT);
 
     if (bind(unencrypted_sockfd, (struct sockaddr *)&unencrypted_serv_addr, sizeof(unencrypted_serv_addr)) < 0)
@@ -173,9 +173,16 @@ void decryptAndProcessData(const char *data, int data_len)
     // Отправляем расшифрованные данные на не защищенный порт
     // Отправляем расшифрованные данные
     setupUnencryptedSocket();
-    if (send(unencrypted_sockfd, decrypted_data, decrypted_len, 0) < 0)
+    int unencrypted_connfd = accept(unencrypted_sockfd, NULL, NULL);
+    if (unencrypted_connfd < 0)
         handleErrors();
-    close(unencrypted_sockfd);
+
+    // Отправляем данные
+    if (send(unencrypted_connfd, decrypted_data, decrypted_len, 0) < 0)
+        handleErrors();
+
+    // Закрываем соединение
+    close(unencrypted_connfd);
     memset(decrypted_data, 0, sizeof(decrypted_data));
     EVP_CIPHER_CTX_free(ctx);
 }
@@ -251,9 +258,6 @@ void *receiveThreadFunction(void *arg)
             close(unencrypted_connfd);
             break;
         }
-
-        
-         
     }
 
     pthread_exit(NULL);
@@ -298,8 +302,6 @@ int main()
         printf("Available Engine: %s\n", ENGINE_get_id(engine_list));
         engine_list = ENGINE_get_next(engine_list);
     }
-
-    
 
     ssl = establishEncryptedConnection();
 
