@@ -139,8 +139,10 @@ void decryptAndProcessData(const char *data, int data_len)
     printf("Decrypted data: %s\n", decrypted_data);
     // Отправляем расшифрованные данные на не защищенный порт
     // Отправляем расшифрованные данные
+    setupUnencryptedSocket();
     if (send(unencrypted_sockfd, decrypted_data, decrypted_len, 0) < 0)
         handleErrors();
+    close(unencrypted_sockfd);
     memset(decrypted_data, 0, sizeof(decrypted_data));
     EVP_CIPHER_CTX_free(ctx);
 }
@@ -272,6 +274,7 @@ int main()
             handleErrors();
         }
         pthread_join(receiveThread, NULL);
+        close(unencrypted_sockfd);
 
         
 
@@ -283,7 +286,7 @@ int main()
 
         
         pthread_join(sendThread, NULL);
-        close(unencrypted_sockfd);
+        
     }
 
     
