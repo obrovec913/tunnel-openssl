@@ -58,9 +58,13 @@ void setupUnencryptedSocket()
 {
     struct sockaddr_in unencrypted_serv_addr;
 
-    if ((unencrypted_sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+     if ((unencrypted_sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
         handleErrors();
 
+    // Опция для повторного использования адреса
+    int enable = 1;
+    if (setsockopt(unencrypted_sockfd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)
+        handleErrors();
     memset(&unencrypted_serv_addr, 0, sizeof(unencrypted_serv_addr));
     unencrypted_serv_addr.sin_family = AF_INET;
     unencrypted_serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
