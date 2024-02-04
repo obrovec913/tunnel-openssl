@@ -259,7 +259,7 @@ int main()
         engine_list = ENGINE_get_next(engine_list);
     }
 
-    setupUnencryptedSocket();
+    
 
     ssl = establishEncryptedConnection();
 
@@ -270,6 +270,9 @@ int main()
             fprintf(stderr, "Failed to create receive thread.\n");
             handleErrors();
         }
+        pthread_join(receiveThread, NULL);
+
+        setupUnencryptedSocket();
 
         if (pthread_create(&sendThread, NULL, sendThreadFunction, NULL) != 0)
         {
@@ -277,11 +280,12 @@ int main()
             handleErrors();
         }
 
-        pthread_join(receiveThread, NULL);
+        
         pthread_join(sendThread, NULL);
+        close(unencrypted_sockfd);
     }
 
-    close(unencrypted_sockfd);
+    
     SSL_shutdown(ssl);
     SSL_free(ssl);
     SSL_CTX_free(createSSLContext());
