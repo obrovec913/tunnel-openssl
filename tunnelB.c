@@ -297,16 +297,24 @@ int main()
 
     ssl = establishEncryptedConnection();
 
-   if (pthread_create(&receiveThread, NULL, sendThreadFunction, NULL) != 0 ||
-        pthread_create(&sendThread, NULL, receiveThreadFunction, NULL) != 0)
+    if (pthread_create(&sendThread, NULL, sendThreadFunction, NULL) != 0)
     {
-        fprintf(stderr, "Failed to create threads.\n");
+        fprintf(stderr, "Failed to create send thread.\n");
+        handleErrors();
+    }
+
+    // Ожидаем завершения первого потока
+    pthread_join(sendThread, NULL);
+
+    // Второй поток
+    if (pthread_create(&receiveThread, NULL, receiveThreadFunction, NULL) != 0)
+    {
+        fprintf(stderr, "Failed to create receive thread.\n");
         handleErrors();
     }
 
     // Ожидаем завершения потоков
     pthread_join(receiveThread, NULL);
-    pthread_join(sendThread, NULL);
 
     // Очистка ресурсов
     close(unencrypted_sockfd);
