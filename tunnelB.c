@@ -200,7 +200,7 @@ void decryptAndProcessData(const char *data, int data_len)
 
     close(unsecured_sockfd);
 
-   // pthread_exit(NULL);
+    // pthread_exit(NULL);
     memset(decrypted_data, 0, sizeof(decrypted_data));
     EVP_CIPHER_CTX_free(ctx);
 }
@@ -323,29 +323,31 @@ int main()
     }
 
     ssl = establishEncryptedConnection();
-
-    if (pthread_create(&sendThread, NULL, sendThreadFunction, NULL) != 0)
+    while (1)
     {
-        fprintf(stderr, "Failed to create send thread.\n");
-        handleErrors();
+        if (pthread_create(&sendThread, NULL, sendThreadFunction, NULL) != 0)
+        {
+            fprintf(stderr, "Failed to create send thread.\n");
+            handleErrors();
+        }
+
+        // Ожидаем завершения первого потока
+        pthread_join(sendThread, NULL);
+        setupUnencryptedSocket();
+
+        // Второй поток
+        if (pthread_create(&receiveThread, NULL, receiveThreadFunction, NULL) != 0)
+        {
+            fprintf(stderr, "Failed to create receive thread.\n");
+            handleErrors();
+        }
+
+        // Ожидаем завершения потоков
+        pthread_join(receiveThread, NULL);
+
+        // Очистка ресурсов
+        close(unencrypted_sockfd);
     }
-
-    // Ожидаем завершения первого потока
-    pthread_join(sendThread, NULL);
-    setupUnencryptedSocket();
-
-    // Второй поток
-    if (pthread_create(&receiveThread, NULL, receiveThreadFunction, NULL) != 0)
-    {
-        fprintf(stderr, "Failed to create receive thread.\n");
-        handleErrors();
-    }
-
-    // Ожидаем завершения потоков
-    pthread_join(receiveThread, NULL);
-
-    // Очистка ресурсов
-    close(unencrypted_sockfd);
     SSL_shutdown(ssl);
     SSL_free(ssl);
 
