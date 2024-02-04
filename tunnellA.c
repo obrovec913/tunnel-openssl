@@ -104,6 +104,28 @@ SSL *establishEncryptedConnection()
 
     return ssl;
 }
+
+// Функция для создания сокета и установки соединения на незашифрованный порт
+int connectUnencryptedPort()
+{
+    int unsecured_sockfd;
+    struct sockaddr_in unsecured_server_addr;
+
+    if ((unsecured_sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+        handleErrors();
+
+    memset(&unsecured_server_addr, 0, sizeof(unsecured_server_addr));
+    unsecured_server_addr.sin_family = AF_INET;
+    unsecured_server_addr.sin_port = htons(UNENCRYPTED_PORT);
+    unsecured_server_addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+
+    if (connect(unsecured_sockfd, (struct sockaddr *)&unsecured_server_addr, sizeof(unsecured_server_addr)) < 0)
+        handleErrors();
+
+    return unsecured_sockfd;
+}
+
+
 void decryptAndProcessData(const char *data, int data_len)
 {
     // Выделяем буфер для расшифрованных данных
@@ -139,10 +161,14 @@ void decryptAndProcessData(const char *data, int data_len)
     printf("Decrypted data: %s\n", decrypted_data);
     // Отправляем расшифрованные данные на не защищенный порт
     // Отправляем расшифрованные данные
-    setupUnencryptedSocket();
-    if (send(unencrypted_sockfd, decrypted_data, decrypted_len, 0) < 0)
+ 
+    //close(unencrypted_sockfd);
+    int unsecured_sockfd = connectUnencryptedPort();
+
+    if (send(unsecured_sockfd, decrypted_data, decrypted_len, 0) < 0)
         handleErrors();
-    close(unencrypted_sockfd);
+
+    close(unsecured_sockfd);
     memset(decrypted_data, 0, sizeof(decrypted_data));
     EVP_CIPHER_CTX_free(ctx);
 }

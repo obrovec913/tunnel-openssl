@@ -137,6 +137,27 @@ SSL *establishEncryptedConnection()
 
     return ssl;
 }
+
+// Функция для создания сокета и установки соединения на незашифрованный порт
+int connectUnencryptedPort()
+{
+    int unsecured_sockfd;
+    struct sockaddr_in unsecured_server_addr;
+
+    if ((unsecured_sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+        handleErrors();
+
+    memset(&unsecured_server_addr, 0, sizeof(unsecured_server_addr));
+    unsecured_server_addr.sin_family = AF_INET;
+    unsecured_server_addr.sin_port = htons(UNENCRYPTED_PORT);
+    unsecured_server_addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+
+    if (connect(unsecured_sockfd, (struct sockaddr *)&unsecured_server_addr, sizeof(unsecured_server_addr)) < 0)
+        handleErrors();
+
+    return unsecured_sockfd;
+}
+
 void decryptAndProcessData(const char *data, int data_len)
 {
     // Выделяем буфер для расшифрованных данных
@@ -172,30 +193,18 @@ void decryptAndProcessData(const char *data, int data_len)
     printf("Decrypted data: %s\n", decrypted_data);
     // Отправляем расшифрованные данные на не защищенный порт
     // Отправляем расшифрованные данные
-   int unsecured_sockfd;
-    struct sockaddr_in unsecured_server_addr;
-
-    if ((unsecured_sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-        handleErrors();
-
-    memset(&unsecured_server_addr, 0, sizeof(unsecured_server_addr));
-    unsecured_server_addr.sin_family = AF_INET;
-    unsecured_server_addr.sin_port = htons(UNENCRYPTED_PORT);
-    unsecured_server_addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-
-    if (connect(unsecured_sockfd, (struct sockaddr *)&unsecured_server_addr, sizeof(unsecured_server_addr)) < 0)
-        handleErrors();
+    int unsecured_sockfd = connectUnencryptedPort();
 
     if (send(unsecured_sockfd, decrypted_data, decrypted_len, 0) < 0)
         handleErrors();
-    // Закрываем соединение
 
-   close(unsecured_sockfd);
-    SSL_free(ssl);
-    pthread_exit(NULL);
+    close(unsecured_sockfd);
+
+   // pthread_exit(NULL);
     memset(decrypted_data, 0, sizeof(decrypted_data));
     EVP_CIPHER_CTX_free(ctx);
 }
+
 void encryptAndSendData(SSL *ssl, const char *data, int data_len)
 {
     unsigned char ciphertext[MAX_BUFFER_SIZE];
@@ -323,7 +332,7 @@ int main()
 
     // Ожидаем завершения первого потока
     pthread_join(sendThread, NULL);
-    //setupUnencryptedSocket();
+    setupUnencryptedSocket();
 
     // Второй поток
     if (pthread_create(&receiveThread, NULL, receiveThreadFunction, NULL) != 0)
