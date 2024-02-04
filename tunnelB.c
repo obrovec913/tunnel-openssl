@@ -172,35 +172,27 @@ void decryptAndProcessData(const char *data, int data_len)
     printf("Decrypted data: %s\n", decrypted_data);
     // Отправляем расшифрованные данные на не защищенный порт
     // Отправляем расшифрованные данные
-    struct sockaddr_in unencrypted_serv_addr;
+   int unsecured_sockfd;
+    struct sockaddr_in unsecured_server_addr;
 
-    if ((unencrypted_sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+    if ((unsecured_sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
         handleErrors();
 
-    // Опция для повторного использования адреса
-    int enable = 1;
-    if (setsockopt(unencrypted_sockfd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)
-        handleErrors();
-    memset(&unencrypted_serv_addr, 0, sizeof(unencrypted_serv_addr));
-    unencrypted_serv_addr.sin_family = AF_INET;
-    unencrypted_serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    unencrypted_serv_addr.sin_port = htons(UNENCRYPTED_PORT);
+    memset(&unsecured_server_addr, 0, sizeof(unsecured_server_addr));
+    unsecured_server_addr.sin_family = AF_INET;
+    unsecured_server_addr.sin_port = htons(UNENCRYPTED_PORT);
+    unsecured_server_addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
 
-    if (bind(unencrypted_sockfd, (struct sockaddr *)&unencrypted_serv_addr, sizeof(unencrypted_serv_addr)) < 0)
+    if (connect(unsecured_sockfd, (struct sockaddr *)&unsecured_server_addr, sizeof(unsecured_server_addr)) < 0)
         handleErrors();
 
-    if (listen(unencrypted_sockfd, 1) < 0)
+    if (send(unsecured_sockfd, decrypted_data, decrypted_len, 0) < 0)
         handleErrors();
-    int unencrypted_connfd = accept(unencrypted_sockfd, NULL, NULL);
-    if (unencrypted_connfd < 0)
-        handleErrors();
-
-    // Отправляем данные
-    if (send(unencrypted_connfd, decrypted_data, decrypted_len, 0) < 0)
-        handleErrors();
-
     // Закрываем соединение
-    close(unencrypted_connfd);
+
+   close(unsecured_sockfd);
+    SSL_free(ssl);
+    pthread_exit(NULL);
     memset(decrypted_data, 0, sizeof(decrypted_data));
     EVP_CIPHER_CTX_free(ctx);
 }
