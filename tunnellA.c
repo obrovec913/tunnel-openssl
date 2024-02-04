@@ -265,6 +265,7 @@ int main()
 
     while (1)
     {
+        setupUnencryptedSocket();
         if (pthread_create(&receiveThread, NULL, receiveThreadFunction, NULL) != 0)
         {
             fprintf(stderr, "Failed to create receive thread.\n");
@@ -272,7 +273,7 @@ int main()
         }
         pthread_join(receiveThread, NULL);
 
-        setupUnencryptedSocket();
+        
 
         if (pthread_create(&sendThread, NULL, sendThreadFunction, NULL) != 0)
         {
