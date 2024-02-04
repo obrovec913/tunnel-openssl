@@ -58,7 +58,7 @@ void setupUnencryptedSocket()
 {
     struct sockaddr_in unencrypted_serv_addr;
 
-     if ((unencrypted_sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+    if ((unencrypted_sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
         handleErrors();
 
     // Опция для повторного использования адреса
@@ -120,7 +120,7 @@ void decryptAndProcessData(const char *data, int data_len)
     const EVP_CIPHER *cipher = EVP_get_cipherbyname("belt-cbc128");
     if (!cipher)
         handleErrors();
-    
+
     EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
 
     if (EVP_DecryptInit_ex(ctx, EVP_get_cipherbyname("belt-cbc128"), engine, NULL, NULL) != 1)
@@ -215,9 +215,9 @@ void *receiveThreadFunction(void *arg)
 
             // Очистка буфера
             memset(buffer, 0, sizeof(buffer));
+            close(unencrypted_connfd);
+            break;
         }
-
-        close(unencrypted_connfd);
     }
 
     pthread_exit(NULL);
@@ -244,6 +244,7 @@ void *sendThreadFunction(void *arg)
             decryptAndProcessData(buffer, bytes_received);
             // Очистка буфера
             memset(buffer, 0, sizeof(buffer));
+            break;
         }
     }
 
@@ -261,8 +262,6 @@ int main()
         engine_list = ENGINE_get_next(engine_list);
     }
 
-    
-
     ssl = establishEncryptedConnection();
 
     while (1)
@@ -276,20 +275,15 @@ int main()
         pthread_join(receiveThread, NULL);
         close(unencrypted_sockfd);
 
-        
-
         if (pthread_create(&sendThread, NULL, sendThreadFunction, NULL) != 0)
         {
             fprintf(stderr, "Failed to create send thread.\n");
             handleErrors();
         }
 
-        
         pthread_join(sendThread, NULL);
-        
     }
 
-    
     SSL_shutdown(ssl);
     SSL_free(ssl);
     SSL_CTX_free(createSSLContext());
