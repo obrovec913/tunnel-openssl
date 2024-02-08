@@ -13,7 +13,6 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-
 #define PORT 12345
 #define UNENCRYPTED_PORT 5412
 #define MAX_BUFFER_SIZE 2024
@@ -25,64 +24,68 @@ SSL *ssl;
 SSL_CTX *ssl_ctx;
 int connected = 0;
 
-
 // Определяем возможные типы событий
-enum LogType {
+enum LogType
+{
     INFO,
     WARNING,
     ERROR
 };
 
 // Функция для записи события в лог
-void logEvent(enum LogType type, const char *format, ...) {
+void logEvent(enum LogType type, const char *format, ...)
+{
     // Открываем файл лога для добавления записи
     FILE *logfile = fopen("server.log", "a");
-    if (logfile == NULL) {
+    if (logfile == NULL)
+    {
         perror("Failed to open log file");
         exit(EXIT_FAILURE);
     }
-    
+
     // Получаем текущее время
     time_t rawtime;
     struct tm *timeinfo;
     time(&rawtime);
     timeinfo = localtime(&rawtime);
-    
+
     // Форматируем строку для временного штампа
     char timestamp[20];
     strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", timeinfo);
-    
+
     // Определяем строку префикса в зависимости от типа события
     const char *prefix;
-    switch(type) {
-        case INFO:
-            prefix = "[INFO]";
-            break;
-        case WARNING:
-            prefix = "[WARNING]";
-            break;
-        case ERROR:
-            prefix = "[ERROR]";
-            break;
-        default:
-            prefix = "[UNKNOWN]";
+    switch (type)
+    {
+    case INFO:
+        prefix = "[INFO]";
+        break;
+    case WARNING:
+        prefix = "[WARNING]";
+        break;
+    case ERROR:
+        prefix = "[ERROR]";
+        break;
+    default:
+        prefix = "[UNKNOWN]";
     }
-    
+
     // Форматируем строку сообщения
     va_list args;
     va_start(args, format);
     char message[1024];
     vsnprintf(message, sizeof(message), format, args);
     va_end(args);
-    
+
     // Записываем событие в лог
     fprintf(logfile, "[%s] %s: %s\n", timestamp, prefix, message);
-    
+
     // Если тип события - ошибка, записываем также информацию об ошибке OpenSSL
-    if (type == ERROR) {
+    if (type == ERROR)
+    {
         ERR_print_errors_fp(logfile);
     }
-    
+
     // Закрываем файл
     fclose(logfile);
 }
@@ -206,7 +209,7 @@ SSL *establishEncryptedConnection()
             handleErrors("Failed to establish encrypted connection");
         }
     }
-    const char *cipher_list = "belt-ecb128:belt-ecb192:belt-ecb256";
+    const char *cipher_list = "AES256-GCM-SHA384";
 
     // Устанавливаем список шифров для SSL сокета
     if (SSL_set_cipher_list(ssl, cipher_list) != 1)
@@ -339,12 +342,15 @@ void encryptAndSendData(SSL *ssl, const char *data, int data_len)
     EVP_CIPHER_CTX_free(ctx);
 }
 
-int setNonBlocking(int sockfd) {
+int setNonBlocking(int sockfd)
+{
     int flags = fcntl(sockfd, F_GETFL, 0);
-    if (flags == -1) {
+    if (flags == -1)
+    {
         return -1;
     }
-    if (fcntl(sockfd, F_SETFL, flags | O_NONBLOCK) == -1) {
+    if (fcntl(sockfd, F_SETFL, flags | O_NONBLOCK) == -1)
+    {
         return -1;
     }
     return 0;
@@ -456,7 +462,7 @@ int main()
         printf("Доступный движок: %s\n", ENGINE_get_id(engine_list));
         engine_list = ENGINE_get_next(engine_list);
     }
-//    server_clok = 0;
+    //    server_clok = 0;
 
     setupUnencryptedSocket();
     setNonBlocking(unencrypted_sockfd);

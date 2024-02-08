@@ -181,8 +181,10 @@ SSL *establishEncryptedConnection()
 
     if (SSL_connect(ssl) != 1)
         handleErrors("Failed to establish SSL connection");
-
-    const char *cipher_list = "belt-ecb128:belt-ecb192:belt-ecb256";
+    
+    
+    const char *cipher_list = "AES256-GCM-SHA384";
+//    const char *cipher_list = "belt-ecb128:belt-ecb192:belt-ecb256";
 
     // Устанавливаем список шифров для SSL сокета
     if (SSL_set_cipher_list(ssl, cipher_list) != 1)
