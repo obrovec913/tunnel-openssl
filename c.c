@@ -14,7 +14,6 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-
 #define UNENCRYPTED_PORT 7781
 #define ENCRYPTED_PORT 12345
 #define MAX_BUFFER_SIZE 2024
@@ -160,7 +159,6 @@ SSL *establishEncryptedConnection()
         handleErrors("Failed to load bee2evp engine");
     }
 
-
     int encrypted_sockfd;
     struct sockaddr_in encrypted_serv_addr;
 
@@ -181,10 +179,9 @@ SSL *establishEncryptedConnection()
 
     if (SSL_connect(ssl) != 1)
         handleErrors("Failed to establish SSL connection");
-    
-    
-//    const char *cipher_list = "AES256-GCM-SHA384";
-   const char *cipher_list = "belt-ecb128";
+
+    const char *cipher_list = "AES256-GCM-SHA384";
+    //   const char *cipher_list = "belt-ecb128";
 
     // Устанавливаем список шифров для SSL сокета
     if (SSL_set_cipher_list(ssl, cipher_list) != 1)
@@ -311,12 +308,15 @@ void encryptAndSendData(SSL *ssl, const char *data, int data_len)
     memset(ciphertext, 0, sizeof(ciphertext));
     EVP_CIPHER_CTX_free(ctx);
 }
-int setNonBlocking(int sockfd) {
+int setNonBlocking(int sockfd)
+{
     int flags = fcntl(sockfd, F_GETFL, 0);
-    if (flags == -1) {
+    if (flags == -1)
+    {
         return -1;
     }
-    if (fcntl(sockfd, F_SETFL, flags | O_NONBLOCK) == -1) {
+    if (fcntl(sockfd, F_SETFL, flags | O_NONBLOCK) == -1)
+    {
         return -1;
     }
     return 0;
