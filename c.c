@@ -11,6 +11,9 @@
 #include <sys/time.h>
 #include <pthread.h>
 #include <errno.h>
+#include <fcntl.h>
+#include <unistd.h>
+
 
 #define UNENCRYPTED_PORT 7781
 #define ENCRYPTED_PORT 12345
