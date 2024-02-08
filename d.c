@@ -9,9 +9,10 @@
 #include <openssl/engine.h>
 #include <openssl/ssl.h>
 #include <pthread.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <unistd.h>
 
-const unsigned char *key = (const unsigned char *)"0123456789ABCDEF";
-const unsigned char *iv = (const unsigned char *)"FEDCBA9876543210";
 
 #define PORT 12345
 #define UNENCRYPTED_PORT 5412
@@ -205,6 +206,13 @@ SSL *establishEncryptedConnection()
             handleErrors("Failed to establish encrypted connection");
         }
     }
+    const char *cipher_list = "belt-ecb128:belt-ecb192:belt-ecb256";
+
+    // Устанавливаем список шифров для SSL сокета
+    if (SSL_set_cipher_list(ssl, cipher_list) != 1)
+    {
+        handleErrors("Failed to set cipher list");
+    }
 
     // Освобождение контекста шифрования (не освобождаем ssl_ctx, так как он используется в основной функции)
     SSL_CTX_free(ssl_ctx);
@@ -331,66 +339,110 @@ void encryptAndSendData(SSL *ssl, const char *data, int data_len)
     EVP_CIPHER_CTX_free(ctx);
 }
 
-void *receiveThreadFunction(void *arg)
-{
-    logEvent(INFO, "Receive thread started");
-    char buffer[MAX_BUFFER_SIZE];
-    int bytes_received;
-
-    while (1)
-    {
-        int unencrypted_connfd = accept(unencrypted_sockfd, NULL, NULL);
-        if (unencrypted_connfd < 0)
-            handleErrors("Failed to accept unencrypted connection");
-
-        bytes_received = recv(unencrypted_connfd, buffer, sizeof(buffer), 0);
-
-        if (bytes_received > 0)
-        {
-            printf("Received unencrypted data.\n");
-            encryptAndSendData(ssl, buffer, bytes_received);
-            printf("Received connection.\n");
-
-            // Очистка буфера
-            memset(buffer, 0, sizeof(buffer));
-            close(unencrypted_connfd);
-            break;
-        }
+int setNonBlocking(int sockfd) {
+    int flags = fcntl(sockfd, F_GETFL, 0);
+    if (flags == -1) {
+        return -1;
     }
-
-    logEvent(INFO, "Receive thread exiting");
-    pthread_exit(NULL);
+    if (fcntl(sockfd, F_SETFL, flags | O_NONBLOCK) == -1) {
+        return -1;
+    }
+    return 0;
 }
 
-void *sendThreadFunction(void *arg)
+// Функция мультиплексирования ввода-вывода
+void multiplexIO(int unencrypted_sockfd, SSL *ssl)
 {
-    logEvent(INFO, "Send thread started");
-    char buffer[MAX_BUFFER_SIZE];
-    int bytes_received;
+    fd_set readfds;
+    int max_fd;
 
-    while (1)
+    // Инициализация набора файловых дескрипторов
+    FD_ZERO(&readfds);
+    FD_SET(unencrypted_sockfd, &readfds);
+    max_fd = unencrypted_sockfd;
+
+    // Добавляем SSL сокет в набор
+    int ssl_fd = SSL_get_fd(ssl);
+    FD_SET(ssl_fd, &readfds);
+    if (ssl_fd > max_fd)
     {
-        // Принятие зашифрованных данных от сервера
-        bytes_received = SSL_read(ssl, buffer, sizeof(buffer));
+        max_fd = ssl_fd;
+    }
+
+    // Ожидание событий ввода-вывода
+    if (select(max_fd + 1, &readfds, NULL, NULL, NULL) == -1)
+    {
+        handleErrors("Failed to perform IO multiplexing");
+    }
+
+    // Проверка событий на сокете для незашифрованных данных
+    if (FD_ISSET(unencrypted_sockfd, &readfds))
+    {
+        // Принимаем данные на незашифрованном сокете
+        char buffer[MAX_BUFFER_SIZE];
+        int bytes_received = recv(unencrypted_sockfd, buffer, sizeof(buffer), 0);
+        if (bytes_received > 0)
+        {
+            // Отправляем данные на зашифрованный сокет
+            if (SSL_write(ssl, buffer, bytes_received) <= 0)
+            {
+                handleErrors("Failed to write data to SSL socket");
+            }
+        }
+        else if (bytes_received == 0)
+        {
+            // Соединение закрыто
+            close(unencrypted_sockfd);
+            setupUnencryptedSocket();
+            setNonBlocking(unencrypted_sockfd);
+
+            // Дополнительная обработка, если необходимо
+        }
+        else
+        {
+            // Ошибка при чтении данных
+            handleErrors("Failed to receive data from unencrypted socket");
+        }
+    }
+    // Проверка событий на SSL сокете для зашифрованных данных
+    if (FD_ISSET(ssl_fd, &readfds))
+    {
+        // Принимаем данные на SSL сокете
+        char buffer[MAX_BUFFER_SIZE];
+        int bytes_received = SSL_read(ssl, buffer, sizeof(buffer));
         if (bytes_received > 0)
         {
             printf("Received encrypted data from server.\n");
-            printf("Decrypted Text: ");
             for (int i = 0; i < bytes_received; i++)
             {
                 printf("%02x ", buffer[i]);
             }
             printf("\n");
-            decryptAndProcessData(buffer, bytes_received);
 
-            // Очистка буфера
-            memset(buffer, 0, sizeof(buffer));
-            break;
+            // Отправляем данные на незашифрованный сокет
+            if (send(unencrypted_sockfd, buffer, bytes_received, 0) < 0)
+            {
+                handleErrors("Failed to send data to unencrypted socket");
+            }
+        }
+        else if (bytes_received == 0)
+        {
+            // SSL соединение закрыто
+            SSL_shutdown(ssl);
+            SSL_free(ssl);
+            ssl = establishEncryptedConnection();
+            setNonBlocking(SSL_get_fd(ssl));
+        }
+        else
+        {
+            // Ошибка при чтении данных
+            int err = SSL_get_error(ssl, bytes_received);
+            if (err != SSL_ERROR_WANT_READ && err != SSL_ERROR_WANT_WRITE)
+            {
+                handleErrors("SSL read error");
+            }
         }
     }
-
-    logEvent(INFO, "Send thread exiting");
-    pthread_exit(NULL);
 }
 
 int main()
@@ -401,38 +453,25 @@ int main()
     ENGINE *engine_list = ENGINE_get_first();
     while (engine_list != NULL)
     {
-        printf("Available Engine: %s\n", ENGINE_get_id(engine_list));
+        printf("Доступный движок: %s\n", ENGINE_get_id(engine_list));
         engine_list = ENGINE_get_next(engine_list);
     }
+    server_clok = 0;
+
+    setupUnencryptedSocket();
+    setNonBlocking(unencrypted_sockfd);
 
     ssl = establishEncryptedConnection();
+    setNonBlocking(SSL_get_fd(ssl));
+
     while (1)
     {
-        if (pthread_create(&sendThread, NULL, sendThreadFunction, NULL) != 0)
-        {
-            fprintf(stderr, "Failed to create send thread.\n");
-            handleErrors("Failed to create send thread");
-        }
-
-        // Ожидаем завершения первого потока
-        pthread_join(sendThread, NULL);
-        setupUnencryptedSocket();
-
-        // Второй поток
-        if (pthread_create(&receiveThread, NULL, receiveThreadFunction, NULL) != 0)
-        {
-            fprintf(stderr, "Failed to create receive thread.\n");
-            handleErrors("Failed to create receive thread");
-        }
-
-        // Ожидаем завершения потоков
-        pthread_join(receiveThread, NULL);
-
-        // Очистка ресурсов
-        close(unencrypted_sockfd);
+        multiplexIO(unencrypted_sockfd, ssl);
     }
+
     SSL_shutdown(ssl);
     SSL_free(ssl);
+    SSL_CTX_free(createSSLContext());
 
     logEvent(INFO, "Application exiting");
     return 0;
