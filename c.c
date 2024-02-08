@@ -306,6 +306,16 @@ void encryptAndSendData(SSL *ssl, const char *data, int data_len)
     memset(ciphertext, 0, sizeof(ciphertext));
     EVP_CIPHER_CTX_free(ctx);
 }
+int setNonBlocking(int sockfd) {
+    int flags = fcntl(sockfd, F_GETFL, 0);
+    if (flags == -1) {
+        return -1;
+    }
+    if (fcntl(sockfd, F_SETFL, flags | O_NONBLOCK) == -1) {
+        return -1;
+    }
+    return 0;
+}
 
 // Функция мультиплексирования ввода-вывода
 void multiplexIO(int unencrypted_sockfd, SSL *ssl)
