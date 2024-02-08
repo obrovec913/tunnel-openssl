@@ -164,6 +164,11 @@ SSL *establishEncryptedConnection()
     // Устанавливаем защищенное соединение
     SSL *ssl;
     SSL_CTX *ssl_ctx = createSSLContext();
+      ENGINE *engine = ENGINE_by_id("bee2evp");
+    if (!engine)
+    {
+        handleErrors("Failed to load bee2evp engine");
+    }
 
     // Устанавливаем серверный сокет
     int sockfd, connfd;
@@ -209,7 +214,8 @@ SSL *establishEncryptedConnection()
             handleErrors("Failed to establish encrypted connection");
         }
     }
-    const char *cipher_list = "AES256-GCM-SHA384";
+    // const char *cipher_list = "AES256-GCM-SHA384";
+    const char *cipher_list = "belt-ecb128";
 
     // Устанавливаем список шифров для SSL сокета
     if (SSL_set_cipher_list(ssl, cipher_list) != 1)

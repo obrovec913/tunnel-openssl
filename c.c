@@ -159,7 +159,7 @@ SSL *establishEncryptedConnection()
     {
         handleErrors("Failed to load bee2evp engine");
     }
-    printf("Received encrypted data. Establishing encrypted. \n");
+
 
     int encrypted_sockfd;
     struct sockaddr_in encrypted_serv_addr;
@@ -183,8 +183,8 @@ SSL *establishEncryptedConnection()
         handleErrors("Failed to establish SSL connection");
     
     
-    const char *cipher_list = "AES256-GCM-SHA384";
-//    const char *cipher_list = "belt-ecb128:belt-ecb192:belt-ecb256";
+//    const char *cipher_list = "AES256-GCM-SHA384";
+   const char *cipher_list = "belt-ecb128";
 
     // Устанавливаем список шифров для SSL сокета
     if (SSL_set_cipher_list(ssl, cipher_list) != 1)
