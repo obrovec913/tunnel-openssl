@@ -456,7 +456,7 @@ int main()
         printf("Доступный движок: %s\n", ENGINE_get_id(engine_list));
         engine_list = ENGINE_get_next(engine_list);
     }
-    server_clok = 0;
+//    server_clok = 0;
 
     setupUnencryptedSocket();
     setNonBlocking(unencrypted_sockfd);
