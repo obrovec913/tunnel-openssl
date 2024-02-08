@@ -154,8 +154,8 @@ void setupUnencryptedSocket()
     if (bind(unencrypted_sockfd, (struct sockaddr *)&unencrypted_serv_addr, sizeof(unencrypted_serv_addr)) < 0)
         handleErrors("Failed to bind unencrypted socket");
 
-    //if (listen(unencrypted_sockfd, 1) < 0)
-      //  handleErrors("Failed to listen on unencrypted socket");
+    if (listen(unencrypted_sockfd, 1) < 0)
+      handleErrors("Failed to listen on unencrypted socket");
 }
 
 SSL *establishEncryptedConnection()
@@ -474,7 +474,7 @@ int main()
     setNonBlocking(unencrypted_sockfd);
 
     ssl = establishEncryptedConnection();
-    setNonBlocking(SSL_get_fd(ssl));
+    //setNonBlocking(SSL_get_fd(ssl));
 
     while (1)
     {
