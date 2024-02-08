@@ -158,7 +158,6 @@ SSL *establishEncryptedConnection()
     }
     printf("Received encrypted data. Establishing encrypted. \n");
 
-
     int encrypted_sockfd;
     struct sockaddr_in encrypted_serv_addr;
 
@@ -176,17 +175,17 @@ SSL *establishEncryptedConnection()
     ssl = SSL_new(ssl_ctx);
     SSL_set_fd(ssl, encrypted_sockfd);
     // Получаем список шифров от движка bee2evp
-    
-    const char *cipher_list = ENGINE_get_cipher(engine);
+
+    if (SSL_connect(ssl) != 1)
+        handleErrors("Failed to establish SSL connection");
+
+    const char *cipher_list = "belt-ecb128:belt-ecb192:belt-ecb256";
 
     // Устанавливаем список шифров для SSL сокета
     if (SSL_set_cipher_list(ssl, cipher_list) != 1)
     {
         handleErrors("Failed to set cipher list");
     }
-
-    if (SSL_connect(ssl) != 1)
-        handleErrors("Failed to establish SSL connection");
 
     return ssl;
 }
