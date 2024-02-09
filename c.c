@@ -123,7 +123,7 @@ SSL_CTX *createSSLContext()
     return ctx;
 }
 
-void setupUnencryptedSocket()
+int setupUnencryptedSocket()
 {
     logEvent(INFO, "Setting up unencrypted socket");
     struct sockaddr_in unencrypted_serv_addr;
@@ -146,6 +146,15 @@ void setupUnencryptedSocket()
 
     if (listen(unencrypted_sockfd, 1) < 0)
        handleErrors("Failed to listen on unencrypted socket");
+
+    int client_sockfd;
+    struct sockaddr_in client_addr;
+    socklen_t client_len = sizeof(client_addr);
+    if ((client_sockfd = accept(unencrypted_sockfd, (struct sockaddr *)&client_addr, &client_len)) < 0) {
+        perror("Failed to accept connection on unencrypted socket");
+        exit(EXIT_FAILURE);
+    }
+    return client_sockfd;
 }
 
 SSL *establishEncryptedConnection()
@@ -355,6 +364,13 @@ void multiplexIO(int unencrypted_sockfd, SSL *ssl)
         int bytes_received = recv(unencrypted_sockfd, buffer, sizeof(buffer), 0);
         if (bytes_received > 0)
         {
+
+            printf("Received encrypted data from server.\n");
+            for (int i = 0; i < bytes_received; i++)
+            {
+                printf("%02x ", buffer[i]);
+            }
+            printf("\n");
             // Отправляем данные на зашифрованный сокет
             if (SSL_write(ssl, buffer, bytes_received) <= 0)
             {
@@ -430,15 +446,15 @@ int main()
     }
     server_clok = 0;
 
-    setupUnencryptedSocket();
-    setNonBlocking(unencrypted_sockfd);
+    int unencrypted_client_sockfd = setupUnencryptedSocket();
+    setNonBlocking(unencrypted_client_sockfd);
 
     ssl = establishEncryptedConnection();
     setNonBlocking(SSL_get_fd(ssl));
 
     while (1)
     {
-        multiplexIO(unencrypted_sockfd, ssl);
+        multiplexIO(unencrypted_client_sockfd, ssl);
     }
 
     SSL_shutdown(ssl);
