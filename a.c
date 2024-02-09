@@ -19,9 +19,16 @@ int main() {
         return 1;
     }
 
-    const char* ciphers = ENGINE_get_cipher(engine);
+    const EVP_PKEY_ASN1_METHOD* method = ENGINE_get_pkey_asn1_meths(engine);
+    if (!method) {
+        fprintf(stderr, "Failed to get cipher methods for Bee2evp engine\n");
+        ENGINE_free(engine);
+        return 1;
+    }
+
+    const char* ciphers = method->pem_str;
     if (!ciphers) {
-        fprintf(stderr, "Failed to get ciphers for Bee2evp engine\n");
+        fprintf(stderr, "Failed to get cipher list for Bee2evp engine\n");
         ENGINE_free(engine);
         return 1;
     }
