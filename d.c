@@ -136,6 +136,7 @@ int setupUnencryptedSocket()
 {
     logEvent(INFO, "Setting up unencrypted socket");
     struct sockaddr_in unencrypted_serv_addr;
+    int  unencrypted_sockfd;
 
     if ((unencrypted_sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
         handleErrors("Failed to create unencrypted socket");
@@ -203,10 +204,6 @@ int establishEncryptedConnection()
         printf("got server\n");
         connected = 1;
 
-        else
-        {
-            handleErrors("Failed to establish encrypted connection");
-        }
     }
     
 
@@ -443,9 +440,9 @@ int main()
         multiplexIO(unencrypted_client_sockfd, encrypted_sockfd);
     }
 
-    SSL_shutdown(ssl);
-    SSL_free(ssl);
-    SSL_CTX_free(createSSLContext());
+//    SSL_shutdown(ssl);
+  //  SSL_free(ssl);
+   // SSL_CTX_free(createSSLContext());
 
     logEvent(INFO, "Application exiting");
     return 0;
