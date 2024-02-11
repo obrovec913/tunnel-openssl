@@ -19,9 +19,8 @@
 #define CHUNK_SIZE 1024
 
 pthread_t receiveThread, sendThread;
-int unencrypted_sockfd;
-SSL *ssl;
-SSL_CTX *ssl_ctx;
+int encrypted_sockfd;
+int unencrypted_client_sockfd;
 int connected = 0;
 
 // Определяем возможные типы событий
@@ -155,30 +154,23 @@ int setupUnencryptedSocket()
         handleErrors("Failed to bind unencrypted socket");
 
     if (listen(unencrypted_sockfd, 1) < 0)
-      handleErrors("Failed to listen on unencrypted socket");
-    
+        handleErrors("Failed to listen on unencrypted socket");
+
     int client_sockfd;
     struct sockaddr_in client_addr;
     socklen_t client_len = sizeof(client_addr);
-    if ((client_sockfd = accept(unencrypted_sockfd, (struct sockaddr *)&client_addr, &client_len)) < 0) {
+    if ((client_sockfd = accept(unencrypted_sockfd, (struct sockaddr *)&client_addr, &client_len)) < 0)
+    {
         perror("Failed to accept connection on unencrypted socket");
         exit(EXIT_FAILURE);
     }
     return client_sockfd;
 }
 
-SSL *establishEncryptedConnection()
+int establishEncryptedConnection()
 {
     logEvent(INFO, "Establishing encrypted connection");
-    // Устанавливаем защищенное соединение
-    SSL *ssl;
-    SSL_CTX *ssl_ctx = createSSLContext();
-      ENGINE *engine = ENGINE_by_id("bee2evp");
-    if (!engine)
-    {
-        handleErrors("Failed to load bee2evp engine");
-    }
-
+    
     // Устанавливаем серверный сокет
     int sockfd, connfd;
     struct sockaddr_in server_addr, client_addr;
@@ -207,56 +199,20 @@ SSL *establishEncryptedConnection()
         if (connfd < 0)
             handleErrors("Failed to accept encrypted connection");
 
-        // Создание SSL структуры
-        ssl = SSL_new(ssl_ctx);
-        SSL_set_fd(ssl, connfd);
+        logEvent(INFO, "Encrypted connection established");
+        printf("got server\n");
+        connected = 1;
 
-        // Устанавливаем SSL соединение
-        if (SSL_accept(ssl) == 1)
-        {
-            logEvent(INFO, "Encrypted connection established");
-            printf("got server\n");
-            connected = 1;
-        }
         else
         {
             handleErrors("Failed to establish encrypted connection");
         }
     }
-    const char *cipher_list = "AES256-GCM-SHA384";
-    //const char *cipher_list = "belt-ecb128";
-
-    // Устанавливаем список шифров для SSL сокета
-    if (SSL_set_cipher_list(ssl, cipher_list) != 1)
-    {
-        handleErrors("Failed to set cipher list");
-    }
+    
 
     // Освобождение контекста шифрования (не освобождаем ssl_ctx, так как он используется в основной функции)
-    SSL_CTX_free(ssl_ctx);
-
-    return ssl;
-}
-
-// Функция для создания сокета и установки соединения на незашифрованный порт
-int connectUnencryptedPort()
-{
-    logEvent(INFO, "Connecting to unencrypted port");
-    int unsecured_sockfd;
-    struct sockaddr_in unsecured_server_addr;
-
-    if ((unsecured_sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-        handleErrors("Failed to create socket for unencrypted port");
-
-    memset(&unsecured_server_addr, 0, sizeof(unsecured_server_addr));
-    unsecured_server_addr.sin_family = AF_INET;
-    unsecured_server_addr.sin_port = htons(UNENCRYPTED_PORT);
-    unsecured_server_addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-
-    if (connect(unsecured_sockfd, (struct sockaddr *)&unsecured_server_addr, sizeof(unsecured_server_addr)) < 0)
-        handleErrors("Failed to connect to unencrypted port");
-
-    return unsecured_sockfd;
+    
+    return connfd;
 }
 
 void decryptAndProcessData(const char *data, int data_len)
@@ -296,19 +252,18 @@ void decryptAndProcessData(const char *data, int data_len)
     printf("Decrypted data: %s\n", decrypted_data);
     // Отправляем расшифрованные данные на не защищенный порт
     // Отправляем расшифрованные данные
-    int unsecured_sockfd = connectUnencryptedPort();
 
-    if (send(unsecured_sockfd, decrypted_data, decrypted_len, 0) < 0)
+    // close(unencrypted_sockfd);
+
+    if (send(unencrypted_client_sockfd, decrypted_data, decrypted_len, 0) < 0)
         handleErrors("Failed to send decrypted data");
 
-    close(unsecured_sockfd);
-
-    // pthread_exit(NULL);
     memset(decrypted_data, 0, sizeof(decrypted_data));
     EVP_CIPHER_CTX_free(ctx);
 }
 
-void encryptAndSendData(SSL *ssl, const char *data, int data_len)
+// Шифрование данных и отправка на сервер
+void encryptAndSendData(const char *data, int data_len)
 {
     logEvent(INFO, "Encrypting and sending data");
     unsigned char ciphertext[MAX_BUFFER_SIZE];
@@ -347,16 +302,12 @@ void encryptAndSendData(SSL *ssl, const char *data, int data_len)
     printf("\n");
 
     // Отправка зашифрованных данных на сервер
-    if (SSL_write(ssl, ciphertext, ciphertext_len) <= 0)
+    if (send(encrypted_sockfd, ciphertext, ciphertext_len, 0) < 0)
         handleErrors("Failed to write encrypted data");
 
-    printf("Encrypted WRITE ");
     memset(ciphertext, 0, sizeof(ciphertext));
-
-    // Очистка контекста шифрования
     EVP_CIPHER_CTX_free(ctx);
 }
-
 int setNonBlocking(int sockfd)
 {
     int flags = fcntl(sockfd, F_GETFL, 0);
@@ -372,7 +323,7 @@ int setNonBlocking(int sockfd)
 }
 
 // Функция мультиплексирования ввода-вывода
-void multiplexIO(int unencrypted_sockfd, SSL *ssl)
+void multiplexIO(int unencrypted_sockfd, int encrypted_sockfd)
 {
     fd_set readfds;
     int max_fd;
@@ -383,7 +334,7 @@ void multiplexIO(int unencrypted_sockfd, SSL *ssl)
     max_fd = unencrypted_sockfd;
 
     // Добавляем SSL сокет в набор
-    int ssl_fd = SSL_get_fd(ssl);
+    int ssl_fd = encrypted_sockfd;
     FD_SET(ssl_fd, &readfds);
     if (ssl_fd > max_fd)
     {
@@ -404,18 +355,25 @@ void multiplexIO(int unencrypted_sockfd, SSL *ssl)
         int bytes_received = recv(unencrypted_sockfd, buffer, sizeof(buffer), 0);
         if (bytes_received > 0)
         {
-            // Отправляем данные на зашифрованный сокет
-            if (SSL_write(ssl, buffer, bytes_received) <= 0)
+
+            printf("Received encrypted data from server.\n");
+            for (int i = 0; i < bytes_received; i++)
             {
-                handleErrors("Failed to write data to SSL socket");
+                printf("%02x ", buffer[i]);
             }
+            printf("\n");
+            // Отправляем данные на зашифрованный сокет
+            encryptAndSendData(buffer, bytes_received);
+
+            // Очистка буфера
+            memset(buffer, 0, sizeof(buffer));
         }
         else if (bytes_received == 0)
         {
             // Соединение закрыто
-            close(unencrypted_sockfd);
-            setupUnencryptedSocket();
-            setNonBlocking(unencrypted_sockfd);
+            close(unencrypted_client_sockfd);
+            unencrypted_client_sockfd = setupUnencryptedSocket();
+            setNonBlocking(unencrypted_client_sockfd);
 
             // Дополнительная обработка, если необходимо
         }
@@ -430,7 +388,7 @@ void multiplexIO(int unencrypted_sockfd, SSL *ssl)
     {
         // Принимаем данные на SSL сокете
         char buffer[MAX_BUFFER_SIZE];
-        int bytes_received = SSL_read(ssl, buffer, sizeof(buffer));
+        int bytes_received = recv(encrypted_sockfd, buffer, sizeof(buffer), 0);
         if (bytes_received > 0)
         {
             printf("Received encrypted data from server.\n");
@@ -441,27 +399,23 @@ void multiplexIO(int unencrypted_sockfd, SSL *ssl)
             printf("\n");
 
             // Отправляем данные на незашифрованный сокет
-            if (send(unencrypted_sockfd, buffer, bytes_received, 0) < 0)
-            {
-                handleErrors("Failed to send data to unencrypted socket");
-            }
+            decryptAndProcessData(buffer, bytes_received);
+            // Очистка буфера
+            memset(buffer, 0, sizeof(buffer));
         }
         else if (bytes_received == 0)
         {
             // SSL соединение закрыто
-            SSL_shutdown(ssl);
-            SSL_free(ssl);
-            ssl = establishEncryptedConnection();
-            setNonBlocking(SSL_get_fd(ssl));
+            // Ошибка при чтении данных
+            // Соединение закрыто
+            close(encrypted_sockfd);
+            encrypted_sockfd = establishEncryptedConnection();
+            setNonBlocking(encrypted_sockfd);
         }
         else
         {
             // Ошибка при чтении данных
-            int err = SSL_get_error(ssl, bytes_received);
-            if (err != SSL_ERROR_WANT_READ && err != SSL_ERROR_WANT_WRITE)
-            {
-                handleErrors("SSL read error");
-            }
+            handleErrors("Failed to receive data from  socket");
         }
     }
 }
@@ -477,16 +431,16 @@ int main()
         printf("Доступный движок: %s\n", ENGINE_get_id(engine_list));
         engine_list = ENGINE_get_next(engine_list);
     }
-    //    server_clok = 0;
+
     int unencrypted_client_sockfd = setupUnencryptedSocket();
     setNonBlocking(unencrypted_client_sockfd);
 
-    ssl = establishEncryptedConnection();
-    setNonBlocking(SSL_get_fd(ssl));
+    encrypted_sockfd = establishEncryptedConnection();
+    setNonBlocking(encrypted_sockfd);
 
     while (1)
     {
-        multiplexIO(unencrypted_client_sockfd, ssl);
+        multiplexIO(unencrypted_client_sockfd, encrypted_sockfd);
     }
 
     SSL_shutdown(ssl);
