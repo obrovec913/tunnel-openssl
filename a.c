@@ -42,14 +42,17 @@ int main()
     }
 
     OpenSSL_add_all_ciphers();
-
+   EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
     const EVP_CIPHER *cipher;
+
     int i = 0;
-    while ((cipher = EVP_CIPHER_get_cipherbyname(EVP_CIPHER_name((EVP_CIPHER *)EVP_CIPHER_get_by_index(i)))) != NULL)
-    {
+    while ((cipher = EVP_CIPHER_meth_new(i, EVP_aes_256_cbc())) != NULL) {
         printf("Name: %s\n", EVP_CIPHER_name(cipher));
+        EVP_CIPHER_meth_free((EVP_CIPHER *)cipher);
         ++i;
     }
+
+    EVP_CIPHER_CTX_free(ctx);
 
     return 0;
 }
