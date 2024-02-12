@@ -1,73 +1,72 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <openssl/ssl.h>
-#include <openssl/evp.h>
+#include <openssl/engine.h>
+#include <stdio.h>
 
-// Создание SSL контекста с выбранным алгоритмом шифрования
-SSL_CTX *createSSLContext(const char *cipher_name) {
-    SSL_CTX *ssl_ctx = SSL_CTX_new(SSLv23_client_method()); // Используйте нужный метод SSL
-    if (ssl_ctx == NULL) {
-        // Обработка ошибки
+// Функция для создания SSL контекста с заданным алгоритмом шифрования Bee2
+SSL_CTX *createSSLContextWithBee2Cipher(const char *cipher_name) {
+    // Инициализация OpenSSL
+    SSL_library_init();
+    SSL_load_error_strings();
+
+    // Создание SSL контекста
+    SSL_CTX *ssl_ctx = SSL_CTX_new(SSLv23_client_method());
+    if (!ssl_ctx) {
+        fprintf(stderr, "Failed to create SSL context\n");
+        return NULL;
     }
 
-    // Получение алгоритма шифрования EVP
-    const EVP_CIPHER *cipher = EVP_get_cipherbyname(cipher_name);
-    if (cipher == NULL) {
-        // Обработка ошибки
+    // Инициализация плагина Bee2evp
+    ENGINE_load_builtin_engines();
+    ENGINE_register_all_complete();
+
+    // Получение плагина Bee2evp
+    ENGINE *bee2_engine = ENGINE_by_id("bee2evp");
+    if (!bee2_engine) {
+        fprintf(stderr, "Failed to load Bee2evp engine\n");
+        return NULL;
     }
 
-    // Установка алгоритма шифрования для SSL контекста
+    // Запуск плагина Bee2evp
+    if (!ENGINE_init(bee2_engine)) {
+        fprintf(stderr, "Failed to initialize Bee2evp engine\n");
+        ENGINE_free(bee2_engine);
+        return NULL;
+    }
+
+    // Установка плагина Bee2evp в SSL контекст
     if (!SSL_CTX_set_cipher_list(ssl_ctx, cipher_name)) {
-        // Обработка ошибки
-        printf("Received encrypted data. Establishing . \n");
+        fprintf(stderr, "Failed to set cipher list\n");
+        ENGINE_free(bee2_engine);
+        return NULL;
     }
+
+    // Установка метода шифрования
+    if (!SSL_CTX_set_cipher(ssl_ctx, cipher_name)) {
+        fprintf(stderr, "Failed to set cipher\n");
+        ENGINE_free(bee2_engine);
+        return NULL;
+    }
+
+    // Освобождение плагина Bee2evp
+    ENGINE_free(bee2_engine);
 
     return ssl_ctx;
-}
-
-// Установка SSL соединения с использованием созданного SSL контекста
-SSL *establishEncryptedConnection(SSL_CTX *ssl_ctx) {
-    // Создание SSL объекта
-    SSL *ssl = SSL_new(ssl_ctx);
-    if (ssl == NULL) {
-        // Обработка ошибки
-    }
-
-    // Установка сокета
-    int sockfd; // Должен быть инициализирован вашим сокетом
-    SSL_set_fd(ssl, sockfd);
-
-    // Установка SSL соединения
-    if (SSL_connect(ssl) != 1) {
-        // Обработка ошибки
-    }
-
-    return ssl;
 }
 
 int main() {
      OPENSSL_init_crypto(OPENSSL_INIT_ENGINE_ALL_BUILTIN | OPENSSL_INIT_LOAD_CONFIG, NULL);
 
-    ENGINE *engine_list = ENGINE_get_first();
-    while (engine_list != NULL)
-    {
-        printf("Доступный движок: %s\n", ENGINE_get_id(engine_list));
-        engine_list = ENGINE_get_next(engine_list);
+    // Создание SSL контекста с заданным алгоритмом шифрования Bee2
+    SSL_CTX *ssl_ctx = createSSLContextWithBee2Cipher("belt-cbc128");
+    if (!ssl_ctx) {
+        fprintf(stderr, "Failed to create SSL context with Bee2 cipher\n");
+        return 1;
     }
-    // Создание SSL контекста с выбранным алгоритмом шифрования
-    const char *cipher_name = "belt-cbc128"; // Измените на нужный алгоритм
-    SSL_CTX *ssl_ctx = createSSLContext(cipher_name);
-     printf("Received encrypted data. Establishing encrypted. \n");
 
-    // Установка SSL соединения
-    SSL *ssl = establishEncryptedConnection(ssl_ctx);
+    // Использование SSL контекста
 
-    // Дальнейшие действия с SSL соединением
-
-    // Освобождение ресурсов
+    // Освобождение SSL контекста
     SSL_CTX_free(ssl_ctx);
-    SSL_free(ssl);
 
     return 0;
 }
