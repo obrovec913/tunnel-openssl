@@ -41,26 +41,12 @@ int main()
         handleErrors("Failed to initialize Bee2evp engine");
     }
 
-    if (!ENGINE_set_default(engine, ENGINE_METHOD_ALL))
-    {
-        handleErrors("Failed to set Bee2evp engine as default");
-    }
-
-    SSL_CTX *ssl_ctx = SSL_CTX_new(SSLv23_client_method()); // Создание SSL контекста
-    if (!ssl_ctx)
-    {
-        handleErrors("Failed to create SSL context");
-    }
-    // Установка списка шифров
-     const char **names = EVP_CIPHER_meth_names();
-    if (names == NULL) {
-        fprintf(stderr, "Failed to get cipher names\n");
-        return 1;
-    }
-
     printf("Available cipher names:\n");
-    for (int i = 0; names[i] != NULL; ++i) {
-        printf("%s\n", names[i]);
+    for (int i = 0; i < EVP_CIPHER_meth_nids(); ++i) {
+        const char *name = OBJ_nid2sn(EVP_CIPHER_meth_nid(i));
+        if (name != NULL) {
+            printf("%s\n", name);
+        }
     }
 
     return 0;
