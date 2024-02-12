@@ -56,8 +56,7 @@ int main()
     SSL_CTX_set_options(ssl_ctx, SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3); // Отключение уязвимых протоколов
 
     // Установка криптографического движка Bee2evp
-    if (!SSL_CTX_set1_engine(ssl_ctx, engine))
-    {
+    if (!SSL_CTX_set_cipher_list(ssl_ctx, ENGINE_get_cipher(engine))) {
         handleErrors("Failed to set Bee2evp engine for SSL context");
     }
 
