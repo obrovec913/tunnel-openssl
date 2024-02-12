@@ -18,7 +18,7 @@ SSL_CTX *createSSLContext(const char *cipher_name) {
     }
 
     // Установка алгоритма шифрования для SSL контекста
-    if (!SSL_CTX_set_ciphers(ssl_ctx, cipher)) {
+    if (!SSL_CTX_set_cipher(ssl_ctx, cipher)) {
         // Обработка ошибки
         printf("Received encrypted data. Establishing . \n");
     }
