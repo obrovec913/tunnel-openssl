@@ -1,58 +1,60 @@
-#include <stdio.h>
 #include <openssl/ssl.h>
-#include <openssl/engine.h>
 #include <openssl/evp.h>
 
-void handleErrors(const char *message)
-{
-    perror(message);
-    exit(EXIT_FAILURE);
+// Создание SSL контекста с выбранным алгоритмом шифрования
+SSL_CTX *createSSLContext(const char *cipher_name) {
+    SSL_CTX *ssl_ctx = SSL_CTX_new(SSLv23_client_method()); // Используйте нужный метод SSL
+    if (ssl_ctx == NULL) {
+        // Обработка ошибки
+    }
+
+    // Получение алгоритма шифрования EVP
+    const EVP_CIPHER *cipher = EVP_get_cipherbyname(cipher_name);
+    if (cipher == NULL) {
+        // Обработка ошибки
+    }
+
+    // Установка алгоритма шифрования для SSL контекста
+    if (!SSL_CTX_set_cipher(ssl_ctx, cipher)) {
+        // Обработка ошибки
+    }
+
+    return ssl_ctx;
 }
 
-void printCipherList(SSL_CTX *ssl_ctx)
-{
-    const char *ciphers = SSL_get_cipher_list(ssl_ctx, 0);
-    printf("Supported ciphers:\n");
-    while (ciphers != NULL)
-    {
-        printf("%s\n", ciphers);
-        ciphers = SSL_get_cipher_list(ssl_ctx, 1);
+// Установка SSL соединения с использованием созданного SSL контекста
+SSL *establishEncryptedConnection(SSL_CTX *ssl_ctx) {
+    // Создание SSL объекта
+    SSL *ssl = SSL_new(ssl_ctx);
+    if (ssl == NULL) {
+        // Обработка ошибки
     }
+
+    // Установка сокета
+    int sockfd; // Должен быть инициализирован вашим сокетом
+    SSL_set_fd(ssl, sockfd);
+
+    // Установка SSL соединения
+    if (SSL_connect(ssl) != 1) {
+        // Обработка ошибки
+    }
+
+    return ssl;
 }
 
-int main()
-{
-    OPENSSL_init_crypto(OPENSSL_INIT_ENGINE_ALL_BUILTIN | OPENSSL_INIT_LOAD_CONFIG, NULL);
+int main() {
+    // Создание SSL контекста с выбранным алгоритмом шифрования
+    const char *cipher_name = "belt-cbc128"; // Измените на нужный алгоритм
+    SSL_CTX *ssl_ctx = createSSLContext(cipher_name);
 
-    ENGINE *engine_list = ENGINE_get_first();
-    while (engine_list != NULL)
-    {
-        printf("Available Engine: %s\n", ENGINE_get_id(engine_list));
-        engine_list = ENGINE_get_next(engine_list);
-    }
-    ENGINE_load_builtin_engines();            // Загрузка встроенных движков OpenSSL
-    ENGINE *engine = ENGINE_by_id("bee2evp"); // Получение указателя на движок Bee2evp
-    if (!engine)
-    {
-        handleErrors("Failed to load Bee2evp engine");
-    }
-    if (!ENGINE_init(engine))
-    {
-        handleErrors("Failed to initialize Bee2evp engine");
-    }
+    // Установка SSL соединения
+    SSL *ssl = establishEncryptedConnection(ssl_ctx);
 
-    OpenSSL_add_all_ciphers();
-   EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
-    const EVP_CIPHER *cipher;
+    // Дальнейшие действия с SSL соединением
 
-    int i = 0;
-    while ((cipher = EVP_CIPHER_meth_new(i, EVP_aes_256_cbc())) != NULL) {
-        printf("Name: %s\n", EVP_CIPHER_name(cipher));
-        EVP_CIPHER_meth_free((EVP_CIPHER *)cipher);
-        ++i;
-    }
-
-    EVP_CIPHER_CTX_free(ctx);
+    // Освобождение ресурсов
+    SSL_CTX_free(ssl_ctx);
+    SSL_free(ssl);
 
     return 0;
 }
