@@ -41,12 +41,11 @@ int main()
         handleErrors("Failed to initialize Bee2evp engine");
     }
 
-    printf("Available cipher names:\n");
-    for (int i = 0; i < EVP_CIPHER_meth_nids(); ++i) {
-        const char *name = OBJ_nid2sn(EVP_CIPHER_meth_nid(i));
-        if (name != NULL) {
-            printf("%s\n", name);
-        }
+    const EVP_CIPHER *cipher;
+    int i = 0;
+    while ((cipher = EVP_CIPHER_get_cipherbynid(i)) != NULL) {
+        printf("Name: %s\n", EVP_CIPHER_name(cipher));
+        ++i;
     }
 
     return 0;
