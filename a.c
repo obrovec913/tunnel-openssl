@@ -41,9 +41,12 @@ int main()
         handleErrors("Failed to initialize Bee2evp engine");
     }
 
+    OpenSSL_add_all_ciphers();
+
     const EVP_CIPHER *cipher;
     int i = 0;
-    while ((cipher = EVP_CIPHER_get_cipherbynid(i)) != NULL) {
+    while ((cipher = EVP_CIPHER_get_cipherbyname(EVP_CIPHER_name((EVP_CIPHER *)EVP_CIPHER_get_by_index(i)))) != NULL)
+    {
         printf("Name: %s\n", EVP_CIPHER_name(cipher));
         ++i;
     }
