@@ -50,8 +50,8 @@ int main()
         handleErrors("Failed to create SSL context");
     }
 
-  // Получение алгоритма шифрования belt-cbc128
-    const EVP_CIPHER *cipher = EVP_get_cipherbyname("belt-cbc128");
+  / // Получение алгоритма шифрования AES в режиме CBC
+    const EVP_CIPHER *cipher = EVP_aes_128_cbc(); // Используем AES-128 в режиме CBC
     if (!cipher) {
         handleErrors("Failed to get cipher algorithm");
     } else {
