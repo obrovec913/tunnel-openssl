@@ -45,23 +45,20 @@ int main()
         handleErrors("Failed to set Bee2evp engine as default");
     }
 
-    SSL_CTX *ssl_ctx = SSL_CTX_new(SSLv23_client_method()); // Создание SSL контекста
-    if (!ssl_ctx)
-    {
+        SSL_CTX *ssl_ctx = SSL_CTX_new(SSLv23_client_method()); // Создание SSL контекста
+    if (!ssl_ctx) {
         handleErrors("Failed to create SSL context");
     }
 
-   // Установка алгоритма шифрования belt-cbc128 в контексте SSL
-    if (!SSL_CTX_set_cipher_list(ssl_ctx, "belt-cbc128")) {
-        handleErrors("Failed to set cipher list");
+    // Получение алгоритма шифрования belt-cbc128
+    const EVP_CIPHER *cipher = EVP_get_cipherbyname("belt-cbc128");
+    if (!cipher) {
+        handleErrors("Failed to get cipher algorithm");
     }
-                        // Установка списка шифров
-    SSL_CTX_set_options(ssl_ctx, SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3); // Отключение уязвимых протоколов
 
-    // Установка криптографического движка Bee2evp для SSL контекста
-    if (!SSL_CTX_ctrl(ssl_ctx, SSL_CTRL_SET_DH_AUTO, 1, NULL))
-    {
-        handleErrors("Failed to set Bee2evp engine for SSL context");
+    // Установка алгоритма шифрования в SSL контекст
+    if (!SSL_CTX_set_cipher_list(ssl_ctx, cipher->name)) {
+        handleErrors("Failed to set cipher algorithm for SSL context");
     }
 
     printCipherList(ssl_ctx); // Вывод списка поддерживаемых шифров
