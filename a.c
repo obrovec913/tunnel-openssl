@@ -50,7 +50,7 @@ int main()
         handleErrors("Failed to create SSL context");
     }
 
-  / // Получение алгоритма шифрования AES в режиме CBC
+ // Получение алгоритма шифрования AES в режиме CBC
     const EVP_CIPHER *cipher = EVP_aes_128_cbc(); // Используем AES-128 в режиме CBC
     if (!cipher) {
         handleErrors("Failed to get cipher algorithm");
