@@ -54,6 +54,8 @@ int main()
     const EVP_CIPHER *cipher = EVP_get_cipherbyname("belt-cbc128");
     if (!cipher) {
         handleErrors("Failed to get cipher algorithm");
+    } else {
+        printf("Cipher name: %s\n", EVP_CIPHER_name(cipher));
     }
 
     // Установка алгоритма шифрования в SSL контекст
