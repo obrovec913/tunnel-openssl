@@ -51,7 +51,11 @@ int main()
         handleErrors("Failed to create SSL context");
     }
 
-    SSL_CTX_set_cipher_list(ssl_ctx, "ALL");                         // Установка списка шифров
+   // Установка алгоритма шифрования belt-cbc128 в контексте SSL
+    if (!SSL_CTX_set_cipher_list(ssl_ctx, "belt-cbc128")) {
+        handleErrors("Failed to set cipher list");
+    }
+                        // Установка списка шифров
     SSL_CTX_set_options(ssl_ctx, SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3); // Отключение уязвимых протоколов
 
     // Установка криптографического движка Bee2evp для SSL контекста
