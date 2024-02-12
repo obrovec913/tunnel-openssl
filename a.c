@@ -50,14 +50,14 @@ int main()
         handleErrors("Failed to create SSL context");
     }
 
-    // Получение алгоритма шифрования belt-cbc128
+  // Получение алгоритма шифрования belt-cbc128
     const EVP_CIPHER *cipher = EVP_get_cipherbyname("belt-cbc128");
     if (!cipher) {
         handleErrors("Failed to get cipher algorithm");
     }
 
     // Установка алгоритма шифрования в SSL контекст
-    if (!SSL_CTX_set_cipher_list(ssl_ctx, cipher->name)) {
+    if (!SSL_CTX_set_cipher_list(ssl_ctx, EVP_CIPHER_name(cipher))) {
         handleErrors("Failed to set cipher algorithm for SSL context");
     }
 
