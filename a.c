@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <openssl/ssl.h>
 #include <openssl/engine.h>
+#include <openssl/evp.h>
 
 void handleErrors(const char *message)
 {
