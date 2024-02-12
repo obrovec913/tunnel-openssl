@@ -45,30 +45,19 @@ int main()
         handleErrors("Failed to set Bee2evp engine as default");
     }
 
-        SSL_CTX *ssl_ctx = SSL_CTX_new(SSLv23_client_method()); // Создание SSL контекста
-    if (!ssl_ctx) {
+    SSL_CTX *ssl_ctx = SSL_CTX_new(SSLv23_client_method()); // Создание SSL контекста
+    if (!ssl_ctx)
+    {
         handleErrors("Failed to create SSL context");
     }
+    // Установка списка шифров
+    const char *ciphers = "belt-ecb128:belt-ecb192:belt-ecb256:belt-cbc128:belt-cbc192:belt-cbc256:belt-cfb128:belt-cfb192:belt-cfb256:belt-ctr128:belt-ctr192:belt-ctr256:belt-dwp128:belt-dwp192:belt-dwp256:belt-kwp128:belt-kwp192:belt-kwp256:bash256:bash384:bash512:belt-hash:bign-with-hspec:bign-with-hbelt:bign-with-bash256:bign-with-bash384:bign-with-bash512:bign-keytransport:bign-curve256v1:bign-curve384v1:bign-curve512v1:bign-primefield:bign-pubkey:belt-mac128:belt-mac192:belt-mac256:belt-hmac";
 
- // Получение алгоритма шифрования AES в режиме CBC
-    const EVP_CIPHER *cipher = EVP_aes_128_cbc(); // Используем AES-128 в режиме CBC
-    if (!cipher) {
-        handleErrors("Failed to get cipher algorithm");
-    } else {
-        printf("Cipher name: %s\n", EVP_CIPHER_name(cipher));
+    if (!SSL_CTX_set_cipher_list(ssl_ctx, ciphers))
+    {
+        handleErrors("Failed to set cipher list");
     }
-
-    // Установка алгоритма шифрования в SSL контекст
-    if (!SSL_CTX_set_cipher_list(ssl_ctx, EVP_CIPHER_name(cipher))) {
-        handleErrors("Failed to set cipher algorithm for SSL context");
-    }
-
-    printCipherList(ssl_ctx); // Вывод списка поддерживаемых шифров
-
-    // Освобождение ресурсов
-    SSL_CTX_free(ssl_ctx);
-    ENGINE_finish(engine);
-    ENGINE_free(engine);
-
     return 0;
+    
+
 }
