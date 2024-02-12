@@ -35,7 +35,6 @@ int main()
     {
         handleErrors("Failed to load Bee2evp engine");
     }
-
     if (!ENGINE_init(engine))
     {
         handleErrors("Failed to initialize Bee2evp engine");
@@ -55,8 +54,9 @@ int main()
     SSL_CTX_set_cipher_list(ssl_ctx, "ALL");                         // Установка списка шифров
     SSL_CTX_set_options(ssl_ctx, SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3); // Отключение уязвимых протоколов
 
-    // Установка криптографического движка Bee2evp
-    if (!SSL_CTX_set_cipher_list(ssl_ctx, ENGINE_get_cipher(engine))) {
+    // Установка криптографического движка Bee2evp для SSL контекста
+    if (!SSL_CTX_ctrl(ssl_ctx, SSL_CTRL_SET_ECDH_AUTO, 1, NULL))
+    {
         handleErrors("Failed to set Bee2evp engine for SSL context");
     }
 
