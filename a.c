@@ -1,3 +1,6 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <openssl/ssl.h>
 #include <openssl/evp.h>
 
@@ -15,8 +18,9 @@ SSL_CTX *createSSLContext(const char *cipher_name) {
     }
 
     // Установка алгоритма шифрования для SSL контекста
-    if (!SSL_CTX_set_cipher(ssl_ctx, cipher)) {
+    if (!SSL_CTX_set_ciphers(ssl_ctx, cipher)) {
         // Обработка ошибки
+        printf("Received encrypted data. Establishing . \n");
     }
 
     return ssl_ctx;
@@ -43,9 +47,18 @@ SSL *establishEncryptedConnection(SSL_CTX *ssl_ctx) {
 }
 
 int main() {
+     OPENSSL_init_crypto(OPENSSL_INIT_ENGINE_ALL_BUILTIN | OPENSSL_INIT_LOAD_CONFIG, NULL);
+
+    ENGINE *engine_list = ENGINE_get_first();
+    while (engine_list != NULL)
+    {
+        printf("Доступный движок: %s\n", ENGINE_get_id(engine_list));
+        engine_list = ENGINE_get_next(engine_list);
+    }
     // Создание SSL контекста с выбранным алгоритмом шифрования
     const char *cipher_name = "belt-cbc128"; // Измените на нужный алгоритм
     SSL_CTX *ssl_ctx = createSSLContext(cipher_name);
+     printf("Received encrypted data. Establishing encrypted. \n");
 
     // Установка SSL соединения
     SSL *ssl = establishEncryptedConnection(ssl_ctx);
