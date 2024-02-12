@@ -41,11 +41,6 @@ SSL_CTX *createSSLContextWithBee2Cipher(const char *cipher_name) {
     }
 
     // Установка метода шифрования
-    if (!SSL_CTX_set_cipher(ssl_ctx, cipher_name)) {
-        fprintf(stderr, "Failed to set cipher\n");
-        ENGINE_free(bee2_engine);
-        return NULL;
-    }
 
     // Освобождение плагина Bee2evp
     ENGINE_free(bee2_engine);
