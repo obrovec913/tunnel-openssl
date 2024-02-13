@@ -17,7 +17,7 @@ int main()
     // Получение алгоритма по имени
     const char *algorithm_name = "belt-ecb128";
     const EVP_CIPHER *cipherx = EVP_CIPHER_fetch(libctx, algorithm_name, NULL);
-    if (cipher == NULL)
+    if (cipherx == NULL)
     {
         printf("Failed to fetch cipher %s\n", algorithm_name);
         return 1;
