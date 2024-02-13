@@ -1,9 +1,16 @@
 #include <openssl/evp.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-int main() {
-    const char *algorithm_name = "belt-ecb128";
+int main()
+{
+    OPENSSL_init_crypto(OPENSSL_INIT_ENGINE_ALL_BUILTIN | OPENSSL_INIT_LOAD_CONFIG, NULL);
+    EVP_CIPHER_fetch()
+        const char *algorithm_name = "belt-ecb128";
     const EVP_CIPHER *cipher = EVP_get_cipherbyname(algorithm_name);
-    if (cipher != NULL) {
+    if (cipher != NULL)
+    {
         // Получение параметров алгоритма
         int nid = EVP_CIPHER_nid(cipher);
         int type = EVP_CIPHER_type(cipher);
@@ -18,7 +25,9 @@ int main() {
         printf("Block size: %d\n", block_size);
         printf("Key length: %d\n", key_length);
         printf("IV length: %d\n", iv_length);
-    } else {
+    }
+    else
+    {
         printf("Algorithm not found: %s\n", algorithm_name);
     }
 
