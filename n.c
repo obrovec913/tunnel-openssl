@@ -6,7 +6,8 @@
 int main()
 {
     OPENSSL_init_crypto(OPENSSL_INIT_ENGINE_ALL_BUILTIN | OPENSSL_INIT_LOAD_CONFIG, NULL);
-    EVP_CIPHER_fetch();
+ //   EVP_CIPHER_fetch();
+
     const char *algorithm_name = "belt-ecb128";
     const EVP_CIPHER *cipher = EVP_get_cipherbyname(algorithm_name);
     if (cipher != NULL)
