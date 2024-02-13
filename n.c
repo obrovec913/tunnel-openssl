@@ -16,16 +16,6 @@ int main()
 
     // Получение алгоритма по имени
     const char *algorithm_name = "belt-ecb128";
-    const EVP_CIPHER *cipherx = EVP_CIPHER_fetch(libctx, algorithm_name, NULL);
-    if (cipherx == NULL)
-    {
-        printf("Failed to fetch cipher %s\n", algorithm_name);
-        return 1;
-    }
-      printf("Algorithm name: %s\n", EVP_CIPHER_get0_name(cipherx));
-    printf("Algorithm description: %s\n", EVP_CIPHER_get0_description(cipherx));
-    printf("Algorithm type: %d\n", EVP_CIPHER_get_type(cipherx));
-
     // const char *algorithm_name = "belt-ecb128";
     const EVP_CIPHER *cipher = EVP_get_cipherbyname(algorithm_name);
     if (cipher != NULL)
@@ -49,6 +39,10 @@ int main()
     {
         printf("Algorithm not found: %s\n", algorithm_name);
     }
+     printf("Algorithm name: %s\n", EVP_CIPHER_get0_name(cipher));
+    printf("Algorithm description: %s\n", EVP_CIPHER_get0_description(cipher));
+    printf("Algorithm type: %d\n", EVP_CIPHER_get_type(cipher));
+
 
     return 0;
 }
