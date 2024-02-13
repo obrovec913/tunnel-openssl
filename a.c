@@ -1,11 +1,6 @@
 #include <openssl/evp.h>
 #include <stdio.h>
-
-// Функция обратного вызова, которая будет вызвана для каждого алгоритма
-static void print_cipher(const char *name, void *arg)
-{
-    printf("%s\n", name);
-}
+#include <openssl/ssl.h>
 
 int main()
 {
