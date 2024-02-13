@@ -7,8 +7,20 @@ int main()
 {
     OPENSSL_init_crypto(OPENSSL_INIT_ENGINE_ALL_BUILTIN | OPENSSL_INIT_LOAD_CONFIG, NULL);
  //   EVP_CIPHER_fetch();
+ OSSL_LIB_CTX *libctx = OSSL_LIB_CTX_new();
+    if (libctx == NULL) {
+        printf("Failed to create OpenSSL library context\n");
+        return 1;
+    }
 
+    // Получение алгоритма по имени
     const char *algorithm_name = "belt-ecb128";
+    EVP_CIPHER *cipher = EVP_CIPHER_fetch(libctx, algorithm_name, NULL);
+    if (cipher == NULL) {
+        printf("Failed to fetch cipher %s\n", algorithm_name);
+        return 1;
+    }
+    //const char *algorithm_name = "belt-ecb128";
     const EVP_CIPHER *cipher = EVP_get_cipherbyname(algorithm_name);
     if (cipher != NULL)
     {
