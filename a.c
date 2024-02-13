@@ -17,7 +17,7 @@ int main()
         // Обработка ошибки создания контекста SSL
         fprintf(stderr, "Failed to fetch  %s\n", algorithm_name);  
     }
-    const char *ciphersuites = "belt-ecb128:belt-ecb192:belt-ecb256:"
+    const char *ciphersuites = "belt-ecb128:belt-ecb192:belt-ecb256";
 
     // Установка списка алгоритмов шифрования на "ALL"
     if (!SSL_CTX_set_cipher_list(ssl_ctx, ciphersuites))
