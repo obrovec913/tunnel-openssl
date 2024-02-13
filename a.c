@@ -7,6 +7,7 @@ static void print_cipher(const char *name, void *arg) {
 }
 
 int main() {
+    OPENSSL_init_crypto(OPENSSL_INIT_ENGINE_ALL_BUILTIN | OPENSSL_INIT_LOAD_CONFIG, NULL);
     // Вывод всех доступных алгоритмов шифрования
     EVP_CIPHER_names_do_all(NULL, print_cipher, NULL);
 
