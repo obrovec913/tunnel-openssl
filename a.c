@@ -15,9 +15,21 @@ int main()
     if (!ssl_ctx)
     {
         // Обработка ошибки создания контекста SSL
-        fprintf(stderr, "Failed to fetch  %s\n", algorithm_name);  
+        fprintf(stderr, "Failed to fetch  %s\n", algorithm_name);
     }
     const char *ciphersuites = "belt-ecb128:belt-ecb192:belt-ecb256";
+    EVP_CIPHER *cipher;
+
+    printf("Available ciphers:\n");
+    for (int nid = 1; nid < 1000; nid++)
+    {
+        cipher = EVP_get_cipherbynid(nid);
+        if (cipher != NULL)
+        {
+            const char *name = EVP_CIPHER_name(cipher);
+            printf("%s\n", name);
+        }
+    }
 
     // Установка списка алгоритмов шифрования на "ALL"
     if (!SSL_CTX_set_cipher_list(ssl_ctx, ciphersuites))
@@ -28,6 +40,5 @@ int main()
         return 1;
     }
 
-    
     return 0;
 }
