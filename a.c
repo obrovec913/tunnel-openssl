@@ -17,11 +17,11 @@ int main()
         // Обработка ошибки создания контекста SSL
         fprintf(stderr, "Failed to fetch  %s\n", algorithm_name);
     }
-    const char *ciphersuites = "belt-ecb128:belt-ecb192:belt-ecb256";
+    const char *ciphersuites = "belt-compress";
     EVP_CIPHER *cipher;
 
     printf("Available ciphers:\n");
-    for (int nid = 1; nid < 2000; nid++)
+    for (int nid = 1; nid < 3000; nid++)
     {
         cipher = EVP_get_cipherbynid(nid);
         if (cipher != NULL)
