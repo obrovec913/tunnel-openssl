@@ -17,7 +17,7 @@ int main()
         // Обработка ошибки создания контекста SSL
         fprintf(stderr, "Failed to fetch  %s\n", algorithm_name);
     }
-    const char *ciphersuites = "belt-compress";
+    const char *ciphersuites = "belt-dwp-tls";
     EVP_CIPHER *cipher;
 
     printf("Available ciphers:\n");
