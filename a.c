@@ -21,7 +21,7 @@ int main()
     EVP_CIPHER *cipher;
 
     printf("Available ciphers:\n");
-    for (int nid = 1; nid < 1000; nid++)
+    for (int nid = 1; nid < 2000; nid++)
     {
         cipher = EVP_get_cipherbynid(nid);
         if (cipher != NULL)
