@@ -20,7 +20,8 @@ int main()
    const EVP_CIPHER *cipheraa = EVP_get_cipherbyname(ciphersuites); 
     EVP_add_cipher(cipheraa);
 
-    EVP_CIPHER *cipher;
+
+/*    EVP_CIPHER *cipher;
 
 
     printf("Available ciphers:\n");
@@ -34,7 +35,7 @@ int main()
         }
     }
 
-    
+  */  
     //OpenSSL_add_all_algorithms();
 
     // Создание контекста SSL/TLS
@@ -42,7 +43,7 @@ int main()
 
     // Установка списка алгоритмов шифрования
     const char *cipherd = "belt-dwp-tls";
-    if (!SSL_CTX_set_cipher_list(ssl_ctx, cipherd)) {
+    if (!SSL_CTX_set_cipher_list(ssl_ctx, algorithm_name)) {
         fprintf(stderr, "Failed to set cipher list\n");
         ERR_print_errors_fp(stderr);
         return 1;
