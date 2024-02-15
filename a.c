@@ -9,6 +9,8 @@ int main()
     // EVP_CIPHER_names_do_all(NULL, print_cipher, NULL);
     OpenSSL_add_all_algorithms();
     OpenSSL_add_all_ciphers();
+    
+    
     // Имя алгоритма, который вы хотите инициализировать
     const char *algorithm_name = "belt-cbc128"; // Например, алгоритм шифрования BEE2EVP
     SSL_CTX *ssl_ctx = SSL_CTX_new(SSLv23_method());
@@ -18,6 +20,9 @@ int main()
         fprintf(stderr, "Failed to fetch  %s\n", algorithm_name);
     }
     const char *ciphersuites = "belt-dwp-tls";
+   const EVP_CIPHER *cipheraa = EVP_get_cipherbyname(ciphersuites); 
+    EVP_add_cipher(cipheraa);
+
     EVP_CIPHER *cipher;
 
     printf("Available ciphers:\n");
