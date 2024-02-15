@@ -20,7 +20,7 @@ int main()
    const EVP_CIPHER *cipheraa = EVP_get_cipherbyname(ciphersuites); 
     EVP_add_cipher(cipheraa);
 
-    const EVP_CIPHER *cipher
+    const EVP_CIPHER *cipher;
 
 
     printf("Available ciphers:\n");
