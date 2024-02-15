@@ -9,7 +9,7 @@ int main()
     // EVP_CIPHER_names_do_all(NULL, print_cipher, NULL);
     SSL_library_init();
     SSL_load_error_strings();
-    ERR_load_BIO_strings();
+    //ERR_load_BIO_strings();
     OpenSSL_add_all_algorithms();
     OpenSSL_add_all_ciphers();
     
@@ -54,7 +54,7 @@ int main()
 
     // Очистка OpenSSL
     EVP_cleanup();
-    ERR_free_strings();
+    //ERR_free_strings();
 
     return 0;
 }
