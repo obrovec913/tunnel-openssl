@@ -15,7 +15,7 @@ int main()
     }
 
     // Получение алгоритма по имени
-    const char *algorithm_name = "belt-ecb128";
+    const char *algorithm_name = "belt-dwp-tls";
     // const char *algorithm_name = "belt-ecb128";
     const EVP_CIPHER *cipher = EVP_get_cipherbyname(algorithm_name);
     if (cipher != NULL)
