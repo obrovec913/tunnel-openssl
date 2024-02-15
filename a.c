@@ -20,9 +20,9 @@ int main()
    const EVP_CIPHER *cipheraa = EVP_get_cipherbyname(ciphersuites); 
     EVP_add_cipher(cipheraa);
 
-    EVP_CIPHER *cipher;
 
-    printf("Available ciphers:\n");
+
+   /* printf("Available ciphers:\n");
     for (int nid = 1; nid < 3000; nid++)
     {
         cipher = EVP_get_cipherbynid(nid);
@@ -33,7 +33,7 @@ int main()
         }
     }
 
-    
+    */
     //OpenSSL_add_all_algorithms();
 
     // Создание контекста SSL/TLS
