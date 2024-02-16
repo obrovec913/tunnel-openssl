@@ -1,4 +1,5 @@
-
+#include <openssl/evp.h>
+#include <stdio.h>
 #include <openssl/engine.h>
 #include <openssl/ssl.h>
 
@@ -50,7 +51,28 @@ int main()
         fprintf(stderr, "Failed to initialize your engine.\n");
         return 1;
     }
+    const EVP_CIPHER *cipher_belt_dwp128 = EVP_get_cipherbyname("belt-dwp128");
+    if (cipher_belt_dwp128) {
+        printf("Algorithm belt-dwp128 is available.\n");
+    } else {
+        printf("Algorithm belt-dwp128 is not available.\n");
+    }
 
+    // Проверка наличия алгоритма belt-dwp192
+    const EVP_CIPHER *cipher_belt_dwp192 = EVP_get_cipherbyname("belt-dwp192");
+    if (cipher_belt_dwp192) {
+        printf("Algorithm belt-dwp192 is available.\n");
+    } else {
+        printf("Algorithm belt-dwp192 is not available.\n");
+    }
+
+    // Проверка наличия алгоритма belt-dwp256
+    const EVP_CIPHER *cipher_belt_dwp256 = EVP_get_cipherbyname("belt-dwp256");
+    if (cipher_belt_dwp256) {
+        printf("Algorithm belt-dwp256 is available.\n");
+    } else {
+        printf("Algorithm belt-dwp256 is not available.\n");
+    }
     // Создать SSL_CTX с вашим собственным движком
     SSL_CTX *ctx = SSL_CTX_new(TLS_method());
     if (!ctx)
