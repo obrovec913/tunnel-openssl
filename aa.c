@@ -28,6 +28,8 @@ int init_my_engine()
         ENGINE_free(my_engine);
         return 0;
     }
+     // Зарегистрировать алгоритмы вашего движка
+    ENGINE_register_ciphers(my_engine);
 
     return 1;
 }
