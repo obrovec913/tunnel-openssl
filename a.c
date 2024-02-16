@@ -43,7 +43,7 @@ int main()
 
     // Установка списка алгоритмов шифрования
     const char *cipherd = "belt-dwp-tls";
-    if (!SSL_CTX_set_cipher_list(ssl_ctx, EVP_belt())) {
+    if (!SSL_CTX_set_cipher_list(ssl_ctx, EVP_belt_256_cbc())) {
         fprintf(stderr, "Failed to set cipher list\n");
         ERR_print_errors_fp(stderr);
         return 1;
