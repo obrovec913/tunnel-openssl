@@ -68,7 +68,7 @@ int main()
     }
 
     // Проверка наличия алгоритма belt-dwp256
-    const EVP_CIPHER *cipher_belt_dwp256 = EVP_get_cipherbyname("belt-dwp256");
+    const EVP_CIPHER *cipher_belt_dwp256 = EVP_get_cipherbyname("belt-dwp-tls");
     if (cipher_belt_dwp256) {
         printf("Algorithm belt-dwp256 is available.\n");
     } else {
@@ -84,7 +84,7 @@ int main()
 
     // Установить ваш собственный движок в SSL_CTX
     
-    if (!SSL_CTX_set_cipher_list(ctx, EVP_belt_dwpt()))
+    if (!SSL_CTX_set_cipher_list(ctx, "belt-dwp-tls"))
     {
         fprintf(stderr, "Failed to set cipher list.\n");
         SSL_CTX_free(ctx);
