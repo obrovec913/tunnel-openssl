@@ -75,7 +75,7 @@ int main()
         printf("Algorithm belt-dwp256 is not available.\n");
     }
     // Создать SSL_CTX с вашим собственным движком
-    SSL_CTX *ctx = SSL_CTX_new(TLS_method());
+    SSL_CTX *ctx = SSL_CTX_new(TLS_server_method());
     if (!ctx)
     {
         fprintf(stderr, "Failed to create SSL_CTX.\n");
