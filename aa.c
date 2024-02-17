@@ -84,7 +84,7 @@ int main()
 
     // Установить ваш собственный движок в SSL_CTX
     
-    if (!SSL_CTX_set_cipher_list(ctx, "ENGINE:belt-dwp128:belt-dwp192:belt-dwp256"))
+    if (!SSL_CTX_set_cipher_list(ctx, EVP_belt_ctrt()))
     {
         fprintf(stderr, "Failed to set cipher list.\n");
         SSL_CTX_free(ctx);
