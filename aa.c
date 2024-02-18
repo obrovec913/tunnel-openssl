@@ -38,7 +38,7 @@ int init_my_engine()
 int main()
 {
     // Инициализировать OpenSSL
-    OPENSSL_init_crypto(OPENSSL_INIT_ENGINE_ALL_BUILTIN | OPENSSL_INIT_LOAD_CONFIG, NULL);
+    OPENSSL_init_crypto(OPENSSL_INIT_ENGINE_ALL_BUILTIN | OPENSSL_INIT_LOAD_CONFIG, OPENSSL_INIT_ADD_ALL_CIPHERS | OPENSSL_INIT_ADD_ALL_DIGESTS, NULL);
     SSL_library_init();
     SSL_load_error_strings();
     ENGINE_load_builtin_engines();
