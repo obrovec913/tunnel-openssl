@@ -19,7 +19,7 @@ SSL_CTX *create_ssl_context() {
         DHT-BIGN-WITH-BELT-CTR-MAC-HBELT");
 
     // Установка параметров для ключа
-    SSL_CTX_set_psk_client_callback(ctx, psk_client_cb);
+//    SSL_CTX_set_psk_client_callback(ctx, psk_client_cb);
     // Здесь psk_client_cb - функция, которая возвращает предварительно распределенный ключ (PSK)
 
     return ctx;
