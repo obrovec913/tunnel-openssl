@@ -1,41 +1,60 @@
 #include <openssl/ssl.h>
+#include <stdio.h>
+
+void handle_error() {
+    fprintf(stderr, "Error occurred\n");
+    ERR_print_errors_fp(stderr);
+    // Здесь можно добавить дополнительные действия по обработке ошибки, если необходимо
+    exit(EXIT_FAILURE);
+}
 
 SSL_CTX *create_ssl_context() {
     SSL_CTX *ctx;
-    
+
     // Инициализация OpenSSL
     SSL_library_init();
     OpenSSL_add_all_algorithms();
     SSL_load_error_strings();
 
     // Создание контекста SSL
-    ctx = SSL_CTX_new(TLSv1_2_method());
-
-    // Загрузка сертификатов, ключей, параметров и т.д. если требуется
+    if (!(ctx = SSL_CTX_new(TLSv1_2_method()))) {
+        handle_error();
+    }
 
     // Установка параметров алгоритмов шифрования
-    SSL_CTX_set_cipher_list(ctx, "DHT-PSK-BIGN-WITH-BELT-CTR-MAC-HBELT:\
+    if (SSL_CTX_set_cipher_list(ctx, "DHT-PSK-BIGN-WITH-BELT-CTR-MAC-HBELT:\
         DHE-PSK-BIGN-WITH-BELT-CTR-MAC-HBELT:\
-        DHT-BIGN-WITH-BELT-CTR-MAC-HBELT");
+        DHT-BIGN-WITH-BELT-CTR-MAC-HBELT") != 1) {
+        handle_error();
+    }
 
     // Установка параметров для ключа
-//    SSL_CTX_set_psk_client_callback(ctx, psk_client_cb);
+    SSL_CTX_set_psk_client_callback(ctx, psk_client_cb);
     // Здесь psk_client_cb - функция, которая возвращает предварительно распределенный ключ (PSK)
 
     return ctx;
 }
 
 int main() {
-    OPENSSL_init_crypto(OPENSSL_INIT_ENGINE_ALL_BUILTIN | OPENSSL_INIT_LOAD_CONFIG, NULL);
     SSL_CTX *ctx;
     SSL *ssl;
+    OPENSSL_init_crypto(OPENSSL_INIT_ENGINE_ALL_BUILTIN | OPENSSL_INIT_LOAD_CONFIG, NULL);
+
     // Инициализация SSL контекста
-    ctx = create_ssl_context();
-    
+    if (!(ctx = create_ssl_context())) {
+        handle_error();
+    }
+
     // Создание SSL структуры
-    ssl = SSL_new(ctx);
+    if (!(ssl = SSL_new(ctx))) {
+        handle_error();
+    }
 
     // Установка соединения (например, установка сокета и вызов SSL_connect())
+    // Обработка ошибок установки соединения
+    if (SSL_connect(ssl) <= 0) {
+        handle_error();
+    }
 
     // Отправка/получение данных через SSL соединение (например, с помощью SSL_read() и SSL_write())
 
