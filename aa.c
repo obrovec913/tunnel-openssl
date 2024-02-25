@@ -47,12 +47,7 @@ int main()
     OpenSSL_add_all_algorithms();
     OpenSSL_add_all_ciphers();
 
-    // Инициализация вашего собственного движка
-    if (!init_my_engine())
-    {
-        fprintf(stderr, "Failed to initialize your engine.\n");
-        return 1;
-    }
+    // Инициализация вашего собственного 
     const EVP_CIPHER *cipher_belt_dwp128 = EVP_get_cipherbyname("belt-dwp128");
     if (cipher_belt_dwp128)
     {
