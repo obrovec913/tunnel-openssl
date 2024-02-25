@@ -21,6 +21,7 @@ SSL_CTX *create_ssl_context() {
 
     // Создание контекста SSL
     if (!(ctx = SSL_CTX_new(TLSv1_2_method()))) {
+        printf("Received from server.\n");
         handle_error();
     }
 
