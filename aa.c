@@ -7,7 +7,11 @@ void handle_error() {
     fprintf(stderr, "Error occurred\n");
     // Выводим подробное сообщение об ошибке OpenSSL
     ERR_print_errors_fp(stderr);
-    // Здесь можно добавить дополнительные действия по обработке ошибки, если необходимо
+    // Можем также получить код ошибки и текстовое описание
+    unsigned long err_code = ERR_get_error();
+    char err_buf[256];
+    ERR_error_string(err_code, err_buf);
+    fprintf(stderr, "Error code: %lu, Error message: %s\n", err_code, err_buf);
     exit(EXIT_FAILURE);
 }
 
