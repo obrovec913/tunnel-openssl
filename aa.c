@@ -29,7 +29,7 @@ int init_my_engine()
         ENGINE_free(my_engine);
         return 0;
     }
-     // Зарегистрировать алгоритмы вашего движка
+    // Зарегистрировать алгоритмы вашего движка
     ENGINE_register_ciphers(my_engine);
 
     return 1;
@@ -39,7 +39,7 @@ int main()
 {
     // Инициализировать OpenSSL
     OPENSSL_init_crypto(OPENSSL_INIT_ENGINE_ALL_BUILTIN | OPENSSL_INIT_LOAD_CONFIG, NULL);
-    
+
     SSL_library_init();
     SSL_load_error_strings();
     ENGINE_load_builtin_engines();
@@ -54,29 +54,39 @@ int main()
         return 1;
     }
     const EVP_CIPHER *cipher_belt_dwp128 = EVP_get_cipherbyname("belt-dwp128");
-    if (cipher_belt_dwp128) {
+    if (cipher_belt_dwp128)
+    {
         printf("Algorithm belt-dwp128 is available.\n");
-    } else {
+    }
+    else
+    {
         printf("Algorithm belt-dwp128 is not available.\n");
     }
 
     // Проверка наличия алгоритма belt-dwp192
     const EVP_CIPHER *cipher_belt_dwp192 = EVP_get_cipherbyname("belt-dwp192");
-    if (cipher_belt_dwp192) {
+    if (cipher_belt_dwp192)
+    {
         printf("Algorithm belt-dwp192 is available.\n");
-    } else {
+    }
+    else
+    {
         printf("Algorithm belt-dwp192 is not available.\n");
     }
 
     // Проверка наличия алгоритма belt-dwp256
     const EVP_CIPHER *cipher_belt_dwp256 = EVP_get_cipherbyname("belt-dwp-tls");
-    if (cipher_belt_dwp256) {
+    if (cipher_belt_dwp256)
+    {
         printf("Algorithm belt-dwp256 is available.\n");
-    } else {
+    }
+    else
+    {
         printf("Algorithm belt-dwp256 is not available.\n");
     }
     // Создать SSL_CTX с вашим собственным движком
-    SSL_CTX *ctx = SSL_CTX_new(TLS_method());
+    SSL_CTX *ctx = SSL_CTX_new(SSLv23_method());
+
     if (!ctx)
     {
         fprintf(stderr, "Failed to create SSL_CTX.\n");
@@ -84,7 +94,7 @@ int main()
     }
 
     // Установить ваш собственный движок в SSL_CTX
-    
+
     if (!SSL_CTX_set_cipher_list(ctx, "DHE-BIGN-WITH-BELT-DWP-HBELT"))
     {
         fprintf(stderr, "Failed to set cipher list.\n");
