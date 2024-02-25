@@ -23,7 +23,7 @@ clean(){
 
 update_repos(){
   git submodule update --init
-  git clone -b $openssl_branch --depth 1 https://github.com/openssl/openssl $openssl
+  git clone -b Openssl-3.0 --depth 1 https://github.com/openssl/openssl ./03
   cd $openssl
   git apply $bee2evp/btls/$openssl_patch
   cp $bee2evp/btls/btls.c ./ssl/

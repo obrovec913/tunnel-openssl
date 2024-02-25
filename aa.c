@@ -38,7 +38,8 @@ int init_my_engine()
 int main()
 {
     // Инициализировать OpenSSL
-    OPENSSL_init_crypto(OPENSSL_INIT_ENGINE_ALL_BUILTIN | OPENSSL_INIT_LOAD_CONFIG, OPENSSL_INIT_ADD_ALL_CIPHERS | OPENSSL_INIT_ADD_ALL_DIGESTS, NULL);
+    OPENSSL_init_crypto(OPENSSL_INIT_ENGINE_ALL_BUILTIN | OPENSSL_INIT_LOAD_CONFIG, NULL);
+    
     SSL_library_init();
     SSL_load_error_strings();
     ENGINE_load_builtin_engines();
@@ -75,7 +76,7 @@ int main()
         printf("Algorithm belt-dwp256 is not available.\n");
     }
     // Создать SSL_CTX с вашим собственным движком
-    SSL_CTX *ctx = SSL_CTX_new(TLS_server_method());
+    SSL_CTX *ctx = SSL_CTX_new(TLSv1_2_server_method());
     if (!ctx)
     {
         fprintf(stderr, "Failed to create SSL_CTX.\n");
