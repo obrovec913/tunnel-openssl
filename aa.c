@@ -1,8 +1,11 @@
 #include <openssl/ssl.h>
+#include <openssl/err.h> // Добавляем заголовочный файл для работы с ошибками OpenSSL
 #include <stdio.h>
+#include <stdlib.h> // Добавляем заголовочный файл для функции exit()
 
 void handle_error() {
     fprintf(stderr, "Error occurred\n");
+    // Выводим подробное сообщение об ошибке OpenSSL
     ERR_print_errors_fp(stderr);
     // Здесь можно добавить дополнительные действия по обработке ошибки, если необходимо
     exit(EXIT_FAILURE);
@@ -29,7 +32,7 @@ SSL_CTX *create_ssl_context() {
     }
 
     // Установка параметров для ключа
-    //SSL_CTX_set_psk_client_callback(ctx, psk_client_cb);
+    SSL_CTX_set_psk_client_callback(ctx, psk_client_cb);
     // Здесь psk_client_cb - функция, которая возвращает предварительно распределенный ключ (PSK)
 
     return ctx;
@@ -38,7 +41,6 @@ SSL_CTX *create_ssl_context() {
 int main() {
     SSL_CTX *ctx;
     SSL *ssl;
-    OPENSSL_init_crypto(OPENSSL_INIT_ENGINE_ALL_BUILTIN | OPENSSL_INIT_LOAD_CONFIG, NULL);
 
     // Инициализация SSL контекста
     if (!(ctx = create_ssl_context())) {
