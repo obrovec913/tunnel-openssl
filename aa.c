@@ -2,7 +2,7 @@
 #include <openssl/err.h> // Добавляем заголовочный файл для работы с ошибками OpenSSL
 #include <stdio.h>
 #include <stdlib.h> // Добавляем заголовочный файл для функции exit()
-
+#include <openssl/btls.h>
 void handle_error() {
     fprintf(stderr, "Error occurred\n");
     // Выводим подробное сообщение об ошибке OpenSSL
@@ -22,6 +22,11 @@ SSL_CTX *create_ssl_context() {
     SSL_library_init();
     OpenSSL_add_all_algorithms();
     SSL_load_error_strings();
+
+    if (!btls_init()) {
+        printf("from btls.\n");
+        handle_error();
+    }
 
     // Создание контекста SSL
     if (!(ctx = SSL_CTX_new(TLSv1_2_method()))) {
