@@ -2,7 +2,7 @@
 #include <openssl/err.h> // Добавляем заголовочный файл для работы с ошибками OpenSSL
 #include <stdio.h>
 #include <stdlib.h> // Добавляем заголовочный файл для функции exit()
-#include <openssl/btls.h>
+//#include <openssl/btls.h>
 void handle_error() {
     fprintf(stderr, "Error occurred\n");
     // Выводим подробное сообщение об ошибке OpenSSL
