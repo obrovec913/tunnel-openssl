@@ -38,8 +38,8 @@ build_bee2(){
 }
 
 build_openssl(){
-  mkdir -p $build_openssl && mkdir -p $local && cd $build_openssl
-  $openssl/config shared -d --prefix=$local --openssldir=$local
+  mkdir -p /opt/beltunnel/build// && mkdir -p $local && cd /opt/beltunnel/build/build_openssl
+  /opt/beltunnel/openssl//config shared -d --prefix=/opt/beltunnel/build/local/ --openssldir=/opt/beltunnel/build/local/
   make -j$(nproc) all 
   make install > build.log 2>&1 || (cat build.log && exit 1)
   ls -la $local/lib/libcrypto.a
