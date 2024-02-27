@@ -23,10 +23,10 @@ SSL_CTX *create_ssl_context() {
     OpenSSL_add_all_algorithms();
     SSL_load_error_strings();
 
-    
+
     // Создание контекста SSL
     if (!(ctx = SSL_CTX_new(TLSv1_2_method()))) {
-        printf("Received from server.\n");
+        printf("Failed to create SSL context\n");
         handle_error();
     }
 
