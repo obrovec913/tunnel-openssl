@@ -53,6 +53,7 @@ int main() {
     if (!(ctx = create_ssl_context())) {
         handle_error();
     }
+    printf("ok  SSL context\n");
 
     // Создание SSL структуры
     if (!(ssl = SSL_new(ctx))) {
