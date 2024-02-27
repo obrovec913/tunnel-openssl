@@ -47,7 +47,7 @@ SSL_CTX *create_ssl_context() {
 int main() {
     SSL_CTX *ctx;
     SSL *ssl;
-    OPENSSL_init_crypto(OPENSSL_INIT_ENGINE_ALL_BUILTIN | OPENSSL_INIT_LOAD_CONFIG, NULL);
+    //OPENSSL_init_crypto(OPENSSL_INIT_ENGINE_ALL_BUILTIN | OPENSSL_INIT_LOAD_CONFIG, NULL);
 
     // Инициализация SSL контекста
     if (!(ctx = create_ssl_context())) {
