@@ -325,7 +325,9 @@ void *receiveThreadFunction(void *arg)
         {
             if (server_clok == 0)
             {
+                ssl = establishEncryptedConnection();
                 logEvent(INFO, "Establishing encrypted connection");
+                server_clok++;
             }
             if (SSL_write(ssl, buffer, bytes_received) <= 0)
                 handleErrors("Failed to write encrypted data");
@@ -375,7 +377,7 @@ int main()
     logEvent(INFO, "Application started");
     //OPENSSL_init_crypto(OPENSSL_INIT_ENGINE_ALL_BUILTIN | OPENSSL_INIT_LOAD_CONFIG, NULL);
 
-    
+    server_clok = 0;    
     printf("запуск : \n" );
         
 
