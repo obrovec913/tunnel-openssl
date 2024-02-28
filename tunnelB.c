@@ -114,7 +114,7 @@ SSL_CTX *createSSLContext()
     if (!(ctx = SSL_CTX_new(TLSv1_2_server_method())))
     {
         printf("Failed to create SSL context\n");
-        handle_error();
+        handleErrors("Failed to create SSL context");
     }
 
     // Установка параметров алгоритмов шифрования
@@ -122,7 +122,7 @@ SSL_CTX *createSSLContext()
         DHE-PSK-BIGN-WITH-BELT-CTR-MAC-HBELT:\
         DHT-BIGN-WITH-BELT-CTR-MAC-HBELT") != 1)
     {
-        handle_error();
+        handleErrors("Failed to load Cipher");
     }
     // Загрузка корневого сертификата
     logEvent(INFO, "Loading root certificate");
