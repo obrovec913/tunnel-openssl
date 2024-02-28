@@ -25,62 +25,67 @@ SSL *ssl;
 int server_clok;
 
 // Определяем возможные типы событий
-enum LogType {
+enum LogType
+{
     INFO,
     WARNING,
     ERROR
 };
 
 // Функция для записи события в лог
-void logEvent(enum LogType type, const char *format, ...) {
+void logEvent(enum LogType type, const char *format, ...)
+{
     // Открываем файл лога для добавления записи
     FILE *logfile = fopen("klient.log", "a");
-    if (logfile == NULL) {
+    if (logfile == NULL)
+    {
         perror("Failed to open log file");
         exit(EXIT_FAILURE);
     }
-    
+
     // Получаем текущее время
     time_t rawtime;
     struct tm *timeinfo;
     time(&rawtime);
     timeinfo = localtime(&rawtime);
-    
+
     // Форматируем строку для временного штампа
     char timestamp[20];
     strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", timeinfo);
-    
+
     // Определяем строку префикса в зависимости от типа события
     const char *prefix;
-    switch(type) {
-        case INFO:
-            prefix = "[INFO]";
-            break;
-        case WARNING:
-            prefix = "[WARNING]";
-            break;
-        case ERROR:
-            prefix = "[ERROR]";
-            break;
-        default:
-            prefix = "[UNKNOWN]";
+    switch (type)
+    {
+    case INFO:
+        prefix = "[INFO]";
+        break;
+    case WARNING:
+        prefix = "[WARNING]";
+        break;
+    case ERROR:
+        prefix = "[ERROR]";
+        break;
+    default:
+        prefix = "[UNKNOWN]";
     }
-    
+
     // Форматируем строку сообщения
     va_list args;
     va_start(args, format);
     char message[1024];
     vsnprintf(message, sizeof(message), format, args);
     va_end(args);
-    
+
     // Записываем событие в лог
     fprintf(logfile, "[%s] %s: %s\n", timestamp, prefix, message);
-    
+
     // Если тип события - ошибка, записываем также информацию об ошибке OpenSSL
-    if (type == ERROR) {
+    if (type == ERROR)
+    {
         ERR_print_errors_fp(logfile);
     }
-    
+
     // Закрываем файл
     fclose(logfile);
 }
@@ -102,9 +107,19 @@ SSL_CTX *createSSLContext()
     OpenSSL_add_all_algorithms();
     SSL_load_error_strings();
 
-    if ((ctx = SSL_CTX_new(SSLv23_client_method())) == NULL)
-        handleErrors("Failed to create SSL context");
+    if (!(ctx = SSL_CTX_new(TLSv1_2_client_method())))
+    {
+        printf("Failed to create SSL context\n");
+        handle_error();
+    }
 
+    // Установка параметров алгоритмов шифрования
+    if (SSL_CTX_set_cipher_list(ctx, "DHT-PSK-BIGN-WITH-BELT-CTR-MAC-HBELT:\
+        DHE-PSK-BIGN-WITH-BELT-CTR-MAC-HBELT:\
+        DHT-BIGN-WITH-BELT-CTR-MAC-HBELT") != 1)
+    {
+        handle_error();
+    }
     if (SSL_CTX_load_verify_locations(ctx, "./keys/root_cert.pem", NULL) != 1)
         handleErrors("Failed to load root certificate");
 
@@ -168,6 +183,8 @@ SSL *establishEncryptedConnection()
 
     if (SSL_connect(ssl) != 1)
         handleErrors("Failed to establish SSL connection");
+    
+    printf("подключился : \n" );
 
     return ssl;
 }
@@ -189,6 +206,7 @@ int connectUnencryptedPort()
 
     if (connect(unsecured_sockfd, (struct sockaddr *)&unsecured_server_addr, sizeof(unsecured_server_addr)) < 0)
         handleErrors("Failed to connect to unencrypted port");
+
 
     return unsecured_sockfd;
 }
@@ -308,14 +326,12 @@ void *receiveThreadFunction(void *arg)
             if (server_clok == 0)
             {
                 logEvent(INFO, "Establishing encrypted connection");
-                ssl = establishEncryptedConnection();
-                server_clok = 1;
             }
-            encryptAndSendData(ssl, buffer, bytes_received);
+            if (SSL_write(ssl, buffer, bytes_received) <= 0)
+                handleErrors("Failed to write encrypted data");
 
             // Очистка буфера
             memset(buffer, 0, sizeof(buffer));
-            close(unencrypted_connfd);
             break;
         }
     }
@@ -336,13 +352,14 @@ void *sendThreadFunction(void *arg)
         bytes_received = SSL_read(ssl, buffer, sizeof(buffer));
         if (bytes_received > 0)
         {
-            printf("Received encrypted data from server.\n");
+            printf("Received  data from server.\n");
             for (int i = 0; i < bytes_received; i++)
             {
                 printf("%02x ", buffer[i]);
             }
             printf("\n");
-            decryptAndProcessData(buffer, bytes_received);
+            if (send(unencrypted_sockfd, buffer, bytes_received, 0) < 0)
+                handleErrors("Failed to send decrypted data");
             // Очистка буфера
             memset(buffer, 0, sizeof(buffer));
             break;
@@ -356,15 +373,11 @@ void *sendThreadFunction(void *arg)
 int main()
 {
     logEvent(INFO, "Application started");
-    OPENSSL_init_crypto(OPENSSL_INIT_ENGINE_ALL_BUILTIN | OPENSSL_INIT_LOAD_CONFIG, NULL);
+    //OPENSSL_init_crypto(OPENSSL_INIT_ENGINE_ALL_BUILTIN | OPENSSL_INIT_LOAD_CONFIG, NULL);
 
-    ENGINE *engine_list = ENGINE_get_first();
-    while (engine_list != NULL)
-    {
-        printf("Доступный движок: %s\n", ENGINE_get_id(engine_list));
-        engine_list = ENGINE_get_next(engine_list);
-    }
-    server_clok = 0;
+    
+    printf("запуск : \n" );
+        
 
     while (1)
     {

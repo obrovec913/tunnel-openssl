@@ -25,7 +25,7 @@ SSL_CTX *create_ssl_context() {
 
 
     // Создание контекста SSL
-    if (!(ctx = SSL_CTX_new(TLSv1_2_method()))) {
+    if (!(ctx = SSL_CTX_new(TLSv1_2_server_method()))) {
         printf("Failed to create SSL context\n");
         handle_error();
     }

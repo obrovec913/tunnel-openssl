@@ -24,64 +24,68 @@ SSL *ssl;
 SSL_CTX *ssl_ctx;
 int connected = 0;
 
-
 // Определяем возможные типы событий
-enum LogType {
+enum LogType
+{
     INFO,
     WARNING,
     ERROR
 };
 
 // Функция для записи события в лог
-void logEvent(enum LogType type, const char *format, ...) {
+void logEvent(enum LogType type, const char *format, ...)
+{
     // Открываем файл лога для добавления записи
     FILE *logfile = fopen("server.log", "a");
-    if (logfile == NULL) {
+    if (logfile == NULL)
+    {
         perror("Failed to open log file");
         exit(EXIT_FAILURE);
     }
-    
+
     // Получаем текущее время
     time_t rawtime;
     struct tm *timeinfo;
     time(&rawtime);
     timeinfo = localtime(&rawtime);
-    
+
     // Форматируем строку для временного штампа
     char timestamp[20];
     strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", timeinfo);
-    
+
     // Определяем строку префикса в зависимости от типа события
     const char *prefix;
-    switch(type) {
-        case INFO:
-            prefix = "[INFO]";
-            break;
-        case WARNING:
-            prefix = "[WARNING]";
-            break;
-        case ERROR:
-            prefix = "[ERROR]";
-            break;
-        default:
-            prefix = "[UNKNOWN]";
+    switch (type)
+    {
+    case INFO:
+        prefix = "[INFO]";
+        break;
+    case WARNING:
+        prefix = "[WARNING]";
+        break;
+    case ERROR:
+        prefix = "[ERROR]";
+        break;
+    default:
+        prefix = "[UNKNOWN]";
     }
-    
+
     // Форматируем строку сообщения
     va_list args;
     va_start(args, format);
     char message[1024];
     vsnprintf(message, sizeof(message), format, args);
     va_end(args);
-    
+
     // Записываем событие в лог
     fprintf(logfile, "[%s] %s: %s\n", timestamp, prefix, message);
-    
+
     // Если тип события - ошибка, записываем также информацию об ошибке OpenSSL
-    if (type == ERROR) {
+    if (type == ERROR)
+    {
         ERR_print_errors_fp(logfile);
     }
-    
+
     // Закрываем файл
     fclose(logfile);
 }
@@ -107,9 +111,19 @@ SSL_CTX *createSSLContext()
 
     // Создание нового SSL_CTX
     logEvent(INFO, "Creating new SSL context");
-    if ((ctx = SSL_CTX_new(SSLv23_server_method())) == NULL)
-        handleErrors("Failed to create SSL context");
+    if (!(ctx = SSL_CTX_new(TLSv1_2_server_method())))
+    {
+        printf("Failed to create SSL context\n");
+        handle_error();
+    }
 
+    // Установка параметров алгоритмов шифрования
+    if (SSL_CTX_set_cipher_list(ctx, "DHT-PSK-BIGN-WITH-BELT-CTR-MAC-HBELT:\
+        DHE-PSK-BIGN-WITH-BELT-CTR-MAC-HBELT:\
+        DHT-BIGN-WITH-BELT-CTR-MAC-HBELT") != 1)
+    {
+        handle_error();
+    }
     // Загрузка корневого сертификата
     logEvent(INFO, "Loading root certificate");
     if (SSL_CTX_load_verify_locations(ctx, "./keys/root_cert.pem", NULL) != 1)
@@ -181,6 +195,7 @@ SSL *establishEncryptedConnection()
         handleErrors("Failed to listen on socket for encrypted connection");
 
     // бесконечный цикл для прослушивания порта
+    printf("слушаем порт : \n");
     while (!connected)
     {
         logEvent(INFO, "Waiting for encrypted connection");
@@ -348,7 +363,9 @@ void *receiveThreadFunction(void *arg)
         if (bytes_received > 0)
         {
             printf("Received unencrypted data.\n");
-            encryptAndSendData(ssl, buffer, bytes_received);
+            if (SSL_write(ssl, buffer, bytes_received) <= 0)
+                handleErrors("Failed to write encrypted data");
+
             printf("Received connection.\n");
 
             // Очистка буфера
@@ -381,7 +398,8 @@ void *sendThreadFunction(void *arg)
                 printf("%02x ", buffer[i]);
             }
             printf("\n");
-            decryptAndProcessData(buffer, bytes_received);
+            if (send(unencrypted_sockfd, buffer, bytes_received, 0) < 0)
+                handleErrors("Failed to send decrypted data");
 
             // Очистка буфера
             memset(buffer, 0, sizeof(buffer));
@@ -396,14 +414,9 @@ void *sendThreadFunction(void *arg)
 int main()
 {
     logEvent(INFO, "Application started");
-    OPENSSL_init_crypto(OPENSSL_INIT_ENGINE_ALL_BUILTIN | OPENSSL_INIT_LOAD_CONFIG, NULL);
+    // OPENSSL_init_crypto(OPENSSL_INIT_ENGINE_ALL_BUILTIN | OPENSSL_INIT_LOAD_CONFIG, NULL);
 
-    ENGINE *engine_list = ENGINE_get_first();
-    while (engine_list != NULL)
-    {
-        printf("Available Engine: %s\n", ENGINE_get_id(engine_list));
-        engine_list = ENGINE_get_next(engine_list);
-    }
+    printf("запуск : \n");
 
     ssl = establishEncryptedConnection();
     while (1)
