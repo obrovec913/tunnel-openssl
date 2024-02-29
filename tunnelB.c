@@ -145,10 +145,9 @@ SSL_CTX *createSSLContext()
     SSL_CTX_set_info_callback(ctx, info_callback);
 
     // Установка параметров алгоритмов шифрования
-    if (SSL_CTX_set_cipher_list(ctx, "DHT-PSK-BIGN-WITH-BELT-CTR-MAC-HBELT") != 1)
-    {
-        handleErrors("Failed to load Cipher");
-    }
+//    if (SSL_CTX_set_cipher_list(ctx, "DHT-PSK-BIGN-WITH-BELT-CTR-MAC-HBELT") != 1){
+  //      handleErrors("Failed to load Cipher");
+    //}
     // Загрузка корневого сертификата
     logEvent(INFO, "Loading root certificate");
     //if (SSL_CTX_load_verify_locations(ctx, "./keys/root_cert.pem", NULL) != 1)
