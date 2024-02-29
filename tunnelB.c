@@ -18,7 +18,8 @@ const unsigned char *iv = (const unsigned char *)"FEDCBA9876543210";
 #define MAX_BUFFER_SIZE 2024
 #define CHUNK_SIZE 1024
 
-#define PSK_KEY "aB3cdE7fGhI9jKl1mN2oP4qRsT5uVwX8yZ0"
+#define PSK_KEY "123456"
+#define PSK_HINT "123"
 #define SERVER_KEY_FILE "./keys/bign-curve256v1.key" // Путь к файлу с закрытым ключом сервера
 #define SERVER_CERT_FILE "./keys/cert.pem" // Путь к файлу с сертификатом сервера
 
@@ -105,6 +106,7 @@ void handleErrors(const char *message)
 
 
 unsigned int psk_server_callback(SSL *ssl, const char *identity, unsigned char *psk, unsigned int max_psk_len) {
+    strncpy(identity, PSK_HINT, max_identity_len);
     strncpy((char *)psk, PSK_KEY, max_psk_len);
     return strlen(PSK_KEY);
 }
