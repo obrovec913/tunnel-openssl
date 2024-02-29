@@ -20,9 +20,6 @@
 #define CLIENT_KEY_FILE "./keys/bign-curve256v1.key" // Путь к файлу с закрытым ключом клиента
 #define CLIENT_CERT_FILE "./keys/client_cert.pem"    // Путь к файлу с сертификатом клиента
 
-const unsigned char *key = (const unsigned char *)"0123456789ABCDEF";
-const unsigned char *iv = (const unsigned char *)"FEDCBA9876543210";
-
 pthread_t receiveThread, sendThread;
 int unencrypted_sockfd;
 SSL *ssl;
@@ -146,7 +143,7 @@ SSL_CTX *createSSLContext()
     SSL_CTX_set_info_callback(ctx, info_callback);
 
     // Установка параметров алгоритмов шифрования
-    if (SSL_CTX_set_cipher_list(ctx, "DHT-PSK-BIGN-WITH-BELT-CTR-MAC-HBELT") != 1)
+    if (SSL_CTX_set_cipher_list(ctx, "DHE-BIGN-WITH-BELT-DWP-HBELT") != 1)
     {
         handleErrors("Failed to load Cipher");
     }
