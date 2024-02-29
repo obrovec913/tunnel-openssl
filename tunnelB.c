@@ -163,9 +163,9 @@ SSL_CTX *createSSLContext()
 
     // Загрузка сертификата и ключа сервера
     logEvent(INFO, "Loading server certificate and key");
-    //if (SSL_CTX_use_certificate_file(ctx, SERVER_CERT_FILE, SSL_FILETYPE_PEM) != 1 ||
-      //  SSL_CTX_use_PrivateKey_file(ctx, SERVER_KEY_FILE, SSL_FILETYPE_PEM) != 1)
-       // handleErrors("Failed to load server certificate or key");
+    if (SSL_CTX_use_certificate_file(ctx, SERVER_CERT_FILE, SSL_FILETYPE_PEM) != 1 ||
+        SSL_CTX_use_PrivateKey_file(ctx, SERVER_KEY_FILE, SSL_FILETYPE_PEM) != 1)
+        handleErrors("Failed to load server certificate or key");
 
     // Проверка правильности ключа
     logEvent(INFO, "Checking server private key");
