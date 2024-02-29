@@ -18,7 +18,7 @@ const unsigned char *iv = (const unsigned char *)"FEDCBA9876543210";
 #define MAX_BUFFER_SIZE 2024
 #define CHUNK_SIZE 1024
 
-#define PSK_KEY "MySharedKey"
+#define PSK_KEY "aB3cdE7fGhI9jKl1mN2oP4qRsT5uVwX8yZ0"
 #define SERVER_KEY_FILE "./keys/bign-curve256v1.key" // Путь к файлу с закрытым ключом сервера
 #define SERVER_CERT_FILE "./keys/cert.pem" // Путь к файлу с сертификатом сервера
 

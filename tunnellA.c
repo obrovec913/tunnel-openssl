@@ -15,7 +15,8 @@
 #define ENCRYPTED_PORT 12345
 #define MAX_BUFFER_SIZE 2024
 #define CHUNK_SIZE 1024
-#define PSK_KEY "MySharedKey"
+#define PSK_KEY "aB3cdE7fGhI9jKl1mN2oP4qRsT5uVwX8yZ0"
+
 #define CLIENT_KEY_FILE "./keys/bign-curve256v1.key" // Путь к файлу с закрытым ключом клиента
 #define CLIENT_CERT_FILE "./keys/client_cert.pem" // Путь к файлу с сертификатом клиента
 
