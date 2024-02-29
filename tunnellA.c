@@ -169,7 +169,7 @@ SSL_CTX *createSSLContext()
 
      if (SSL_CTX_use_certificate_file(ctx, CLIENT_CERT_FILE, SSL_FILETYPE_PEM) != 1 ||
        SSL_CTX_use_PrivateKey_file(ctx, CLIENT_KEY_FILE, SSL_FILETYPE_PEM) != 1)
-     ; handleErrors("Failed to load client certificate or key");
+       handleErrors("Failed to load client certificate or key");
 
     // if (SSL_CTX_check_private_key(ctx) != 1)
     //   handleErrors("Client private key check failed");
