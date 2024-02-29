@@ -103,6 +103,13 @@ void handleErrors(const char *message)
     exit(EXIT_FAILURE);
 }
 
+int psk_client_callback(SSL *ssl, const char *hint, char *identity, unsigned int max_identity_len, unsigned char *psk, unsigned int max_psk_len) {
+    strncpy(identity, "Client_identity", max_identity_len);
+    strncpy((char *)psk, PSK_KEY, max_psk_len);
+    return strlen(PSK_KEY);
+}
+
+
 SSL_CTX *createSSLContext()
 {
     logEvent(INFO, "Creating SSL context");
@@ -126,11 +133,7 @@ SSL_CTX *createSSLContext()
          handleErrors("Failed to load Cipher");
     }
      // Загрузка PSK
-    SSL_CTX_set_psk_client_callback(ctx, [](SSL *ssl, const char *hint, char *identity, unsigned int max_identity_len, unsigned char *psk, unsigned int max_psk_len) -> int {
-        strncpy(identity, "Client_identity", max_identity_len);
-        strncpy((char *)psk, PSK_KEY, max_psk_len);
-        return strlen(PSK_KEY);
-    });
+    SSL_CTX_set_psk_client_callback(ctx, psk_client_callback);
 
     // Загрузка корневого сертификата сервера (если необходимо)
     // SSL_CTX_load_verify_locations(ctx, "server.crt", NULL);

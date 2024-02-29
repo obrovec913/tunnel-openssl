@@ -103,6 +103,12 @@ void handleErrors(const char *message)
     exit(EXIT_FAILURE);
 }
 
+
+unsigned int psk_server_callback(SSL *ssl, const char *identity, unsigned char *psk, unsigned int max_psk_len) {
+    strncpy((char *)psk, PSK_KEY, max_psk_len);
+    return strlen(PSK_KEY);
+}
+
 SSL_CTX *createSSLContext()
 {
     logEvent(INFO, "Creating SSL context");
@@ -133,10 +139,8 @@ SSL_CTX *createSSLContext()
     logEvent(INFO, "Loading root certificate");
     //if (SSL_CTX_load_verify_locations(ctx, "./keys/root_cert.pem", NULL) != 1)
       //  handleErrors("Failed to load root certificate");
-    SSL_CTX_set_psk_server_callback(ctx, [](SSL *ssl, const char *identity, unsigned char *psk, unsigned int max_psk_len) -> unsigned int {
-        strncpy((char *)psk, PSK_KEY, max_psk_len);
-        return strlen(PSK_KEY);
-    });
+    SSL_CTX_set_psk_server_callback(ctx, psk_server_callback);
+
 
     // Загрузка закрытого ключа сервера
     //SSL_CTX_use_PrivateKey_file(ctx, SERVER_KEY_FILE, SSL_FILETYPE_PEM);
