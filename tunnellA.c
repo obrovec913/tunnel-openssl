@@ -18,9 +18,7 @@
 #define PSK_KEY "123456"
 #define PSK_HINT "123"
 #define CLIENT_KEY_FILE "./keys/bign-curve256v1.key" // Путь к файлу с закрытым ключом клиента
-#define CLIENT_CERT_FILE "./keys/client_cert.pem" // Путь к файлу с сертификатом клиента
-
-
+#define CLIENT_CERT_FILE "./keys/client_cert.pem"    // Путь к файлу с сертификатом клиента
 
 const unsigned char *key = (const unsigned char *)"0123456789ABCDEF";
 const unsigned char *iv = (const unsigned char *)"FEDCBA9876543210";
@@ -104,25 +102,33 @@ void handleErrors(const char *message)
     exit(EXIT_FAILURE);
 }
 
-int psk_client_callback(SSL *ssl, const char *hint, char *identity, unsigned int max_identity_len, unsigned char *psk, unsigned int max_psk_len) {
-    strncpy(identity, "Client_identity", max_identity_len);
+int psk_client_callback(SSL *ssl, const char *hint, char *identity, unsigned int max_identity_len, unsigned char *psk, unsigned int max_psk_len)
+{
+    strncpy(identity, PSK_HINT, max_identity_len);
     strncpy((char *)psk, PSK_KEY, max_psk_len);
     return strlen(PSK_KEY);
 }
 
-void info_callback(const SSL *ssl, int type, int val) {
-    if (type & SSL_CB_ALERT) {
+void info_callback(const SSL *ssl, int type, int val)
+{
+    if (type & SSL_CB_ALERT)
+    {
         fprintf(stderr, "SSL/TLS ALERT: %s:%s:%s\n", SSL_alert_type_string_long(val),
                 SSL_alert_desc_string_long(val), SSL_alert_desc_string(val));
-    } else if (type & SSL_CB_HANDSHAKE_START) {
+    }
+    else if (type & SSL_CB_HANDSHAKE_START)
+    {
         fprintf(stderr, "SSL/TLS HANDSHAKE начат\n");
-    } else if (type & SSL_CB_HANDSHAKE_DONE) {
+    }
+    else if (type & SSL_CB_HANDSHAKE_DONE)
+    {
         fprintf(stderr, "SSL/TLS HANDSHAKE завершен\n");
-    } else {
+    }
+    else
+    {
         fprintf(stderr, "SSL/TLS INFO: %s\n", SSL_state_string_long(ssl));
     }
 }
-
 
 SSL_CTX *createSSLContext()
 {
@@ -143,30 +149,30 @@ SSL_CTX *createSSLContext()
     // Установка параметров алгоритмов шифрования
     if (SSL_CTX_set_cipher_list(ctx, "DHT-PSK-BIGN-WITH-BELT-CTR-MAC-HBELT") != 1)
     {
-         handleErrors("Failed to load Cipher");
+        handleErrors("Failed to load Cipher");
     }
-    
-     // Загрузка PSK
+
+    // Загрузка PSK
     SSL_CTX_set_psk_client_callback(ctx, psk_client_callback);
 
     // Загрузка корневого сертификата сервера (если необходимо)
     // SSL_CTX_load_verify_locations(ctx, "server.crt", NULL);
 
     // Загрузка сертификата клиента
-    //SSL_CTX_use_certificate_file(ctx, CLIENT_CERT_FILE, SSL_FILETYPE_PEM);
+    // SSL_CTX_use_certificate_file(ctx, CLIENT_CERT_FILE, SSL_FILETYPE_PEM);
 
     // Загрузка закрытого ключа клиента
-    //SSL_CTX_use_PrivateKey_file(ctx, CLIENT_KEY_FILE, SSL_FILETYPE_PEM);
+    // SSL_CTX_use_PrivateKey_file(ctx, CLIENT_KEY_FILE, SSL_FILETYPE_PEM);
 
-    //if (SSL_CTX_load_verify_locations(ctx, "./keys/root_cert.pem", NULL) != 1)
-      //  handleErrors("Failed to load root certificate");
+    // if (SSL_CTX_load_verify_locations(ctx, "./keys/root_cert.pem", NULL) != 1)
+    //   handleErrors("Failed to load root certificate");
 
-    //if (SSL_CTX_use_certificate_file(ctx, CLIENT_CERT_FILE, SSL_FILETYPE_PEM) != 1 ||
-      //  SSL_CTX_use_PrivateKey_file(ctx, CLIENT_KEY_FILE, SSL_FILETYPE_PEM) != 1)
-       //; handleErrors("Failed to load client certificate or key");
+    // if (SSL_CTX_use_certificate_file(ctx, CLIENT_CERT_FILE, SSL_FILETYPE_PEM) != 1 ||
+    //   SSL_CTX_use_PrivateKey_file(ctx, CLIENT_KEY_FILE, SSL_FILETYPE_PEM) != 1)
+    //; handleErrors("Failed to load client certificate or key");
 
-   // if (SSL_CTX_check_private_key(ctx) != 1)
-     //   handleErrors("Client private key check failed");
+    // if (SSL_CTX_check_private_key(ctx) != 1)
+    //   handleErrors("Client private key check failed");
 
     return ctx;
 }
@@ -221,8 +227,8 @@ SSL *establishEncryptedConnection()
 
     if (SSL_connect(ssl) != 1)
         handleErrors("Failed to establish SSL connection");
-    
-    printf("подключился : \n" );
+
+    printf("подключился : \n");
 
     return ssl;
 }
@@ -244,7 +250,6 @@ int connectUnencryptedPort()
 
     if (connect(unsecured_sockfd, (struct sockaddr *)&unsecured_server_addr, sizeof(unsecured_server_addr)) < 0)
         handleErrors("Failed to connect to unencrypted port");
-
 
     return unsecured_sockfd;
 }
@@ -363,7 +368,7 @@ void *receiveThreadFunction(void *arg)
         {
             if (server_clok == 0)
             {
-               // ssl = establishEncryptedConnection();
+                // ssl = establishEncryptedConnection();
                 logEvent(INFO, "Establishing encrypted connection");
                 server_clok++;
             }
@@ -413,11 +418,11 @@ void *sendThreadFunction(void *arg)
 int main()
 {
     logEvent(INFO, "Application started");
-    //OPENSSL_init_crypto(OPENSSL_INIT_ENGINE_ALL_BUILTIN | OPENSSL_INIT_LOAD_CONFIG, NULL);
+    // OPENSSL_init_crypto(OPENSSL_INIT_ENGINE_ALL_BUILTIN | OPENSSL_INIT_LOAD_CONFIG, NULL);
 
-    server_clok = 0;    
-    printf("запуск : \n" );
-    
+    server_clok = 0;
+    printf("запуск : \n");
+
     ssl = establishEncryptedConnection();
 
     while (1)
