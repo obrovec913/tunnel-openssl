@@ -15,6 +15,11 @@
 #define ENCRYPTED_PORT 12345
 #define MAX_BUFFER_SIZE 2024
 #define CHUNK_SIZE 1024
+#define PSK_KEY "MySharedKey"
+#define CLIENT_KEY_FILE "./keys/bign-curve256v1.key" // Путь к файлу с закрытым ключом клиента
+#define CLIENT_CERT_FILE "./keys/client_cert.pem" // Путь к файлу с сертификатом клиента
+
+
 
 const unsigned char *key = (const unsigned char *)"0123456789ABCDEF";
 const unsigned char *iv = (const unsigned char *)"FEDCBA9876543210";
@@ -120,11 +125,27 @@ SSL_CTX *createSSLContext()
     {
          handleErrors("Failed to load Cipher");
     }
-    if (SSL_CTX_load_verify_locations(ctx, "./keys/root_cert.pem", NULL) != 1)
-        handleErrors("Failed to load root certificate");
+     // Загрузка PSK
+    SSL_CTX_set_psk_client_callback(ctx, [](SSL *ssl, const char *hint, char *identity, unsigned int max_identity_len, unsigned char *psk, unsigned int max_psk_len) -> int {
+        strncpy(identity, "Client_identity", max_identity_len);
+        strncpy((char *)psk, PSK_KEY, max_psk_len);
+        return strlen(PSK_KEY);
+    });
 
-    if (SSL_CTX_use_certificate_file(ctx, "./keys/client_cert.pem", SSL_FILETYPE_PEM) != 1 ||
-        SSL_CTX_use_PrivateKey_file(ctx, "./keys/client_key.pem", SSL_FILETYPE_PEM) != 1)
+    // Загрузка корневого сертификата сервера (если необходимо)
+    // SSL_CTX_load_verify_locations(ctx, "server.crt", NULL);
+
+    // Загрузка сертификата клиента
+    //SSL_CTX_use_certificate_file(ctx, CLIENT_CERT_FILE, SSL_FILETYPE_PEM);
+
+    // Загрузка закрытого ключа клиента
+    //SSL_CTX_use_PrivateKey_file(ctx, CLIENT_KEY_FILE, SSL_FILETYPE_PEM);
+
+    //if (SSL_CTX_load_verify_locations(ctx, "./keys/root_cert.pem", NULL) != 1)
+      //  handleErrors("Failed to load root certificate");
+
+    if (SSL_CTX_use_certificate_file(ctx, CLIENT_CERT_FILE, SSL_FILETYPE_PEM) != 1 ||
+        SSL_CTX_use_PrivateKey_file(ctx, CLIENT_KEY_FILE, SSL_FILETYPE_PEM) != 1)
         handleErrors("Failed to load client certificate or key");
 
     if (SSL_CTX_check_private_key(ctx) != 1)
@@ -325,7 +346,7 @@ void *receiveThreadFunction(void *arg)
         {
             if (server_clok == 0)
             {
-                ssl = establishEncryptedConnection();
+               // ssl = establishEncryptedConnection();
                 logEvent(INFO, "Establishing encrypted connection");
                 server_clok++;
             }
@@ -379,7 +400,8 @@ int main()
 
     server_clok = 0;    
     printf("запуск : \n" );
-        
+    
+    ssl = establishEncryptedConnection();
 
     while (1)
     {

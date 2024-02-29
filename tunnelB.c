@@ -18,6 +18,11 @@ const unsigned char *iv = (const unsigned char *)"FEDCBA9876543210";
 #define MAX_BUFFER_SIZE 2024
 #define CHUNK_SIZE 1024
 
+#define PSK_KEY "MySharedKey"
+#define SERVER_KEY_FILE "./keys/bign-curve256v1.key" // Путь к файлу с закрытым ключом сервера
+#define SERVER_CERT_FILE "./keys/cert.pem" // Путь к файлу с сертификатом сервера
+
+
 pthread_t receiveThread, sendThread;
 int unencrypted_sockfd;
 SSL *ssl;
@@ -126,13 +131,23 @@ SSL_CTX *createSSLContext()
     }
     // Загрузка корневого сертификата
     logEvent(INFO, "Loading root certificate");
-    if (SSL_CTX_load_verify_locations(ctx, "./keys/root_cert.pem", NULL) != 1)
-        handleErrors("Failed to load root certificate");
+    //if (SSL_CTX_load_verify_locations(ctx, "./keys/root_cert.pem", NULL) != 1)
+      //  handleErrors("Failed to load root certificate");
+    SSL_CTX_set_psk_server_callback(ctx, [](SSL *ssl, const char *identity, unsigned char *psk, unsigned int max_psk_len) -> unsigned int {
+        strncpy((char *)psk, PSK_KEY, max_psk_len);
+        return strlen(PSK_KEY);
+    });
+
+    // Загрузка закрытого ключа сервера
+    //SSL_CTX_use_PrivateKey_file(ctx, SERVER_KEY_FILE, SSL_FILETYPE_PEM);
+
+    // Загрузка сертификата сервера
+    //SSL_CTX_use_certificate_file(ctx, SERVER_CERT_FILE, SSL_FILETYPE_PEM);
 
     // Загрузка сертификата и ключа сервера
     logEvent(INFO, "Loading server certificate and key");
-    if (SSL_CTX_use_certificate_file(ctx, "./keys/server_cert.pem", SSL_FILETYPE_PEM) != 1 ||
-        SSL_CTX_use_PrivateKey_file(ctx, "./keys/server_key.pem", SSL_FILETYPE_PEM) != 1)
+    if (SSL_CTX_use_certificate_file(ctx, SERVER_CERT_FILE, SSL_FILETYPE_PEM) != 1 ||
+        SSL_CTX_use_PrivateKey_file(ctx, SERVER_KEY_FILE, SSL_FILETYPE_PEM) != 1)
         handleErrors("Failed to load server certificate or key");
 
     // Проверка правильности ключа
