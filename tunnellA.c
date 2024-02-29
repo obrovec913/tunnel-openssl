@@ -110,6 +110,19 @@ int psk_client_callback(SSL *ssl, const char *hint, char *identity, unsigned int
     return strlen(PSK_KEY);
 }
 
+void info_callback(const SSL *ssl, int type, int val) {
+    if (type & SSL_CB_ALERT) {
+        fprintf(stderr, "SSL/TLS ALERT: %s:%s:%s\n", SSL_alert_type_string_long(val),
+                SSL_alert_desc_string_long(val), SSL_alert_desc_string(val));
+    } else if (type & SSL_CB_HANDSHAKE_START) {
+        fprintf(stderr, "SSL/TLS HANDSHAKE начат\n");
+    } else if (type & SSL_CB_HANDSHAKE_DONE) {
+        fprintf(stderr, "SSL/TLS HANDSHAKE завершен\n");
+    } else {
+        fprintf(stderr, "SSL/TLS INFO: %s\n", SSL_state_string_long(ssl));
+    }
+}
+
 
 SSL_CTX *createSSLContext()
 {
@@ -125,12 +138,14 @@ SSL_CTX *createSSLContext()
         printf("Failed to create SSL context\n");
         handleErrors("Failed to create SSL context");
     }
+    SSL_CTX_set_info_callback(ctx, info_callback);
 
     // Установка параметров алгоритмов шифрования
     if (SSL_CTX_set_cipher_list(ctx, "DHT-PSK-BIGN-WITH-BELT-CTR-MAC-HBELT") != 1)
     {
          handleErrors("Failed to load Cipher");
     }
+    
      // Загрузка PSK
     SSL_CTX_set_psk_client_callback(ctx, psk_client_callback);
 
