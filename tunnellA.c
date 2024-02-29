@@ -126,8 +126,7 @@ SSL_CTX *createSSLContext()
     }
 
     // Установка параметров алгоритмов шифрования
-    if (SSL_CTX_set_cipher_list(ctx, "DHT-PSK-BIGN-WITH-BELT-CTR-MAC-HBELT:\
-        DHE-PSK-BIGN-WITH-BELT-CTR-MAC-HBELT") != 1)
+    if (SSL_CTX_set_cipher_list(ctx, "DHT-PSK-BIGN-WITH-BELT-CTR-MAC-HBELT") != 1)
     {
          handleErrors("Failed to load Cipher");
     }
