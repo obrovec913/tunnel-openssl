@@ -3,10 +3,10 @@ import sys
 import select
 
 PORT = int(input("port \n"))
-
+host = input('localhost')
 def main():
     # Хост и порт для подключения (замените на нужные значения)
-    host = 'localhost'
+    
     
 
     # Создание сокета и подключение к серверу
