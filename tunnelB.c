@@ -267,7 +267,7 @@ void *handle_connection(void *data)
 {
     int *sockets = (int *)data;
     int unencrypted_connfd = sockets[0];
-    SSL *ssl = (SSL *)data[1];
+    SSL *ssl = (SSL *)sockets[1];
 
     char buffer[MAX_BUFFER_SIZE];
     int bytes_received;
@@ -360,7 +360,7 @@ int main()
         perror("Failed to allocate memory");
         exit(EXIT_FAILURE);
     }
-    sockets[0] = unencrypted_connfd;
+    sockets[0] = unencrypted_sockfd;
     sockets[1] = SSL_get_fd(ssl); // Получаем файловый дескриптор SSL сокета
 
     // Создание и запуск потока для обработки соединения
