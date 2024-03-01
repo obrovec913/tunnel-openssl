@@ -219,7 +219,7 @@ SSL *establishEncryptedConnection()
     if (SSL_connect(ssl) != 1)
         handleErrors("Failed to establish SSL connection");
 
-    printf("подключился : \n");
+    printf("подключился  сервер: \n");
 
     return ssl;
 }
@@ -282,15 +282,19 @@ void handleEncryptedConnections()
 
 int main()
 {
+    printf("запуск : \n");
     // Создание незашифрованного сокета и установка соединения с сервером
     setupUnencryptedSocket();
+    printf("подключился клиент: \n");
 
     // Установка зашифрованного соединения с сервером
     ssl = establishEncryptedConnection();
 
+
     FD_ZERO(&readfds);
     FD_SET(unencrypted_sockfd, &readfds);
     FD_SET(SSL_get_fd(ssl), &readfds);
+    printf("начинаем слушать событие : \n");
 
     while (1)
     {

@@ -317,15 +317,17 @@ void handleEncryptedConnections()
 int main()
 {
     // Создание незашифрованного сокета и установка соединения с сервером
-    
+    printf("запуск : \n");
 
     // Установка зашифрованного соединения с сервером
     ssl = establishEncryptedConnection();
     setupUnencryptedSocket();
+    printf("подключился клиент для общенине..: \n");
 
     FD_ZERO(&readfds);
     FD_SET(unencrypted_sockfd, &readfds);
     FD_SET(SSL_get_fd(ssl), &readfds);
+    printf("начинаем слушать событие : \n");
 
     while (1)
     {
