@@ -229,7 +229,7 @@ SSL *establishEncryptedConnection()
 void *handle_connection(void *data)
 {
     int *sockets = (int *)data;
-    int unencrypted_sockfd = sockets[0];
+    int unencrypted_connfd = sockets[0];
     SSL *ssl = (SSL *)data[1];
 
     char buffer[MAX_BUFFER_SIZE];
