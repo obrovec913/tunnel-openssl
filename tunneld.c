@@ -24,7 +24,6 @@ pthread_t receiveThread, sendThread;
 int unencrypted_sockfd;
 SSL *ssl;
 int server_clok;
-fd_set readfds;
 
 // Определяем возможные типы событий
 enum LogType
@@ -223,95 +222,108 @@ SSL *establishEncryptedConnection()
 
     return ssl;
 }
-// Функция для обработки незашифрованных соединений
-void handleUnencryptedConnections()
+
+void *receiveThreadFunction(void *arg)
 {
+    logEvent(INFO, "Receive thread started");
     char buffer[MAX_BUFFER_SIZE];
     int bytes_received;
 
     while (1)
     {
-        if (FD_ISSET(unencrypted_sockfd, &readfds))
+        int unencrypted_connfd = accept(unencrypted_sockfd, NULL, NULL);
+        if (unencrypted_connfd < 0)
+            handleErrors("Failed to accept unencrypted connection");
+
+        bytes_received = recv(unencrypted_connfd, buffer, sizeof(buffer), 0);
+
+        if (bytes_received > 0)
         {
-            bytes_received = recv(unencrypted_sockfd, buffer, sizeof(buffer), 0);
-            if (bytes_received > 0)
+            if (server_clok == 0)
             {
-                printf("Received unencrypted data.\n");
-                if (SSL_write(ssl, buffer, bytes_received) <= 0)
-                    perror("Failed to write encrypted data");
+                ssl = establishEncryptedConnection();
+                logEvent(INFO, "Establishing encrypted connection");
+                server_clok++;
             }
-            else if (bytes_received == 0)
-            {
-                printf("Client closed connection\n");
-                break;
-            }
-            else
-            {
-                perror("Error reading unencrypted data from client");
-            }
+            if (SSL_write(ssl, buffer, bytes_received) <= 0)
+                handleErrors("Failed to write encrypted data");
+
+            // Очистка буфера
+            memset(buffer, 0, sizeof(buffer));
+            break;
         }
     }
+
+    logEvent(INFO, "Receive thread exiting");
+    pthread_exit(NULL);
 }
 
-// Функция для обработки зашифрованных соединений
-void handleEncryptedConnections()
+void *sendThreadFunction(void *arg)
 {
+    logEvent(INFO, "Send thread started");
     char buffer[MAX_BUFFER_SIZE];
     int bytes_received;
 
     while (1)
     {
+        // Принятие зашифрованных данных от сервера
         bytes_received = SSL_read(ssl, buffer, sizeof(buffer));
         if (bytes_received > 0)
         {
-            printf("Received encrypted data from server.\n");
+            printf("Received  data from server.\n");
+            for (int i = 0; i < bytes_received; i++)
+            {
+                printf("%02x ", buffer[i]);
+            }
+            printf("\n");
             if (send(unencrypted_sockfd, buffer, bytes_received, 0) < 0)
-                perror("Failed to send decrypted data");
-        }
-        else if (bytes_received == 0)
-        {
-            printf("Server closed connection\n");
+                handleErrors("Failed to send decrypted data");
+            // Очистка буфера
+            memset(buffer, 0, sizeof(buffer));
             break;
         }
-        else
-        {
-            perror("Error reading encrypted data from server");
-        }
     }
+
+    logEvent(INFO, "Send thread exiting");
+    pthread_exit(NULL);
 }
 
 int main()
 {
-    // Создание незашифрованного сокета и установка соединения с сервером
+    logEvent(INFO, "Application started");
+    // OPENSSL_init_crypto(OPENSSL_INIT_ENGINE_ALL_BUILTIN | OPENSSL_INIT_LOAD_CONFIG, NULL);
+
+    server_clok = 0;
+    printf("запуск : \n");
     setupUnencryptedSocket();
 
-    // Установка зашифрованного соединения с сервером
     ssl = establishEncryptedConnection();
-
-    FD_ZERO(&readfds);
-    FD_SET(unencrypted_sockfd, &readfds);
-    FD_SET(SSL_get_fd(ssl), &readfds);
 
     while (1)
     {
-        // Ожидание событий на сокетах
-        if (select(FD_SETSIZE, &readfds, NULL, NULL, NULL) < 0)
+        
+        if (pthread_create(&receiveThread, NULL, receiveThreadFunction, NULL) != 0)
         {
-            perror("select failed");
-            exit(EXIT_FAILURE);
+            fprintf(stderr, "Failed to create receive thread.\n");
+            handleErrors("Failed to create receive thread");
+        }
+        pthread_join(receiveThread, NULL);
+        
+
+        if (pthread_create(&sendThread, NULL, sendThreadFunction, NULL) != 0)
+        {
+            fprintf(stderr, "Failed to create send thread.\n");
+            handleErrors("Failed to create send thread");
         }
 
-        // Обработка незашифрованных соединений
-        handleUnencryptedConnections();
-
-        // Обработка зашифрованных соединений
-        handleEncryptedConnections();
+        pthread_join(sendThread, NULL);
     }
-
-    // Закрытие соединения и освобождение ресурсов
     close(unencrypted_sockfd);
+
     SSL_shutdown(ssl);
     SSL_free(ssl);
+    SSL_CTX_free(createSSLContext());
 
+    logEvent(INFO, "Application exiting");
     return 0;
 }

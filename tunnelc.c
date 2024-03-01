@@ -10,6 +10,9 @@
 #include <openssl/ssl.h>
 #include <pthread.h>
 
+const unsigned char *key = (const unsigned char *)"0123456789ABCDEF";
+const unsigned char *iv = (const unsigned char *)"FEDCBA9876543210";
+
 #define PORT 12345
 #define UNENCRYPTED_PORT 5412
 #define MAX_BUFFER_SIZE 2024
@@ -18,14 +21,14 @@
 #define PSK_KEY "123456"
 #define PSK_HINT "123"
 #define SERVER_KEY_FILE "./keys/bign-curve256v1.key" // Путь к файлу с закрытым ключом сервера
-#define SERVER_CERT_FILE "./keys/cert.pem"           // Путь к файлу с сертификатом сервера
+#define SERVER_CERT_FILE "./keys/cert.pem" // Путь к файлу с сертификатом сервера
+
 
 pthread_t receiveThread, sendThread;
 int unencrypted_sockfd;
 SSL *ssl;
 SSL_CTX *ssl_ctx;
 int connected = 0;
-fd_set readfds;
 
 // Определяем возможные типы событий
 enum LogType
@@ -101,34 +104,28 @@ void handleErrors(const char *message)
     exit(EXIT_FAILURE);
 }
 
-unsigned int psk_server_callback(SSL *ssl, const char *identity, unsigned char *psk, unsigned int max_psk_len)
-{
+
+unsigned int psk_server_callback(SSL *ssl, const char *identity, unsigned char *psk, unsigned int max_psk_len) {
     strncpy((char *)identity, PSK_HINT, max_psk_len - 1);
-    identity[max_psk_len - 1] = '\0'; // Убедимся, что строка завершается нулевым символом
+    identity[max_psk_len - 1] = '\0';  // Убедимся, что строка завершается нулевым символом
     strncpy((char *)psk, PSK_KEY, max_psk_len);
     return strlen(PSK_KEY);
 }
 
-void info_callback(const SSL *ssl, int type, int val)
-{
-    if (type & SSL_CB_ALERT)
-    {
+
+void info_callback(const SSL *ssl, int type, int val) {
+    if (type & SSL_CB_ALERT) {
         fprintf(stderr, "SSL/TLS ALERT: %s:%s:%s\n", SSL_alert_type_string_long(val),
                 SSL_alert_desc_string_long(val), SSL_alert_desc_string(val));
-    }
-    else if (type & SSL_CB_HANDSHAKE_START)
-    {
+    } else if (type & SSL_CB_HANDSHAKE_START) {
         fprintf(stderr, "SSL/TLS HANDSHAKE начат\n");
-    }
-    else if (type & SSL_CB_HANDSHAKE_DONE)
-    {
+    } else if (type & SSL_CB_HANDSHAKE_DONE) {
         fprintf(stderr, "SSL/TLS HANDSHAKE завершен\n");
-    }
-    else
-    {
+    } else {
         fprintf(stderr, "SSL/TLS INFO: %s\n", SSL_state_string_long(ssl));
     }
 }
+
 
 SSL_CTX *createSSLContext()
 {
@@ -151,13 +148,13 @@ SSL_CTX *createSSLContext()
     SSL_CTX_set_info_callback(ctx, info_callback);
 
     // Установка параметров алгоритмов шифрования
-    //    if (SSL_CTX_set_cipher_list(ctx, "DHT-PSK-BIGN-WITH-BELT-CTR-MAC-HBELT") != 1){
-    //      handleErrors("Failed to load Cipher");
+//    if (SSL_CTX_set_cipher_list(ctx, "DHT-PSK-BIGN-WITH-BELT-CTR-MAC-HBELT") != 1){
+  //      handleErrors("Failed to load Cipher");
     //}
     // Загрузка корневого сертификата
     logEvent(INFO, "Loading root certificate");
-    // if (SSL_CTX_load_verify_locations(ctx, "./keys/root_cert.pem", NULL) != 1)
-    //   handleErrors("Failed to load root certificate");
+    //if (SSL_CTX_load_verify_locations(ctx, "./keys/root_cert.pem", NULL) != 1)
+      //  handleErrors("Failed to load root certificate");
     SSL_CTX_set_psk_server_callback(ctx, psk_server_callback);
 
     // Загрузка сертификата и ключа сервера
@@ -168,8 +165,8 @@ SSL_CTX *createSSLContext()
 
     // Проверка правильности ключа
     logEvent(INFO, "Checking server private key");
-    // if (SSL_CTX_check_private_key(ctx) != 1)
-    //   handleErrors("Server private key check failed");
+   // if (SSL_CTX_check_private_key(ctx) != 1)
+     //   handleErrors("Server private key check failed");
 
     return ctx;
 }
@@ -257,96 +254,112 @@ SSL *establishEncryptedConnection()
 
     return ssl;
 }
-// Функция для обработки незашифрованных соединений
-void handleUnencryptedConnections()
+
+
+
+void *receiveThreadFunction(void *arg)
 {
+    logEvent(INFO, "Receive thread started");
     char buffer[MAX_BUFFER_SIZE];
     int bytes_received;
 
     while (1)
     {
-        if (FD_ISSET(unencrypted_sockfd, &readfds))
+        int unencrypted_connfd = accept(unencrypted_sockfd, NULL, NULL);
+        if (unencrypted_connfd < 0)
+            handleErrors("Failed to accept unencrypted connection");
+
+        bytes_received = recv(unencrypted_connfd, buffer, sizeof(buffer), 0);
+
+        if (bytes_received > 0)
         {
-            bytes_received = recv(unencrypted_sockfd, buffer, sizeof(buffer), 0);
-            if (bytes_received > 0)
-            {
-                printf("Received unencrypted data.\n");
-                if (SSL_write(ssl, buffer, bytes_received) <= 0)
-                    perror("Failed to write encrypted data");
-            }
-            else if (bytes_received == 0)
-            {
-                printf("Client closed connection\n");
-                break;
-            }
-            else
-            {
-                perror("Error reading unencrypted data from client");
-            }
+            printf("Received unencrypted data.\n");
+            if (SSL_write(ssl, buffer, bytes_received) <= 0)
+                handleErrors("Failed to write encrypted data");
+
+            printf("Received connection.\n");
+
+            // Очистка буфера
+            memset(buffer, 0, sizeof(buffer));
+            close(unencrypted_connfd);
+            break;
         }
     }
+
+    logEvent(INFO, "Receive thread exiting");
+    pthread_exit(NULL);
 }
 
-// Функция для обработки зашифрованных соединений
-void handleEncryptedConnections()
+void *sendThreadFunction(void *arg)
 {
+    logEvent(INFO, "Send thread started");
     char buffer[MAX_BUFFER_SIZE];
     int bytes_received;
 
     while (1)
     {
+        // Принятие зашифрованных данных от сервера
         bytes_received = SSL_read(ssl, buffer, sizeof(buffer));
         if (bytes_received > 0)
         {
             printf("Received encrypted data from server.\n");
+            printf("Decrypted Text: ");
+            for (int i = 0; i < bytes_received; i++)
+            {
+                printf("%02x ", buffer[i]);
+            }
+            printf("\n");
             if (send(unencrypted_sockfd, buffer, bytes_received, 0) < 0)
-                perror("Failed to send decrypted data");
-        }
-        else if (bytes_received == 0)
-        {
-            printf("Server closed connection\n");
+                handleErrors("Failed to send decrypted data");
+
+            // Очистка буфера
+            memset(buffer, 0, sizeof(buffer));
             break;
         }
-        else
-        {
-            perror("Error reading encrypted data from server");
-        }
     }
+
+    logEvent(INFO, "Send thread exiting");
+    pthread_exit(NULL);
 }
 
 int main()
 {
-    // Создание незашифрованного сокета и установка соединения с сервером
-    
+    logEvent(INFO, "Application started");
+    // OPENSSL_init_crypto(OPENSSL_INIT_ENGINE_ALL_BUILTIN | OPENSSL_INIT_LOAD_CONFIG, NULL);
 
-    // Установка зашифрованного соединения с сервером
-    ssl = establishEncryptedConnection();
+    printf("запуск : \n");
     setupUnencryptedSocket();
 
-    FD_ZERO(&readfds);
-    FD_SET(unencrypted_sockfd, &readfds);
-    FD_SET(SSL_get_fd(ssl), &readfds);
-
+    ssl = establishEncryptedConnection();
     while (1)
     {
-        // Ожидание событий на сокетах
-        if (select(FD_SETSIZE, &readfds, NULL, NULL, NULL) < 0)
+        if (pthread_create(&sendThread, NULL, sendThreadFunction, NULL) != 0)
         {
-            perror("select failed");
-            exit(EXIT_FAILURE);
+            fprintf(stderr, "Failed to create send thread.\n");
+            handleErrors("Failed to create send thread");
         }
 
-        // Обработка незашифрованных соединений
-        handleUnencryptedConnections();
+        // Ожидаем завершения первого потока
+        pthread_join(sendThread, NULL);
+        
 
-        // Обработка зашифрованных соединений
-        handleEncryptedConnections();
+        // Второй поток
+        if (pthread_create(&receiveThread, NULL, receiveThreadFunction, NULL) != 0)
+        {
+            fprintf(stderr, "Failed to create receive thread.\n");
+            handleErrors("Failed to create receive thread");
+        }
+
+        // Ожидаем завершения потоков
+        pthread_join(receiveThread, NULL);
+
+        // Очистка ресурсов
+        
     }
-
-    // Закрытие соединения и освобождение ресурсов
     close(unencrypted_sockfd);
     SSL_shutdown(ssl);
     SSL_free(ssl);
 
+    logEvent(INFO, "Application exiting");
     return 0;
 }
