@@ -26,7 +26,7 @@ SSL *ssl;
 SSL_CTX *ssl_ctx;
 int connected = 0;
 fd_set readfds;
-int unencrypted_connfd
+int unencrypted_connfd;
 // Определяем возможные типы событий
 enum LogType
 {

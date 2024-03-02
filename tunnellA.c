@@ -25,7 +25,7 @@ int unencrypted_sockfd;
 SSL *ssl;
 int server_clok;
 fd_set readfds;
-int unencrypted_connfd
+int unencrypted_connfd;
     // Определяем возможные типы событий
     enum LogType {
         INFO,
