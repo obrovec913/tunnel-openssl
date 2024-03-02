@@ -277,10 +277,12 @@ void *handle_connection(void *data)
         FD_ZERO(&readfds);
         FD_SET(unencrypted_sockfd, &readfds);
         FD_SET(SSL_get_fd(ssl), &readfds);
+        printf("начал  : \n");
 
         // Ожидание событий на сокетах
         if (select(unencrypted_sockfd + 1, &readfds, NULL, NULL, NULL) > 0)
         {
+             printf("соб : \n");
 
             // Обработка незашифрованных соединений
             if (FD_ISSET(unencrypted_sockfd, &readfds))

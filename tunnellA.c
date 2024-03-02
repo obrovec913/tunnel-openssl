@@ -241,8 +241,9 @@ void *handle_connection(void *data)
         FD_SET(SSL_get_fd(ssl), &readfds);
 
         // Ожидание событий на сокетах
-        if (select(unencrypted_connfd +1, &readfds, NULL, NULL, NULL) > 0)
+        if (select(unencrypted_sockfd +1, &readfds, NULL, NULL, NULL) > 0)
         {
+             printf("собы : \n");
 
             // Обработка незашифрованных соединений
             if (FD_ISSET(unencrypted_sockfd, &readfds))
