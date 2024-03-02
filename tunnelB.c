@@ -264,12 +264,14 @@ SSL *establishEncryptedConnection()
 
 void *handle_connection(void *data)
 {
+    printf("за: \n");
     int *sockets = (int *)data;
     int unencrypted_sockfd = sockets[0];
     SSL *ssl = (SSL *)(intptr_t)sockets[1];
 
     char buffer[MAX_BUFFER_SIZE];
     int bytes_received;
+    printf("слушки: \n");
 
     while (1)
     {
@@ -282,7 +284,7 @@ void *handle_connection(void *data)
         // Ожидание событий на сокетах
         if (select(unencrypted_sockfd + 1, &readfds, NULL, NULL, NULL) > 0)
         {
-             printf("соб : \n");
+            printf("соб : \n");
 
             // Обработка незашифрованных соединений
             if (FD_ISSET(unencrypted_sockfd, &readfds))
@@ -362,7 +364,7 @@ int main()
     }
     sockets[0] = unencrypted_sockfd;
     sockets[1] = SSL_get_fd(ssl); // Получаем файловый дескриптор SSL сокета
-
+    printf("запуск  послушки: \n");
     // Создание и запуск потока для обработки соединения
     pthread_t connectionThread;
     if (pthread_create(&connectionThread, NULL, handle_connection, (void *)sockets) != 0)

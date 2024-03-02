@@ -312,6 +312,7 @@ int main()
 
     // Установка зашифрованного соединения с сервером
     ssl = establishEncryptedConnection();
+    
     printf("запуск  послушки: \n");
 
     // Подготовка аргументов для функции handle_connection
@@ -321,8 +322,10 @@ int main()
         perror("Failed to allocate memory");
         exit(EXIT_FAILURE);
     }
+    printf("  послушки: \n");
     sockets[0] = unencrypted_sockfd;
     sockets[1] = SSL_get_fd(ssl); // Получаем файловый дескриптор SSL сокета
+    printf("запуск  послушки: \n");
 
     // Создание и запуск потока для обработки соединения
     pthread_t connectionThread;
