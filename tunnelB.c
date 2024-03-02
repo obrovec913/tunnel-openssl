@@ -281,7 +281,7 @@ void *handle_connection(void *data)
         printf("зiu--- \n");
         FD_SET(unencrypted_sockfd, &readfds);
         printf("запyh: \n");
-        FD_SET(sockfd, &readfds);
+        FD_SET(SSL_get_fd(ssl), &readfds);
         printf("начал  : \n");
 
         // Ожидание событий на сокетах
@@ -314,7 +314,7 @@ void *handle_connection(void *data)
             }
 
             // Обработка зашифрованных соединений
-            if (FD_ISSET(sockfd, &readfds))
+            if (FD_ISSET(SSL_get_fd(ssl), &readfds))
             {
                 bytes_received = SSL_read(ssl, buffer, sizeof(buffer));
                 if (bytes_received > 0)
@@ -326,6 +326,7 @@ void *handle_connection(void *data)
                 else if (bytes_received == 0)
                 {
                     printf("Server closed connection\n");
+            
                     break;
                 }
                 else

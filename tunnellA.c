@@ -241,7 +241,7 @@ void *handle_connection(void *data)
         FD_ZERO(&readfds);
         printf("запускuuyitugdg: \n");
         FD_SET(unencrypted_sockfd, &readfds);
-        FD_SET(encrypted_sockfd, &readfds);
+        FD_SET((SSL_get_fd(ssl), &readfds);
         printf("ppppppppp \n");
 
         // Ожидание событий на сокетах
@@ -274,7 +274,7 @@ void *handle_connection(void *data)
             }
 
             // Обработка зашифрованных соединений
-            if (FD_ISSET(encrypted_sockfd, &readfds))
+            if (FD_ISSET(SSL_get_fd(ssl), &readfds))
             {
                 bytes_received = SSL_read(ssl, buffer, sizeof(buffer));
                 if (bytes_received > 0)
