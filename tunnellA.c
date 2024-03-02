@@ -245,7 +245,7 @@ void *handle_connection(void *data)
         printf("ppppppppp \n");
 
         // Ожидание событий на сокетах
-        if (select(unencrypted_sockfd +1, &readfds, NULL, NULL, NULL) > 0)
+        if (select(FD_SETSIZE, &readfds, NULL, NULL, NULL) > 0)
         {
              printf("собы : \n");
 
