@@ -198,6 +198,7 @@ void setupUnencryptedSocket()
     if (listen(unencrypted_sockfd, 1) < 0)
         handleErrors("Failed to listen on unencrypted socket");
     
+   
     int unencrypted_connfd = accept(unencrypted_sockfd, NULL, NULL);
         if (unencrypted_connfd < 0)
             handleErrors("Failed to accept unencrypted connection");
