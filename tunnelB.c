@@ -104,7 +104,7 @@ void handleErrors(const char *message)
 unsigned int psk_server_callback(SSL *ssl, const char *identity, unsigned char *psk, unsigned int max_psk_len)
 {
     strncpy((char *)identity, PSK_HINT, max_psk_len - 1);
-    identity[max_psk_len - 1] = '\0'; // Убедимся, что строка завершается нулевым символом
+    //identity[max_psk_len - 1] = '\0'; // Убедимся, что строка завершается нулевым символом
     strncpy((char *)psk, PSK_KEY, max_psk_len);
     return strlen(PSK_KEY);
 }
