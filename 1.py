@@ -2,8 +2,8 @@ import socket
 import sys
 import select
 
-PORT = 7781
-host = '192.168.1.3'
+PORT= 5412
+host = '192.168.1.5'
 def main():
     # Хост и порт для подключения (замените на нужные значения)
     
@@ -26,8 +26,7 @@ def main():
         except KeyboardInterrupt:
             print("\nExiting...")
             break
-        message = input("Введите сообщение: ")
-        s.sendall(message.encode())
+        
 
         # Отправка данных на сервер
         if sys.stdin in readable:

@@ -268,7 +268,7 @@ void *handle_connection(void *data)
     printf("за: \n");
     int *sockets = (int *)data;
     int unencrypted_sockfd = sockets[0];
-    SSL *ssl = (SSL *)(intptr_t)sockets[1];
+    sockfd =sockets[1];
 
     char buffer[MAX_BUFFER_SIZE];
     int bytes_received;
