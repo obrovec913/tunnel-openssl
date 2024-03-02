@@ -241,54 +241,52 @@ void *handle_connection(void *data)
         FD_SET(SSL_get_fd(ssl), &readfds);
 
         // Ожидание событий на сокетах
-        if (select(FD_SETSIZE, &readfds, NULL, NULL, NULL) < 0)
+        if (select(FD_SETSIZE, &readfds, NULL, NULL, NULL) > 0)
         {
-            perror("select failed");
-            exit(EXIT_FAILURE);
-        }
 
-        // Обработка незашифрованных соединений
-        if (FD_ISSET(unencrypted_sockfd, &readfds))
-        {
-            int unencrypted_connfd = accept(unencrypted_sockfd, NULL, NULL);
-            if (unencrypted_connfd < 0)
-                handleErrors("Failed to accept unencrypted connection");
-            bytes_received = recv(unencrypted_connfd, buffer, sizeof(buffer), 0);
-            if (bytes_received > 0)
+            // Обработка незашифрованных соединений
+            if (FD_ISSET(unencrypted_sockfd, &readfds))
             {
-                printf("Received unencrypted data.\n");
-                if (SSL_write(ssl, buffer, bytes_received) <= 0)
-                    perror("Failed to write encrypted data");
+                int unencrypted_connfd = accept(unencrypted_sockfd, NULL, NULL);
+                if (unencrypted_connfd < 0)
+                    handleErrors("Failed to accept unencrypted connection");
+                bytes_received = recv(unencrypted_connfd, buffer, sizeof(buffer), 0);
+                if (bytes_received > 0)
+                {
+                    printf("Received unencrypted data.\n");
+                    if (SSL_write(ssl, buffer, bytes_received) <= 0)
+                        perror("Failed to write encrypted data");
+                }
+                else if (bytes_received == 0)
+                {
+                    printf("Client closed connection\n");
+                    break;
+                }
+                else
+                {
+                    perror("Error reading unencrypted data from client");
+                }
             }
-            else if (bytes_received == 0)
-            {
-                printf("Client closed connection\n");
-                break;
-            }
-            else
-            {
-                perror("Error reading unencrypted data from client");
-            }
-        }
 
-        // Обработка зашифрованных соединений
-        if (FD_ISSET(SSL_get_fd(ssl), &readfds))
-        {
-            bytes_received = SSL_read(ssl, buffer, sizeof(buffer));
-            if (bytes_received > 0)
+            // Обработка зашифрованных соединений
+            if (FD_ISSET(SSL_get_fd(ssl), &readfds))
             {
-                printf("Received encrypted data from server.\n");
-                if (send(unencrypted_sockfd, buffer, bytes_received, 0) < 0)
-                    perror("Failed to send decrypted data");
-            }
-            else if (bytes_received == 0)
-            {
-                printf("Server closed connection\n");
-                break;
-            }
-            else
-            {
-                perror("Error reading encrypted data from server");
+                bytes_received = SSL_read(ssl, buffer, sizeof(buffer));
+                if (bytes_received > 0)
+                {
+                    printf("Received encrypted data from server.\n");
+                    if (send(unencrypted_sockfd, buffer, bytes_received, 0) < 0)
+                        perror("Failed to send decrypted data");
+                }
+                else if (bytes_received == 0)
+                {
+                    printf("Server closed connection\n");
+                    break;
+                }
+                else
+                {
+                    perror("Error reading encrypted data from server");
+                }
             }
         }
     }
