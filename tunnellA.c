@@ -325,7 +325,7 @@ int main()
         perror("Failed to allocate memory");
         exit(EXIT_FAILURE);
     }
-    sockets[0] = unencrypted_sockfd;
+    sockets[0] = unencrypted_connfd;
     sockets[1] = SSL_get_fd(ssl); // Получаем файловый дескриптор SSL сокета
 
     // Создание и запуск потока для обработки соединения
