@@ -279,7 +279,7 @@ void *handle_connection(void *data)
         FD_SET(SSL_get_fd(ssl), &readfds);
 
         // Ожидание событий на сокетах
-        if (select(FD_SETSIZE, &readfds, NULL, NULL, NULL) > 0)
+        if (select(unencrypted_sockfd + 1, &readfds, NULL, NULL, NULL) > 0)
         {
 
             // Обработка незашифрованных соединений
