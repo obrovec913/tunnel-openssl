@@ -191,10 +191,6 @@ void setupUnencryptedSocket()
 
     if (listen(unencrypted_sockfd, 1) < 0)
         handleErrors("Failed to listen on unencrypted socket");
-     int unencrypted_connfd = accept(unencrypted_sockfd, NULL, NULL);
-        if (unencrypted_connfd < 0)
-            handleErrors("Failed to accept unencrypted connection");
-
 }
 
 SSL *establishEncryptedConnection()
@@ -241,7 +237,7 @@ void *handle_connection(void *data)
     {
         fd_set readfds;
         FD_ZERO(&readfds);
-        FD_SET(unencrypted_connfd, &readfds);
+        FD_SET(unencrypted_sockfd, &readfds);
         FD_SET(SSL_get_fd(ssl), &readfds);
 
         // Ожидание событий на сокетах
@@ -252,9 +248,10 @@ void *handle_connection(void *data)
         }
 
         // Обработка незашифрованных соединений
-        if (FD_ISSET(unencrypted_connfd, &readfds))
+        if (FD_ISSET(unencrypted_sockfd, &readfds))
         {
-           
+            int unencrypted_connfd = accept(unencrypted_sockfd, NULL, NULL);
+            if (unencrypted_connfd < 0)
                 handleErrors("Failed to accept unencrypted connection");
             bytes_received = recv(unencrypted_connfd, buffer, sizeof(buffer), 0);
             if (bytes_received > 0)
@@ -325,7 +322,7 @@ int main()
         perror("Failed to allocate memory");
         exit(EXIT_FAILURE);
     }
-    sockets[0] = unencrypted_connfd;
+    sockets[0] = unencrypted_sockfd;
     sockets[1] = SSL_get_fd(ssl); // Получаем файловый дескриптор SSL сокета
 
     // Создание и запуск потока для обработки соединения
