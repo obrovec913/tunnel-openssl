@@ -241,7 +241,7 @@ void *handle_connection(void *data)
         FD_ZERO(&readfds);
         printf("запускuuyitugdg: \n");
         FD_SET(unencrypted_sockfd, &readfds);
-        FD_SET((SSL_get_fd(ssl), &readfds);
+        FD_SET(SSL_get_fd(ssl), &readfds);
         printf("ppppppppp \n");
 
         // Ожидание событий на сокетах
