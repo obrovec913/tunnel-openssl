@@ -232,13 +232,16 @@ void *handle_connection(void *data)
 
     char buffer[MAX_BUFFER_SIZE];
     int bytes_received;
+    printf("запуск  послушки: \n");
 
     while (1)
     {
         fd_set readfds;
         FD_ZERO(&readfds);
+        printf("запускuuyitugdg: \n");
         FD_SET(unencrypted_sockfd, &readfds);
         FD_SET(SSL_get_fd(ssl), &readfds);
+        printf("ppppppppp \n");
 
         // Ожидание событий на сокетах
         if (select(unencrypted_sockfd +1, &readfds, NULL, NULL, NULL) > 0)

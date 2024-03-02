@@ -277,7 +277,9 @@ void *handle_connection(void *data)
     {
         fd_set readfds;
         FD_ZERO(&readfds);
+        printf("зiu--- \n");
         FD_SET(unencrypted_sockfd, &readfds);
+        printf("запyh: \n");
         FD_SET(SSL_get_fd(ssl), &readfds);
         printf("начал  : \n");
 
