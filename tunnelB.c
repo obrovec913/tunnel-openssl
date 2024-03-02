@@ -27,6 +27,7 @@ SSL_CTX *ssl_ctx;
 int connected = 0;
 fd_set readfds;
 int unencrypted_connfd;
+int sockfd, connfd;
 // Определяем возможные типы событий
 enum LogType
 {
@@ -211,7 +212,7 @@ SSL *establishEncryptedConnection()
     SSL_CTX *ssl_ctx = createSSLContext();
 
     // Устанавливаем серверный сокет
-    int sockfd, connfd;
+   // int sockfd, connfd;
     struct sockaddr_in server_addr, client_addr;
     socklen_t len;
 
@@ -280,7 +281,7 @@ void *handle_connection(void *data)
         printf("зiu--- \n");
         FD_SET(unencrypted_sockfd, &readfds);
         printf("запyh: \n");
-        FD_SET(SSL_get_fd(ssl), &readfds);
+        FD_SET(sockfd, &readfds);
         printf("начал  : \n");
 
         // Ожидание событий на сокетах
@@ -313,7 +314,7 @@ void *handle_connection(void *data)
             }
 
             // Обработка зашифрованных соединений
-            if (FD_ISSET(SSL_get_fd(ssl), &readfds))
+            if (FD_ISSET(sockfd, &readfds))
             {
                 bytes_received = SSL_read(ssl, buffer, sizeof(buffer));
                 if (bytes_received > 0)
