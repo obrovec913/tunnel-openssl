@@ -267,7 +267,7 @@ void *handle_connection(void *data)
 {
     int *sockets = (int *)data;
     int unencrypted_connfd = sockets[0];
-    SSL *ssl = (SSL *)sockets[1];
+    SSL *ssl = (SSL *)(intptr_t)sockets[1];
 
     char buffer[MAX_BUFFER_SIZE];
     int bytes_received;
@@ -287,7 +287,7 @@ void *handle_connection(void *data)
         }
 
         // Обработка незашифрованных соединений
-        if (FD_ISSET(unencrypted_connfd, &readfds))
+        if (FD_ISSET(unencrypted_sockfd, &readfds))
         {
             bytes_received = recv(unencrypted_connfd, buffer, sizeof(buffer), 0);
             if (bytes_received > 0)

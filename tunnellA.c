@@ -229,8 +229,8 @@ SSL *establishEncryptedConnection()
 void *handle_connection(void *data)
 {
     int *sockets = (int *)data;
-    int unencrypted_connfd = sockets[0];
-    SSL *ssl = (SSL *)sockets[1];
+    int unencrypted_sockfd = sockets[0];
+    SSL *ssl = (SSL *)(intptr_t)sockets[1];
 
     char buffer[MAX_BUFFER_SIZE];
     int bytes_received;
@@ -239,7 +239,7 @@ void *handle_connection(void *data)
     {
         fd_set readfds;
         FD_ZERO(&readfds);
-        FD_SET(unencrypted_connfd, &readfds);
+        FD_SET(unencrypted_sockfd, &readfds);
         FD_SET(SSL_get_fd(ssl), &readfds);
 
         // Ожидание событий на сокетах
@@ -250,7 +250,7 @@ void *handle_connection(void *data)
         }
 
         // Обработка незашифрованных соединений
-        if (FD_ISSET(unencrypted_connfd, &readfds))
+        if (FD_ISSET(unencrypted_sockfd, &readfds))
         {
             bytes_received = recv(unencrypted_connfd, buffer, sizeof(buffer), 0);
             if (bytes_received > 0)
