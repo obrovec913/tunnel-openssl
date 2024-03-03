@@ -249,7 +249,7 @@ void *receiveThreadFunction(void *arg)
 
             // Очистка буфера
             memset(buffer, 0, sizeof(buffer));
-            break;
+            
         }
     }
 
@@ -279,7 +279,7 @@ void *sendThreadFunction(void *arg)
                 handleErrors("Failed to send decrypted data");
             // Очистка буфера
             memset(buffer, 0, sizeof(buffer));
-            break;
+        
         }
     }
 

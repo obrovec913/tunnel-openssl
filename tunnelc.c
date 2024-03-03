@@ -289,8 +289,7 @@ void *receiveThreadFunction(void *arg)
 
             // Очистка буфера
             memset(buffer, 0, sizeof(buffer));
-            close(unencrypted_connfd);
-            break;
+    
         }
     }
 
@@ -322,7 +321,7 @@ void *sendThreadFunction(void *arg)
 
             // Очистка буфера
             memset(buffer, 0, sizeof(buffer));
-            break;
+        
         }
     }
 
