@@ -200,7 +200,7 @@ SSL *establishEncryptedConnection()
     SSL_CTX *ssl_ctx = createSSLContext();
     SSL *ssl;
 
-//    int encrypted_sockfd;
+    //    int encrypted_sockfd;
     struct sockaddr_in encrypted_serv_addr;
 
     if ((encrypted_sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
@@ -247,7 +247,7 @@ void *handle_connection(void *data)
         // Ожидание событий на сокетах
         if (select(FD_SETSIZE, &readfds, NULL, NULL, NULL) > 0)
         {
-             printf("собы : \n");
+            printf("собы : \n");
 
             // Обработка незашифрованных соединений
             if (FD_ISSET(unencrypted_sockfd, &readfds))
@@ -258,7 +258,11 @@ void *handle_connection(void *data)
                 bytes_received = recv(unencrypted_connfd, buffer, sizeof(buffer), 0);
                 if (bytes_received > 0)
                 {
-                    printf("Received unencrypted data.\n");
+                    for (int i = 0; i < bytes_received; i++)
+                    {
+                        printf("%02x ", buffer[i]);
+                    }
+                    printf("\n");
                     if (SSL_write(ssl, buffer, bytes_received) <= 0)
                         perror("Failed to write encrypted data");
                 }
@@ -316,7 +320,7 @@ int main()
 
     // Установка зашифрованного соединения с сервером
     ssl = establishEncryptedConnection();
-    
+
     printf("запуск  послушки: \n");
 
     // Подготовка аргументов для функции handle_connection

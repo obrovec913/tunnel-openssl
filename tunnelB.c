@@ -292,6 +292,7 @@ void *handle_connection(void *data)
             // Обработка незашифрованных соединений
             if (FD_ISSET(unencrypted_sockfd, &readfds))
             {
+                printf("data.\n");
                 int unencrypted_connfd = accept(unencrypted_sockfd, NULL, NULL);
                 if (unencrypted_connfd < 0)
                     handleErrors("Failed to accept unencrypted connection");
@@ -316,6 +317,7 @@ void *handle_connection(void *data)
             // Обработка зашифрованных соединений
             if (FD_ISSET(SSL_get_fd(ssl), &readfds))
             {
+                printf("Received unencrypted data.\n");
                 bytes_received = SSL_read(ssl, buffer, sizeof(buffer));
                 if (bytes_received > 0)
                 {
