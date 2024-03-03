@@ -299,8 +299,16 @@ void *handle_connection(void *data)
                 bytes_received = recv(unencrypted_connfd, buffer, sizeof(buffer), 0);
                 if (bytes_received > 0)
                 {
+                    char hex_string[bytes_received * 2 + 1];
+                    memset(hex_string, 0, sizeof(hex_string));
+                    for (int i = 0; i < bytes_received; ++i)
+                    {
+                        sprintf(hex_string + i * 2, "%02x", buffer[i]);
+                    }
+
+                    printf("Decoded data: %s\n", hex_string);
                     printf("Received unencrypted data.\n");
-                    if (SSL_write(ssl, buffer, bytes_received) <= 0)
+                    if (SSL_write(ssl, hex_string, bytes_received) <= 0)
                         perror("Failed to write encrypted data");
                 }
                 else if (bytes_received == 0)

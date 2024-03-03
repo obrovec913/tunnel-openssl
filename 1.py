@@ -32,7 +32,7 @@ def main():
         if sys.stdin in readable:
             message = input("Введите сообщение: ").strip()
             if message:
-                s.sendall(message.encode())
+                s.sendall(message)
 
         # Получение данных от сервера
         if s in readable:
@@ -40,7 +40,7 @@ def main():
             if not data:
                 print("Server closed connection.")
                 break
-            print("Received:", data.decode())
+            print("Received:", data)
 
     s.close()
 

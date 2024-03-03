@@ -27,7 +27,7 @@ def main():
             print("\nExiting...")
             break
         message = input("Введите сообщение: ")
-        s.sendall(message.encode())
+        s.sendall(message)
 
         # Отправка данных на сервер
         if sys.stdin in readable:
@@ -41,7 +41,7 @@ def main():
             if not data:
                 print("Server closed connection.")
                 break
-            print("Received:", data.decode())
+            print("Received:", data)
 
     s.close()
 
