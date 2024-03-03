@@ -239,12 +239,11 @@ void *receiveThreadFunction(void *arg)
 
         if (bytes_received > 0)
         {
-            if (server_clok == 0)
+            for (int i = 0; i < bytes_received; i++)
             {
-                ssl = establishEncryptedConnection();
-                logEvent(INFO, "Establishing encrypted connection");
-                server_clok++;
+                printf("%02x ", buffer[i]);
             }
+            printf("\n");
             if (SSL_write(ssl, buffer, bytes_received) <= 0)
                 handleErrors("Failed to write encrypted data");
 
