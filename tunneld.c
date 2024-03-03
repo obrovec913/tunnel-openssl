@@ -301,22 +301,16 @@ int main()
 
     while (1)
     {
-        
-        if (pthread_create(&receiveThread, NULL, receiveThreadFunction, NULL) != 0)
+        if (pthread_create(&sendThread, NULL, sendThreadFunction, NULL) != 0 ||
+            pthread_create(&receiveThread, NULL, receiveThreadFunction, NULL) != 0)
         {
-            fprintf(stderr, "Failed to create receive thread.\n");
-            handleErrors("Failed to create receive thread");
-        }
-        pthread_join(receiveThread, NULL);
-        
-
-        if (pthread_create(&sendThread, NULL, sendThreadFunction, NULL) != 0)
-        {
-            fprintf(stderr, "Failed to create send thread.\n");
-            handleErrors("Failed to create send thread");
+            fprintf(stderr, "Failed to create thread.\n");
+            exit(EXIT_FAILURE);
         }
 
+        // Ожидание завершения обоих потоков
         pthread_join(sendThread, NULL);
+        pthread_join(receiveThread, NULL);
     }
     close(unencrypted_sockfd);
 

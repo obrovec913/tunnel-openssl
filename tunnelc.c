@@ -21,8 +21,7 @@ const unsigned char *iv = (const unsigned char *)"FEDCBA9876543210";
 #define PSK_KEY "123456"
 #define PSK_HINT "123"
 #define SERVER_KEY_FILE "./keys/bign-curve256v1.key" // Путь к файлу с закрытым ключом сервера
-#define SERVER_CERT_FILE "./keys/cert.pem" // Путь к файлу с сертификатом сервера
-
+#define SERVER_CERT_FILE "./keys/cert.pem"           // Путь к файлу с сертификатом сервера
 
 pthread_t receiveThread, sendThread;
 int unencrypted_sockfd;
@@ -104,28 +103,34 @@ void handleErrors(const char *message)
     exit(EXIT_FAILURE);
 }
 
-
-unsigned int psk_server_callback(SSL *ssl, const char *identity, unsigned char *psk, unsigned int max_psk_len) {
+unsigned int psk_server_callback(SSL *ssl, const char *identity, unsigned char *psk, unsigned int max_psk_len)
+{
     strncpy((char *)identity, PSK_HINT, max_psk_len - 1);
-    identity[max_psk_len - 1] = '\0';  // Убедимся, что строка завершается нулевым символом
+    identity[max_psk_len - 1] = '\0'; // Убедимся, что строка завершается нулевым символом
     strncpy((char *)psk, PSK_KEY, max_psk_len);
     return strlen(PSK_KEY);
 }
 
-
-void info_callback(const SSL *ssl, int type, int val) {
-    if (type & SSL_CB_ALERT) {
+void info_callback(const SSL *ssl, int type, int val)
+{
+    if (type & SSL_CB_ALERT)
+    {
         fprintf(stderr, "SSL/TLS ALERT: %s:%s:%s\n", SSL_alert_type_string_long(val),
                 SSL_alert_desc_string_long(val), SSL_alert_desc_string(val));
-    } else if (type & SSL_CB_HANDSHAKE_START) {
+    }
+    else if (type & SSL_CB_HANDSHAKE_START)
+    {
         fprintf(stderr, "SSL/TLS HANDSHAKE начат\n");
-    } else if (type & SSL_CB_HANDSHAKE_DONE) {
+    }
+    else if (type & SSL_CB_HANDSHAKE_DONE)
+    {
         fprintf(stderr, "SSL/TLS HANDSHAKE завершен\n");
-    } else {
+    }
+    else
+    {
         fprintf(stderr, "SSL/TLS INFO: %s\n", SSL_state_string_long(ssl));
     }
 }
-
 
 SSL_CTX *createSSLContext()
 {
@@ -148,13 +153,13 @@ SSL_CTX *createSSLContext()
     SSL_CTX_set_info_callback(ctx, info_callback);
 
     // Установка параметров алгоритмов шифрования
-//    if (SSL_CTX_set_cipher_list(ctx, "DHT-PSK-BIGN-WITH-BELT-CTR-MAC-HBELT") != 1){
-  //      handleErrors("Failed to load Cipher");
+    //    if (SSL_CTX_set_cipher_list(ctx, "DHT-PSK-BIGN-WITH-BELT-CTR-MAC-HBELT") != 1){
+    //      handleErrors("Failed to load Cipher");
     //}
     // Загрузка корневого сертификата
     logEvent(INFO, "Loading root certificate");
-    //if (SSL_CTX_load_verify_locations(ctx, "./keys/root_cert.pem", NULL) != 1)
-      //  handleErrors("Failed to load root certificate");
+    // if (SSL_CTX_load_verify_locations(ctx, "./keys/root_cert.pem", NULL) != 1)
+    //   handleErrors("Failed to load root certificate");
     SSL_CTX_set_psk_server_callback(ctx, psk_server_callback);
 
     // Загрузка сертификата и ключа сервера
@@ -165,8 +170,8 @@ SSL_CTX *createSSLContext()
 
     // Проверка правильности ключа
     logEvent(INFO, "Checking server private key");
-   // if (SSL_CTX_check_private_key(ctx) != 1)
-     //   handleErrors("Server private key check failed");
+    // if (SSL_CTX_check_private_key(ctx) != 1)
+    //   handleErrors("Server private key check failed");
 
     return ctx;
 }
@@ -255,8 +260,6 @@ SSL *establishEncryptedConnection()
     return ssl;
 }
 
-
-
 void *receiveThreadFunction(void *arg)
 {
     logEvent(INFO, "Receive thread started");
@@ -333,28 +336,18 @@ int main()
     ssl = establishEncryptedConnection();
     while (1)
     {
-        if (pthread_create(&sendThread, NULL, sendThreadFunction, NULL) != 0)
+        if (pthread_create(&sendThread, NULL, sendThreadFunction, NULL) != 0 ||
+            pthread_create(&receiveThread, NULL, receiveThreadFunction, NULL) != 0)
         {
-            fprintf(stderr, "Failed to create send thread.\n");
-            handleErrors("Failed to create send thread");
+            fprintf(stderr, "Failed to create thread.\n");
+            exit(EXIT_FAILURE);
         }
 
-        // Ожидаем завершения первого потока
+        // Ожидание завершения обоих потоков
         pthread_join(sendThread, NULL);
-        
-
-        // Второй поток
-        if (pthread_create(&receiveThread, NULL, receiveThreadFunction, NULL) != 0)
-        {
-            fprintf(stderr, "Failed to create receive thread.\n");
-            handleErrors("Failed to create receive thread");
-        }
-
-        // Ожидаем завершения потоков
         pthread_join(receiveThread, NULL);
 
         // Очистка ресурсов
-        
     }
     close(unencrypted_sockfd);
     SSL_shutdown(ssl);
