@@ -299,7 +299,7 @@ void *sendThreadFunction(void *arg)
             int unencrypted_connfd = *global_connfd_ptr;
             // Теперь мы можем использовать unencrypted_connfd для чтения или записи данных
             // Принятие зашифрованных данных от сервера
-            bytes_received = recv(connfd_ptr, buffer, sizeof(buffer), 0);
+            bytes_received = recv(unencrypted_connfd, buffer, sizeof(buffer), 0);
         }
         if (bytes_received > 0)
         {
