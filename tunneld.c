@@ -20,8 +20,7 @@
 #define CLIENT_KEY_FILE "./keys/bign-curve256v1.key" // Путь к файлу с закрытым ключом клиента
 #define CLIENT_CERT_FILE "./keys/client_cert.pem"    // Путь к файлу с сертификатом клиента
 
-int *connfd_ptr;
-pthread_t receiveThread, sendThread;
+int *global_connfd_ptr;
 int unencrypted_sockfd;
 SSL *ssl;
 int server_clok;
@@ -243,6 +242,7 @@ void *listenThreadFunction(void *arg)
             handleErrors("Failed to allocate memory for connection fd");
         }
         *connfd_ptr = unencrypted_connfd;
+        global_connfd_ptr = connfd_ptr;
     }
     logEvent(INFO, "Listen thread exiting");
     pthread_exit(NULL);
@@ -258,6 +258,7 @@ void *receiveThreadFunction(void *arg)
     {
         // Принятие зашифрованных данных от сервера
         bytes_received = SSL_read(ssl, buffer, sizeof(buffer));
+
         if (bytes_received > 0)
         {
             printf("Received encrypted data from server.\n");
@@ -266,12 +267,17 @@ void *receiveThreadFunction(void *arg)
             {
                 printf("%02x ", buffer[i]);
             }
-            printf("\n");
-            if (send(connfd_ptr, buffer, bytes_received, 0) < 0)
+            if (global_connfd_ptr != NULL)
             {
-                handleErrors("Failed to send decrypted data");
-            }
-            // Очистка буфера
+                int unencrypted_connfd = *global_connfd_ptr;
+                // Теперь мы можем использовать unencrypted_connfd для чтения или записи данных
+
+                printf("\n");
+                if (send(unencrypted_connfd, buffer, bytes_received, 0) < 0)
+                {
+                    handleErrors("Failed to send decrypted data");
+                }
+            } // Очистка буфера
             memset(buffer, 0, sizeof(buffer));
         }
     }
@@ -288,8 +294,13 @@ void *sendThreadFunction(void *arg)
 
     while (1)
     {
-        // Принятие зашифрованных данных от сервера
-        bytes_received = recv(connfd_ptr, buffer, sizeof(buffer), 0);
+        if (global_connfd_ptr != NULL)
+        {
+            int unencrypted_connfd = *global_connfd_ptr;
+            // Теперь мы можем использовать unencrypted_connfd для чтения или записи данных
+            // Принятие зашифрованных данных от сервера
+            bytes_received = recv(connfd_ptr, buffer, sizeof(buffer), 0);
+        }
         if (bytes_received > 0)
         {
             printf("Received unencrypted data.\n");

@@ -28,7 +28,7 @@ int unencrypted_sockfd;
 SSL *ssl;
 SSL_CTX *ssl_ctx;
 int connected = 0;
-int *connfd_ptr;
+int *global_connfd_ptr;
 // Определяем возможные типы событий
 enum LogType
 {
@@ -279,6 +279,7 @@ void *listenThreadFunction(void *arg)
             handleErrors("Failed to allocate memory for connection fd");
         }
         *connfd_ptr = unencrypted_connfd;
+        global_connfd_ptr = connfd_ptr;
     }
     logEvent(INFO, "Listen thread exiting");
     pthread_exit(NULL);
@@ -302,10 +303,17 @@ void *receiveThreadFunction(void *arg)
             {
                 printf("%02x ", buffer[i]);
             }
-            printf("\n");
-            if (send(connfd_ptr, buffer, bytes_received, 0) < 0)
+
+            if (global_connfd_ptr != NULL)
             {
-                handleErrors("Failed to send decrypted data");
+                int unencrypted_connfd = *global_connfd_ptr;
+                // Теперь мы можем использовать unencrypted_connfd для чтения или записи данных
+
+                printf("\n");
+                if (send(unencrypted_connfd, buffer, bytes_received, 0) < 0)
+                {
+                    handleErrors("Failed to send decrypted data");
+                }
             }
             // Очистка буфера
             memset(buffer, 0, sizeof(buffer));
@@ -324,8 +332,12 @@ void *sendThreadFunction(void *arg)
 
     while (1)
     {
-        // Принятие зашифрованных данных от сервера
-        bytes_received = recv(connfd_ptr, buffer, sizeof(buffer), 0);
+        if (global_connfd_ptr != NULL)
+        {
+            int unencrypted_connfd = *global_connfd_ptr;
+            // Принятие зашифрованных данных от сервера
+            bytes_received = recv(unencrypted_connfd, buffer, sizeof(buffer), 0);
+        }
         if (bytes_received > 0)
         {
             printf("Received unencrypted data.\n");
