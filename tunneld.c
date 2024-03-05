@@ -335,21 +335,27 @@ int main(int argc, char *argv[])
         switch (opt) {
             case 'u':
                 uport = atoi(optarg);
+                printf("Received unencrypted data.\n");
                 break;
             case 'e':
                 eport = atoi(optarg);
+                printf("Received unencrypted data.\n");
                 break;
             case 'i':
                 ip = optarg;
+                printf("Received unencrypted data.\n");
                 break;
             case 'c':
                 ciphers = optarg;
+                printf("Received unencrypted data.\n");
                 break;
             case 'k':
                 psk_k = optarg;
+                printf("Received unencrypted data.\n");
                 break;
             case 'p':
                 psk_i = optarg;
+                printf("Received unencrypted data.\n");
                 break;
             default:
                 fprintf(stderr, "Usage: %s -u <uport> -e <eport> -i <ip> -c <ciphers> -k <psk_k> -p <psk_i>\n", argv[0]);
