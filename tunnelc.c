@@ -27,7 +27,7 @@ SSL *ssl;
 SSL_CTX *ssl_ctx;
 int connected = 0;
 int *global_connfd_ptr;
-int uport, eport;
+int uport, eport = 0;
 char *certS, *pkey, *psk_k, *psk_i = NULL;
 // Определяем возможные типы событий
 enum LogType

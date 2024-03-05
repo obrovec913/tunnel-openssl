@@ -25,8 +25,8 @@ int *global_connfd_ptr;
 int unencrypted_sockfd;
 SSL *ssl;
 int server_clok = 0;
-int uport, eport;
-char ip, ciphers, psk_k, psk_i;
+int uport, eport=0;
+char *ip, *ciphers, *psk_k, *psk_i =NULL;
 
 // Определяем возможные типы событий
 enum LogType
@@ -343,13 +343,13 @@ int main(int argc, char *argv[])
                 ip = *optarg;
                 break;
             case 'c':
-                ciphers = *optarg;
+                ciphers = optarg;
                 break;
             case 'k':
-                psk_k = *optarg;
+                psk_k = optarg;
                 break;
             case 'p':
-                psk_i = *optarg;
+                psk_i = optarg;
                 break;
             default:
                 fprintf(stderr, "Usage: %s -u <uport> -e <eport> -i <ip> -c <ciphers> -k <psk_k> -p <psk_i>\n", argv[0]);
@@ -371,17 +371,17 @@ int main(int argc, char *argv[])
     }
     if (ciphers == NULL)
     {
-        ciphers = *CIPHER;
+        ciphers = CIPHER;
         /* code */
     }
     if (psk_k == NULL)
     {
-        psk_k = *PSK_KEY;
+        psk_k = PSK_KEY;
         /* code */
     }
     if (psk_i == NULL)
     {
-        psk_i = *PSK_HINT;
+        psk_i = PSK_HINT;
     }
     
     
