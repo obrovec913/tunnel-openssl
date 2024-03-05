@@ -238,12 +238,7 @@ void *listenThreadFunction(void *arg)
         }
         // Обработка нового подключения
         printf("Accepted new unencrypted connection.\n");
-        if (server_clok == 0)
-        {
-            printf("Establishing encrypted connection...\n");
-            ssl = establishEncryptedConnection();
-            server_clok++;
-        }
+        
 
         int *connfd_ptr = malloc(sizeof(int));
         if (connfd_ptr == NULL)
@@ -335,27 +330,27 @@ int main(int argc, char *argv[])
         switch (opt) {
             case 'u':
                 uport = atoi(optarg);
-                printf("Received unencrypted data.\n");
+                //printf("Received unencrypted data.\n");
                 break;
             case 'e':
                 eport = atoi(optarg);
-                printf("Received unencrypted data.\n");
+                //printf("Received unencrypted data.\n");
                 break;
             case 'i':
                 ip = optarg;
-                printf("Received unencrypted data.\n");
+                //printf("Received unencrypted data.\n");
                 break;
             case 'c':
                 ciphers = optarg;
-                printf("Received unencrypted data.\n");
+                //printf("Received unencrypted data.\n");
                 break;
             case 'k':
                 psk_k = optarg;
-                printf("Received unencrypted data.\n");
+                //printf("Received unencrypted data.\n");
                 break;
             case 'p':
                 psk_i = optarg;
-                printf("Received unencrypted data.\n");
+                //printf("Received unencrypted data.\n");
                 break;
             default:
                 fprintf(stderr, "Usage: %s -u <uport> -e <eport> -i <ip> -c <ciphers> -k <psk_k> -p <psk_i>\n", argv[0]);
@@ -396,6 +391,7 @@ int main(int argc, char *argv[])
 
     printf("Initializing unencrypted socket...\n");
     setupUnencryptedSocket();
+    ssl = establishEncryptedConnection();
 
     while (1)
     {
