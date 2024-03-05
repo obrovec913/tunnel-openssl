@@ -29,6 +29,8 @@ SSL *ssl;
 SSL_CTX *ssl_ctx;
 int connected = 0;
 int *global_connfd_ptr;
+int uport, eport;
+char certS, key, psk_k, psk_i;
 // Определяем возможные типы событий
 enum LogType
 {
@@ -105,10 +107,10 @@ void handleErrors(const char *message)
 
 unsigned int psk_server_callback(SSL *ssl, const char *identity, unsigned char *psk, unsigned int max_psk_len)
 {
-    strncpy((char *)identity, PSK_HINT, max_psk_len - 1);
+    strncpy((char *)identity, psk_i, max_psk_len - 1);
     // identity[max_psk_len - 1] = '\0'; // Убедимся, что строка завершается нулевым символом
-    strncpy((char *)psk, PSK_KEY, max_psk_len);
-    return strlen(PSK_KEY);
+    strncpy((char *)psk, psk_k, max_psk_len);
+    return strlen(psk_k);
 }
 
 void info_callback(const SSL *ssl, int type, int val)
@@ -164,8 +166,8 @@ SSL_CTX *createSSLContext()
 
     // Загрузка сертификата и ключа сервера
     logEvent(INFO, "Loading server certificate and key");
-    if (SSL_CTX_use_certificate_file(ctx, SERVER_CERT_FILE, SSL_FILETYPE_PEM) != 1 ||
-        SSL_CTX_use_PrivateKey_file(ctx, SERVER_KEY_FILE, SSL_FILETYPE_PEM) != 1)
+    if (SSL_CTX_use_certificate_file(ctx, certS, SSL_FILETYPE_PEM) != 1 ||
+        SSL_CTX_use_PrivateKey_file(ctx, key, SSL_FILETYPE_PEM) != 1)
         handleErrors("Failed to load server certificate or key");
 
     // Проверка правильности ключа
@@ -192,7 +194,7 @@ void setupUnencryptedSocket()
     memset(&unencrypted_serv_addr, 0, sizeof(unencrypted_serv_addr));
     unencrypted_serv_addr.sin_family = AF_INET;
     unencrypted_serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    unencrypted_serv_addr.sin_port = htons(UNENCRYPTED_PORT);
+    unencrypted_serv_addr.sin_port = htons(uport);
 
     if (bind(unencrypted_sockfd, (struct sockaddr *)&unencrypted_serv_addr, sizeof(unencrypted_serv_addr)) < 0)
         handleErrors("Failed to bind unencrypted socket");
@@ -218,7 +220,7 @@ SSL *establishEncryptedConnection()
 
     memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(PORT);
+    server_addr.sin_port = htons(eport);
     server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
     if (bind(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
@@ -354,10 +356,64 @@ void *sendThreadFunction(void *arg)
     pthread_exit(NULL);
 }
 
-int main()
+int main(int argc, char *argv[])
 {
-    logEvent(INFO, "Application started");
+    int opt;
 
+    logEvent(INFO, "Application started");
+    while ((opt = getopt(argc, argv, "u:e:y:c:k:p:")) != -1) {
+        switch (opt) {
+            case 'u':
+                uport = atoi(optarg);
+                break;
+            case 'e':
+                eport = atoi(optarg);
+                break;
+            case 'i':
+                key = *optarg;
+                break;
+            case 'c':
+                certS = *optarg;
+                break;
+            case 'k':
+                psk_k = *optarg;
+                break;
+            case 'p':
+                psk_i = *optarg;
+                break;
+            default:
+                fprintf(stderr, "Usage: %s -u <uport> -e <eport> -y <riv-key> -c <path server-cert> -k <psk_k> -p <psk_i>\n", argv[0]);
+                break;
+        }
+    }
+    if (uport == NULL){
+        uport = UNENCRYPTED_PORT;
+    }
+    if (eport == NULL)
+    {
+        eport = PORT;
+        /* code */
+    }
+    if (key == NULL)
+    {
+        key = SERVER_KEY_FILE;
+        /* code */
+    }
+    if (certS == NULL)
+    {
+        certS =  SERVER_CERT_FILE;
+        /* code */
+    }
+    if (psk_k == NULL)
+    {
+        psk_k = PSK_KEY;
+        /* code */
+    }
+    if (psk_i == NULL)
+    {
+        psk_i = PSK_HINT;
+    }
+    
     printf("Initializing unencrypted socket...\n");
     setupUnencryptedSocket();
 

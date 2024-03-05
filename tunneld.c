@@ -16,14 +16,17 @@
 #define MAX_BUFFER_SIZE 2024
 #define CHUNK_SIZE 1024
 #define PSK_KEY "123456"
+#define CIPHER "DHE-BIGN-WITH-BELT-DWP-HBELT"
 #define PSK_HINT "123"
-#define CLIENT_KEY_FILE "./keys/bign-curve256v1.key" // Путь к файлу с закрытым ключом клиента
-#define CLIENT_CERT_FILE "./keys/client_cert.pem"    // Путь к файлу с сертификатом клиента
+// #define CLIENT_KEY_FILE "./keys/bign-curve256v1.key" // Путь к файлу с закрытым ключом клиента
+// #define CLIENT_CERT_FILE "./keys/client_cert.pem"    // Путь к файлу с сертификатом клиента
 
 int *global_connfd_ptr;
 int unencrypted_sockfd;
 SSL *ssl;
-int server_clok;
+int server_clok = 0;
+int uport, eport;
+char ip, ciphers, psk_k, psk_i;
 
 // Определяем возможные типы событий
 enum LogType
@@ -101,8 +104,8 @@ void handleErrors(const char *message)
 
 int psk_client_callback(SSL *ssl, const char *hint, char *identity, unsigned int max_identity_len, unsigned char *psk, unsigned int max_psk_len)
 {
-    strncpy((char *)psk, PSK_KEY, max_psk_len);
-    return strlen(PSK_KEY);
+    strncpy((char *)psk, psk_k, max_psk_len);
+    return strlen(psk_k);
 }
 
 void info_callback(const SSL *ssl, int type, int val)
@@ -143,7 +146,7 @@ SSL_CTX *createSSLContext()
     SSL_CTX_set_info_callback(ctx, info_callback);
 
     // Установка параметров алгоритмов шифрования
-    if (SSL_CTX_set_cipher_list(ctx, "DHE-BIGN-WITH-BELT-DWP-HBELT") != 1)
+    if (SSL_CTX_set_cipher_list(ctx, ciphers) != 1)
     {
         handleErrors("Failed to load Cipher");
     }
@@ -183,7 +186,7 @@ void setupUnencryptedSocket()
     memset(&unencrypted_serv_addr, 0, sizeof(unencrypted_serv_addr));
     unencrypted_serv_addr.sin_family = AF_INET;
     unencrypted_serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    unencrypted_serv_addr.sin_port = htons(UNENCRYPTED_PORT);
+    unencrypted_serv_addr.sin_port = htons(uport);
 
     if (bind(unencrypted_sockfd, (struct sockaddr *)&unencrypted_serv_addr, sizeof(unencrypted_serv_addr)) < 0)
         handleErrors("Failed to bind unencrypted socket");
@@ -206,8 +209,8 @@ SSL *establishEncryptedConnection()
 
     memset(&encrypted_serv_addr, 0, sizeof(encrypted_serv_addr));
     encrypted_serv_addr.sin_family = AF_INET;
-    encrypted_serv_addr.sin_port = htons(ENCRYPTED_PORT);
-    encrypted_serv_addr.sin_addr.s_addr = inet_addr("192.168.1.5"); // Замените на IP вашего сервера
+    encrypted_serv_addr.sin_port = htons(eport);
+    encrypted_serv_addr.sin_addr.s_addr = inet_addr(ip); // Замените на IP вашего сервера
 
     if (connect(encrypted_sockfd, (struct sockaddr *)&encrypted_serv_addr, sizeof(encrypted_serv_addr)) < 0)
         handleErrors("Failed to connect to encrypted port");
@@ -235,7 +238,13 @@ void *listenThreadFunction(void *arg)
         }
         // Обработка нового подключения
         printf("Accepted new unencrypted connection.\n");
-        // Можно добавить здесь логику для обработки нового подключения
+        if (server_clok == 0)
+        {
+            printf("Establishing encrypted connection...\n");
+            ssl = establishEncryptedConnection();
+            server_clok++;
+        }
+
         int *connfd_ptr = malloc(sizeof(int));
         if (connfd_ptr == NULL)
         {
@@ -317,15 +326,71 @@ void *sendThreadFunction(void *arg)
     pthread_exit(NULL);
 }
 
-int main()
+int main(int argc, char *argv[])
 {
+    int opt;
+
     logEvent(INFO, "Application started");
+    while ((opt = getopt(argc, argv, "u:e:i:c:k:p:")) != -1) {
+        switch (opt) {
+            case 'u':
+                uport = atoi(optarg);
+                break;
+            case 'e':
+                eport = atoi(optarg);
+                break;
+            case 'i':
+                ip = *optarg;
+                break;
+            case 'c':
+                ciphers = *optarg;
+                break;
+            case 'k':
+                psk_k = *optarg;
+                break;
+            case 'p':
+                psk_i = *optarg;
+                break;
+            default:
+                fprintf(stderr, "Usage: %s -u <uport> -e <eport> -i <ip> -c <ciphers> -k <psk_k> -p <psk_i>\n", argv[0]);
+                break;
+        }
+    }
+    if (uport == NULL){
+        uport = UNENCRYPTED_PORT;
+    }
+    if (eport == NULL)
+    {
+        eport = ENCRYPTED_PORT;
+        /* code */
+    }
+    if (ip == NULL)
+    {
+        handleErrors("error nod ip server");
+        /* code */
+    }
+    if (ciphers == NULL)
+    {
+        ciphers = CIPHER;
+        /* code */
+    }
+    if (psk_k == NULL)
+    {
+        psk_k = PSK_KEY;
+        /* code */
+    }
+    if (psk_i == NULL)
+    {
+        psk_i = PSK_HINT;
+    }
+    
+    
+    
+    
 
     printf("Initializing unencrypted socket...\n");
     setupUnencryptedSocket();
 
-    printf("Establishing encrypted connection...\n");
-    ssl = establishEncryptedConnection();
     while (1)
     {
 
