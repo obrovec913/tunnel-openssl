@@ -396,22 +396,22 @@ int main(int argc, char *argv[])
     }
     if (key == NULL)
     {
-        key = SERVER_KEY_FILE;
+        key = *SERVER_KEY_FILE;
         /* code */
     }
     if (certS == NULL)
     {
-        certS =  SERVER_CERT_FILE;
+        certS =  *SERVER_CERT_FILE;
         /* code */
     }
     if (psk_k == NULL)
     {
-        psk_k = PSK_KEY;
+        psk_k = *PSK_KEY;
         /* code */
     }
     if (psk_i == NULL)
     {
-        psk_i = PSK_HINT;
+        psk_i = *PSK_HINT;
     }
     
     printf("Initializing unencrypted socket...\n");

@@ -371,17 +371,17 @@ int main(int argc, char *argv[])
     }
     if (ciphers == NULL)
     {
-        ciphers = CIPHER;
+        ciphers = *CIPHER;
         /* code */
     }
     if (psk_k == NULL)
     {
-        psk_k = PSK_KEY;
+        psk_k = *PSK_KEY;
         /* code */
     }
     if (psk_i == NULL)
     {
-        psk_i = PSK_HINT;
+        psk_i = *PSK_HINT;
     }
     
     
