@@ -368,16 +368,16 @@ int main(int argc, char *argv[])
                 eport = atoi(optarg);
                 break;
             case 'i':
-                key = *optarg;
+                pkey = optarg;
                 break;
             case 'c':
-                certS = *optarg;
+                certS = optarg;
                 break;
             case 'k':
-                psk_k = *optarg;
+                psk_k = optarg;
                 break;
             case 'p':
-                psk_i = *optarg;
+                psk_i = optarg;
                 break;
             default:
                 fprintf(stderr, "Usage: %s -u <uport> -e <eport> -y <riv-key> -c <path server-cert> -k <psk_k> -p <psk_i>\n", argv[0]);
@@ -392,24 +392,24 @@ int main(int argc, char *argv[])
         eport = PORT;
         /* code */
     }
-    if (key == NULL)
+    if (pkey == NULL)
     {
-        key = *SERVER_KEY_FILE;
+        pkey = SERVER_KEY_FILE;
         /* code */
     }
     if (certS == NULL)
     {
-        certS =  *SERVER_CERT_FILE;
+        certS =  SERVER_CERT_FILE;
         /* code */
     }
     if (psk_k == NULL)
     {
-        psk_k = *PSK_KEY;
+        psk_k = PSK_KEY;
         /* code */
     }
     if (psk_i == NULL)
     {
-        psk_i = *PSK_HINT;
+        psk_i = PSK_HINT;
     }
     
     printf("Initializing unencrypted socket...\n");
