@@ -340,7 +340,7 @@ int main(int argc, char *argv[])
                 eport = atoi(optarg);
                 break;
             case 'i':
-                ip = *optarg;
+                ip = optarg;
                 break;
             case 'c':
                 ciphers = optarg;
@@ -356,10 +356,10 @@ int main(int argc, char *argv[])
                 break;
         }
     }
-    if (uport == NULL){
+    if (uport == 0){
         uport = UNENCRYPTED_PORT;
     }
-    if (eport == NULL)
+    if (eport == 0)
     {
         eport = ENCRYPTED_PORT;
         /* code */

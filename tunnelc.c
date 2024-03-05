@@ -384,10 +384,10 @@ int main(int argc, char *argv[])
                 break;
         }
     }
-    if (uport == NULL){
+    if (uport == 0){
         uport = UNENCRYPTED_PORT;
     }
-    if (eport == NULL)
+    if (eport == 0)
     {
         eport = PORT;
         /* code */
