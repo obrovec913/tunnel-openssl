@@ -10,8 +10,6 @@
 #include <openssl/ssl.h>
 #include <pthread.h>
 
-const unsigned char *key = (const unsigned char *)"0123456789ABCDEF";
-const unsigned char *iv = (const unsigned char *)"FEDCBA9876543210";
 
 #define PORT 12345
 #define UNENCRYPTED_PORT 5412
@@ -30,7 +28,7 @@ SSL_CTX *ssl_ctx;
 int connected = 0;
 int *global_connfd_ptr;
 int uport, eport;
-char certS, key, psk_k, psk_i;
+char *certS, *pkey, *psk_k, *psk_i = NULL;
 // Определяем возможные типы событий
 enum LogType
 {
@@ -167,7 +165,7 @@ SSL_CTX *createSSLContext()
     // Загрузка сертификата и ключа сервера
     logEvent(INFO, "Loading server certificate and key");
     if (SSL_CTX_use_certificate_file(ctx, certS, SSL_FILETYPE_PEM) != 1 ||
-        SSL_CTX_use_PrivateKey_file(ctx, key, SSL_FILETYPE_PEM) != 1)
+        SSL_CTX_use_PrivateKey_file(ctx, pkey, SSL_FILETYPE_PEM) != 1)
         handleErrors("Failed to load server certificate or key");
 
     // Проверка правильности ключа
