@@ -297,12 +297,8 @@ void *receiveThreadFunction(void *arg)
         bytes_received = SSL_read(ssl, buffer, sizeof(buffer));
         if (bytes_received > 0)
         {
-            printf("Received encrypted data from server.\n");
-            printf("Decrypted Text: ");
-            for (int i = 0; i < bytes_received; i++)
-            {
-                printf("%02x ", buffer[i]);
-            }
+            logEvent(INFO, "Received encrypted data from server");
+            //printf("Received encrypted data from server.\n");
 
             if (global_connfd_ptr != NULL)
             {
@@ -340,7 +336,8 @@ void *sendThreadFunction(void *arg)
         }
         if (bytes_received > 0)
         {
-            printf("Received unencrypted data.\n");
+            logEvent(INFO, "Received unencrypted data ");
+            //printf("Received unencrypted data.\n");
             if (SSL_write(ssl, buffer, bytes_received) <= 0)
             {
                 handleErrors("Failed to write encrypted data");

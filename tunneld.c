@@ -25,8 +25,8 @@ int *global_connfd_ptr;
 int unencrypted_sockfd;
 SSL *ssl;
 int server_clok = 0;
-int uport, eport=0;
-char *ip, *ciphers, *psk_k, *psk_i =NULL;
+int uport, eport = 0;
+char *ip, *ciphers, *psk_k, *psk_i = NULL;
 
 // Определяем возможные типы событий
 enum LogType
@@ -238,7 +238,6 @@ void *listenThreadFunction(void *arg)
         }
         // Обработка нового подключения
         printf("Accepted new unencrypted connection.\n");
-        
 
         int *connfd_ptr = malloc(sizeof(int));
         if (connfd_ptr == NULL)
@@ -265,18 +264,13 @@ void *receiveThreadFunction(void *arg)
 
         if (bytes_received > 0)
         {
-            printf("Received encrypted data from server.\n");
-            printf("Decrypted Text: ");
-            for (int i = 0; i < bytes_received; i++)
-            {
-                printf("%02x ", buffer[i]);
-            }
+            logEvent(INFO, "Received encrypted data from server");
+            //printf("Received encrypted data from server.\n");
+            //printf("Decrypted Text: ");
             if (global_connfd_ptr != NULL)
             {
                 int unencrypted_connfd = *global_connfd_ptr;
                 // Теперь мы можем использовать unencrypted_connfd для чтения или записи данных
-
-                printf("\n");
                 if (send(unencrypted_connfd, buffer, bytes_received, 0) < 0)
                 {
                     handleErrors("Failed to send decrypted data");
@@ -307,7 +301,8 @@ void *sendThreadFunction(void *arg)
         }
         if (bytes_received > 0)
         {
-            printf("Received unencrypted data.\n");
+            logEvent(INFO, "Received unencrypted data");
+            // printf("Received unencrypted data.\n");
             if (SSL_write(ssl, buffer, bytes_received) <= 0)
             {
                 handleErrors("Failed to write encrypted data");
@@ -326,38 +321,41 @@ int main(int argc, char *argv[])
     int opt;
 
     logEvent(INFO, "Application started");
-    while ((opt = getopt(argc, argv, "u:e:i:c:k:p:")) != -1) {
-        switch (opt) {
-            case 'u':
-                uport = atoi(optarg);
-                //printf("Received unencrypted data.\n");
-                break;
-            case 'e':
-                eport = atoi(optarg);
-                //printf("Received unencrypted data.\n");
-                break;
-            case 'i':
-                ip = optarg;
-                //printf("Received unencrypted data.\n");
-                break;
-            case 'c':
-                ciphers = optarg;
-                //printf("Received unencrypted data.\n");
-                break;
-            case 'k':
-                psk_k = optarg;
-                //printf("Received unencrypted data.\n");
-                break;
-            case 'p':
-                psk_i = optarg;
-                //printf("Received unencrypted data.\n");
-                break;
-            default:
-                fprintf(stderr, "Usage: %s -u <uport> -e <eport> -i <ip> -c <ciphers> -k <psk_k> -p <psk_i>\n", argv[0]);
-                break;
+    while ((opt = getopt(argc, argv, "u:e:i:c:k:p:")) != -1)
+    {
+        switch (opt)
+        {
+        case 'u':
+            uport = atoi(optarg);
+            // printf("Received unencrypted data.\n");
+            break;
+        case 'e':
+            eport = atoi(optarg);
+            // printf("Received unencrypted data.\n");
+            break;
+        case 'i':
+            ip = optarg;
+            // printf("Received unencrypted data.\n");
+            break;
+        case 'c':
+            ciphers = optarg;
+            // printf("Received unencrypted data.\n");
+            break;
+        case 'k':
+            psk_k = optarg;
+            // printf("Received unencrypted data.\n");
+            break;
+        case 'p':
+            psk_i = optarg;
+            // printf("Received unencrypted data.\n");
+            break;
+        default:
+            fprintf(stderr, "Usage: %s -u <uport> -e <eport> -i <ip> -c <ciphers> -k <psk_k> -p <psk_i>\n", argv[0]);
+            break;
         }
     }
-    if (uport == 0){
+    if (uport == 0)
+    {
         uport = UNENCRYPTED_PORT;
     }
     if (eport == 0)
@@ -384,10 +382,6 @@ int main(int argc, char *argv[])
     {
         psk_i = PSK_HINT;
     }
-    
-    
-    
-    
 
     printf("Initializing unencrypted socket...\n");
     setupUnencryptedSocket();
