@@ -5,8 +5,8 @@ mkdir -p package/opt/beltunnel/build/local/lib
 mkdir -p package/opt/beltunnel/build/local/include
 
 cp tunnel_malidi_server package/usr/bin/
-cp /opt/beltunnel/build/local/lib/* package/opt/beltunnel/build/local/lib/
-cp /opt/beltunnel/build/local/include/* package/opt/beltunnel/build/local/include/
+cp -r /opt/beltunnel/build/local/lib/* package/opt/beltunnel/build/local/lib/
+cp -r /opt/beltunnel/build/local/include/* package/opt/beltunnel/build/local/include/
 
 # Создание файла control
 echo "Package: tunnel_malidi" > package/DEBIAN/control
