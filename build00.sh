@@ -1,5 +1,5 @@
 #!/bin/bash
-gcc -o tunnel_malidi_client tunneld.c -L/opt/beltunnel/build/local/lib/ -I/opt/beltunnel/build/local/include/ -lssl -lcrypto -lbee2evp -lpthread -Wl,-rpath=/opt/beltunnel/build/local/lib/
+gcc -o tunnel_malidi tunnel.c -L/opt/beltunnel/build/local/lib/ -I/opt/beltunnel/build/local/include/ -lssl -lcrypto -lbee2evp -lpthread -Wl,-rpath=/opt/beltunnel/build/local/lib/
 mkdir -p package/usr/bin
 mkdir -p package/DEBIAN
 mkdir -p package/opt/beltunnel/build/local/lib

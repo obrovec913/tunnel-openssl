@@ -498,7 +498,7 @@ int main(int argc, char *argv[])
     }
     if (reg == 0)
     {
-        handleErrors("error reg")
+        handleErrors("error reg");
         /* code */
     }
     else if (reg == 1)
