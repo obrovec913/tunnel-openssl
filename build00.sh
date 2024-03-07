@@ -12,7 +12,7 @@ cp -r /opt/beltunnel/build/local/include/* package/opt/beltunnel/build/local/inc
 # Создание файла control
 echo "Package: tunnelMalidi" > package/DEBIAN/control
 echo "Version: 1.0" >> package/DEBIAN/control
-echo "Architecture: amd64" >> package/DEBIAN/control
+echo "Architecture: all" >> package/DEBIAN/control
 echo "Maintainer: Your Name <your.email@malidi.by>" >> package/DEBIAN/control
 echo "Description: Description of your program" >> package/DEBIAN/control
 echo " A longer description can go here if needed." >> package/DEBIAN/control
