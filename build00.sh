@@ -5,7 +5,7 @@ mkdir -p package/DEBIAN
 mkdir -p package/opt/beltunnel/build/local/lib
 mkdir -p package/opt/beltunnel/build/local/include
 
-cp tunnel_malidi_client package/usr/bin/
+cp tunnel_malidi package/usr/bin/
 cp -r /opt/beltunnel/build/local/lib/* package/opt/beltunnel/build/local/lib/
 cp -r /opt/beltunnel/build/local/include/* package/opt/beltunnel/build/local/include/
 

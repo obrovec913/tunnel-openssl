@@ -109,6 +109,7 @@ unsigned int psk_server_callback(SSL *ssl, const char *identity, unsigned char *
     strncpy((char *)psk, psk_k, max_psk_len);
     return strlen(psk_k);
 }
+
 int psk_client_callback(SSL *ssl, const char *hint, char *identity, unsigned int max_identity_len, unsigned char *psk, unsigned int max_psk_len)
 {
     strncpy((char *)psk, psk_k, max_psk_len);
@@ -433,7 +434,7 @@ int main(int argc, char *argv[])
     int opt;
 
     logEvent(INFO, "Application started");
-    while ((opt = getopt(argc, argv, "u:e:y:c:k:p:ip:cip:r:")) != -1)
+    while ((opt = getopt(argc, argv, "u:e:y:c:k:p:i:h:r:")) != -1)
     {
         switch (opt)
         {
@@ -443,7 +444,7 @@ int main(int argc, char *argv[])
         case 'e':
             eport = atoi(optarg);
             break;
-        case 'i':
+        case 'y':
             pkey = optarg;
             break;
         case 'c':
@@ -455,10 +456,10 @@ int main(int argc, char *argv[])
         case 'p':
             psk_i = optarg;
             break;
-        case 'ip':
+        case 'i':
             ip = optarg;
             break;
-        case 'cip':
+        case 'h':
             ciphers = optarg;
             break;
         case 'r':
