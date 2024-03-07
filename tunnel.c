@@ -109,6 +109,12 @@ unsigned int psk_server_callback(SSL *ssl, const char *identity, unsigned char *
     strncpy((char *)psk, psk_k, max_psk_len);
     return strlen(psk_k);
 }
+int psk_client_callback(SSL *ssl, const char *hint, char *identity, unsigned int max_identity_len, unsigned char *psk, unsigned int max_psk_len)
+{
+    strncpy((char *)psk, psk_k, max_psk_len);
+    return strlen(psk_k);
+}
+
 
 void info_callback(const SSL *ssl, int type, int val)
 {
