@@ -9,6 +9,8 @@
 #include <openssl/engine.h>
 #include <openssl/ssl.h>
 #include <pthread.h>
+#include <sys/stat.h>
+
 
 #define PORT 12345
 #define UNENCRYPTED_PORT 5412
@@ -36,6 +38,11 @@ enum LogType
     ERROR
 };
 
+// Функция для проверки, существует ли файл с указанным именем
+bool fileExists(const char *filename) {
+    struct stat buffer;
+    return (stat(filename, &buffer) == 0);
+}
 // Функция для записи события в лог
 void logEvent(enum LogType type, const char *format, ...)
 {
