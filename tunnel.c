@@ -27,7 +27,7 @@ SSL_CTX *ssl_ctx;
 int connected = 0;
 int *global_connfd_ptr;
 int uport, eport, reg = 0;
-char *ip, *ciphers, *certS, *pkey, *psk_k, *psk_i = NULL;
+char *logip, *ip, *ciphers, *certS, *pkey, *psk_k, *psk_i = NULL;
 // Определяем возможные типы событий
 enum LogType
 {
@@ -99,6 +99,7 @@ void handleErrors(const char *message)
     logEvent(ERROR, "Error occurred: %s", message);
     fprintf(stderr, "Error occurred: %s\n", message);
     ERR_print_errors_fp(stderr);
+    remove("program.pid");
     exit(EXIT_FAILURE);
 }
 
@@ -115,7 +116,6 @@ int psk_client_callback(SSL *ssl, const char *hint, char *identity, unsigned int
     strncpy((char *)psk, psk_k, max_psk_len);
     return strlen(psk_k);
 }
-
 
 void info_callback(const SSL *ssl, int type, int val)
 {
@@ -269,7 +269,7 @@ void setupUnencryptedSocket()
 
     memset(&unencrypted_serv_addr, 0, sizeof(unencrypted_serv_addr));
     unencrypted_serv_addr.sin_family = AF_INET;
-    unencrypted_serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    unencrypted_serv_addr.sin_addr.s_addr = inet_addr(logip);
     unencrypted_serv_addr.sin_port = htons(uport);
 
     if (bind(unencrypted_sockfd, (struct sockaddr *)&unencrypted_serv_addr, sizeof(unencrypted_serv_addr)) < 0)
@@ -297,7 +297,7 @@ SSL *establishEncryptedConnection()
     memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(eport);
-    server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    server_addr.sin_addr.s_addr = inet_addr(logip);
 
     if (bind(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
         handleErrors("Failed to bind socket for encrypted connection");
@@ -432,12 +432,28 @@ void *sendThreadFunction(void *arg)
 int main(int argc, char *argv[])
 {
     int opt;
+    if (fileExists("program.pid")) {
+        handleErrors("Программа уже запущена в системе.\n");
+        
+    }
+
+    // Создаем файл с PID текущего процесса
+    FILE *pid_file = fopen("program.pid", "w");
+    if (pid_file == NULL) {
+        handleErrors("Ошибка создания файла с PID");
+        
+    }
+    fprintf(pid_file, "%d", getpid());
+    fclose(pid_file);
 
     logEvent(INFO, "Application started");
-    while ((opt = getopt(argc, argv, "u:e:y:c:k:p:i:h:r:")) != -1)
+    while ((opt = getopt(argc, argv, "d:u:e:y:r:k:p:i:h:c:s:")) != -1)
     {
         switch (opt)
         {
+        case 'd':
+            logip = optarg;
+            break;
         case 'u':
             uport = atoi(optarg);
             break;
@@ -447,7 +463,7 @@ int main(int argc, char *argv[])
         case 'y':
             pkey = optarg;
             break;
-        case 'c':
+        case 'r':
             certS = optarg;
             break;
         case 'k':
@@ -462,8 +478,11 @@ int main(int argc, char *argv[])
         case 'h':
             ciphers = optarg;
             break;
-        case 'r':
-            reg = atoi(optarg);
+        case 'c':
+            reg = 2
+            break;
+        case 's':
+            reg = 1
             break;
         default:
             fprintf(stderr, "Usage: %s -u <uport> -e <eport> -y <riv-key> -c <path server-cert> -k <psk_k> -p <psk_i>\n", argv[0]);
@@ -503,6 +522,10 @@ int main(int argc, char *argv[])
         ciphers = CIPHER;
         /* code */
     }
+    if (logip == NULL)
+    {
+        handleErrors("error not ip local");
+    }
     if (reg == 0)
     {
         handleErrors("error reg");
@@ -520,8 +543,7 @@ int main(int argc, char *argv[])
     {
         if (ip == NULL)
         {
-            handleErrors("error nod ip server");
-            /* code */
+            handleErrors("error not ip server");
         }
         printf("Initializing unencrypted socket...\n");
         setupUnencryptedSocket();
@@ -566,6 +588,7 @@ int main(int argc, char *argv[])
     close(unencrypted_sockfd);
     SSL_shutdown(ssl);
     SSL_free(ssl);
+    remove("program.pid");
 
     logEvent(INFO, "Application exiting");
     return 0;
