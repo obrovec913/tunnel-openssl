@@ -479,10 +479,10 @@ int main(int argc, char *argv[])
             ciphers = optarg;
             break;
         case 'c':
-            reg = 2
+            reg = 2;
             break;
         case 's':
-            reg = 1
+            reg = 1;
             break;
         default:
             fprintf(stderr, "Usage: %s -u <uport> -e <eport> -y <riv-key> -c <path server-cert> -k <psk_k> -p <psk_i>\n", argv[0]);
