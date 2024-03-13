@@ -426,7 +426,7 @@ void *listenThreadFunction(void *arg)
         // Можно добавить здесь логику для обработки нового подключения
         if (cl == 1)
         {
-            printf("Establishing encrypted connection...\n");
+            printf("Establishing encrypted connection... %s\n", ip);
             ssl = establishEncryptedConnectionCl();
             // Создание и запуск потока для отправки данных серверу
             if (pthread_create(&sendThread, NULL, sendThreadFunction, NULL) != 0)
