@@ -25,6 +25,7 @@
 pthread_t receiveThread, sendThread;
 int unencrypted_sockfd;
 SSL *ssl;
+int unencrypted_con;
 SSL_CTX *ssl_ctx;
 int connected, cl = 0;
 int *global_connfd_ptr;
@@ -345,6 +346,32 @@ SSL *establishEncryptedConnection()
 
     return ssl;
 }
+int connectToUnencryptedPort()
+{
+    // Создание сокета
+    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd < 0)
+    {
+        perror("Ошибка при создании сокета");
+        return -1;
+    }
+
+    // Заполнение структуры sockaddr_in для сервера
+    struct sockaddr_in server_addr;
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(uport);
+    server_addr.sin_addr.s_addr = inet_addr(logip);
+
+    // Подключение к серверу
+    if (connect(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
+    {
+        handleErrors("Ошибка при подключении к серверу");
+        close(sockfd);
+        return -1;
+    }
+
+    return sockfd; // Возвращаем файловый дескриптор подключенного сокета
+}
 
 void *receiveThreadFunction(void *arg)
 {
@@ -426,7 +453,7 @@ void *listenThreadFunction(void *arg)
         // Можно добавить здесь логику для обработки нового подключения
         if (cl == 1)
         {
-            printf("Establishing encrypted connection... %s\n", ip);
+            printf("Establishing encrypted connection... \n");
             ssl = establishEncryptedConnectionCl();
             // Создание и запуск потока для отправки данных серверу
             if (pthread_create(&sendThread, NULL, sendThreadFunction, NULL) != 0)
@@ -456,6 +483,66 @@ void *listenThreadFunction(void *arg)
     // Ожидание завершения потоков
     pthread_join(sendThread, NULL);
     pthread_join(receiveThread, NULL);
+    pthread_exit(NULL);
+}
+
+void *receiveThreadFunctions(void *arg)
+{
+    logEvent(INFO, "Receive thread started");
+    char buffer[MAX_BUFFER_SIZE];
+    int bytes_received;
+
+    while (1)
+    {
+        // Принятие зашифрованных данных от сервера
+        bytes_received = SSL_read(ssl, buffer, sizeof(buffer));
+        if (bytes_received > 0)
+        {
+            logEvent(INFO, "Received encrypted data from server");
+            // printf("Received encrypted data from server.\n");
+
+            // Теперь мы можем использовать unencrypted_connfd для чтения или записи данных
+
+            //printf("\n");
+            if (send(unencrypted_con, buffer, bytes_received, 0) < 0)
+            {
+                handleErrors("Failed to send decrypted data");
+            }
+
+            // Очистка буфера
+            memset(buffer, 0, sizeof(buffer));
+        }
+    }
+
+    logEvent(INFO, "Receive thread exiting");
+    pthread_exit(NULL);
+}
+
+void *sendThreadFunctions(void *arg)
+{
+    logEvent(INFO, "Send thread started");
+    char buffer[MAX_BUFFER_SIZE];
+    int bytes_received;
+
+    while (1)
+    {
+        // Принятие зашифрованных данных от сервера
+        bytes_received = recv(unencrypted_con, buffer, sizeof(buffer), 0);
+
+        if (bytes_received > 0)
+        {
+            logEvent(INFO, "Received unencrypted data ");
+            // printf("Received unencrypted data.\n");
+            if (SSL_write(ssl, buffer, bytes_received) <= 0)
+            {
+                handleErrors("Failed to write encrypted data");
+            }
+            // Очистка буфера
+            memset(buffer, 0, sizeof(buffer));
+        }
+    }
+
+    logEvent(INFO, "Send thread exiting");
     pthread_exit(NULL);
 }
 
@@ -565,33 +652,29 @@ int main(int argc, char *argv[])
     else if (reg == 1)
     {
         printf("Initializing unencrypted socket...\n");
-        setupUnencryptedSocket();
+
 
         printf("Establishing encrypted connection...\n");
         ssl = establishEncryptedConnection();
-        pthread_t listenThread;
-        if (pthread_create(&listenThread, NULL, listenThreadFunction, NULL) != 0)
-        {
-            fprintf(stderr, "Failed to create listen thread.\n");
-            handleErrors("Failed to create listen thread");
-        }
+        unencrypted_con = connectToUnencryptedPort();
 
         // Создание и запуск потока для отправки данных серверу
-        if (pthread_create(&sendThread, NULL, sendThreadFunction, NULL) != 0)
+        if (pthread_create(&sendThread, NULL, sendThreadFunctions, NULL) != 0)
         {
             fprintf(stderr, "Failed to create send thread.\n");
             handleErrors("Failed to create send thread");
         }
 
         // Создание и запуск потока для чтения данных от сервера
-        if (pthread_create(&receiveThread, NULL, receiveThreadFunction, NULL) != 0)
+        if (pthread_create(&receiveThread, NULL, receiveThreadFunctions, NULL) != 0)
         {
             fprintf(stderr, "Failed to create receive thread.\n");
             handleErrors("Failed to create receive thread");
         }
-        pthread_join(listenThread, NULL);
+        //pthread_join(listenThread, NULL);
         pthread_join(sendThread, NULL);
         pthread_join(receiveThread, NULL);
+        close(unencrypted_con);
     }
     else if (reg == 2)
     {
@@ -610,8 +693,6 @@ int main(int argc, char *argv[])
 
         pthread_join(listenThread, NULL);
     }
-
-    
 
     // Закрытие соединения и освобождение ресурсов
     close(unencrypted_sockfd);
