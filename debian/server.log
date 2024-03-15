@@ -1,0 +1,12 @@
+[2024-03-13 11:06:11] [INFO]: Application started
+[2024-03-13 11:06:11] [INFO]: Setting up unencrypted socket
+[2024-03-13 11:06:11] [INFO]: Establishing encrypted connection
+[2024-03-13 11:06:11] [INFO]: Creating SSL context
+[2024-03-13 11:06:11] [INFO]: Initializing OpenSSL
+[2024-03-13 11:06:11] [INFO]: Creating new SSL context
+[2024-03-13 11:06:11] [INFO]: Loading root certificate
+[2024-03-13 11:06:11] [INFO]: Loading server certificate and key
+[2024-03-13 11:06:11] [ERROR]: Error occurred: Failed to load server certificate or key
+139886090607488:error:0609E09C:digital envelope routines:pkey_set_type:unsupported algorithm:../../openssl/crypto/evp/p_lib.c:210:
+139886090607488:error:0B09406F:x509 certificate routines:x509_pubkey_decode:unsupported algorithm:../../openssl/crypto/x509/x_pubkey.c:114:
+139886090607488:error:140AB18F:SSL routines:SSL_CTX_use_certificate:ee key too small:../../openssl/ssl/ssl_rsa.c:301:

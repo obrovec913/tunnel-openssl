@@ -39,12 +39,7 @@ enum LogType
     ERROR
 };
 
-// Функция для проверки, существует ли файл с указанным именем
-bool fileExists(const char *filename)
-{
-    struct stat buffer;
-    return (stat(filename, &buffer) == 0);
-}
+
 // Функция для записи события в лог
 void logEvent(enum LogType type, const char *format, ...)
 {
@@ -108,7 +103,6 @@ void handleErrors(const char *message)
     logEvent(ERROR, "Error occurred: %s", message);
     fprintf(stderr, "Error occurred: %s\n", message);
     ERR_print_errors_fp(stderr);
-    remove("program.pid");
     exit(EXIT_FAILURE);
 }
 
@@ -164,10 +158,7 @@ SSL_CTX *createSSLContextcl()
     SSL_CTX_set_info_callback(ctx, info_callback);
 
     // Установка параметров алгоритмов шифрования
-    if (SSL_CTX_set_cipher_list(ctx, ciphers) != 1)
-    {
-        handleErrors("Failed to load Cipher");
-    }
+   
 
     // Загрузка PSK
     SSL_CTX_set_psk_client_callback(ctx, psk_client_callback);
@@ -209,9 +200,10 @@ SSL_CTX *createSSLContext()
     SSL_CTX_set_info_callback(ctx, info_callback);
 
     // Установка параметров алгоритмов шифрования
-    //    if (SSL_CTX_set_cipher_list(ctx, "DHT-PSK-BIGN-WITH-BELT-CTR-MAC-HBELT") != 1){
-    //      handleErrors("Failed to load Cipher");
-    //}
+    if (SSL_CTX_set_cipher_list(ctx, ciphers) != 1)
+    {
+        handleErrors("Failed to load Cipher");
+    }
     // Загрузка корневого сертификата
     logEvent(INFO, "Loading root certificate");
     // if (SSL_CTX_load_verify_locations(ctx, "./keys/root_cert.pem", NULL) != 1)
@@ -549,19 +541,6 @@ void *sendThreadFunctions(void *arg)
 int main(int argc, char *argv[])
 {
     int opt;
-    if (fileExists("program.pid"))
-    {
-        handleErrors("Программа уже запущена в системе.\n");
-    }
-
-    // Создаем файл с PID текущего процесса
-    FILE *pid_file = fopen("program.pid", "w");
-    if (pid_file == NULL)
-    {
-        handleErrors("Ошибка создания файла с PID");
-    }
-    fprintf(pid_file, "%d", getpid());
-    fclose(pid_file);
 
     logEvent(INFO, "Application started");
     while ((opt = getopt(argc, argv, "d:u:e:y:r:k:p:i:h:c:s:")) != -1)
@@ -651,7 +630,6 @@ int main(int argc, char *argv[])
     }
     else if (reg == 1)
     {
-        printf("Initializing unencrypted socket...\n");
 
 
         printf("Establishing encrypted connection...\n");
@@ -698,8 +676,6 @@ int main(int argc, char *argv[])
     close(unencrypted_sockfd);
     SSL_shutdown(ssl);
     SSL_free(ssl);
-    remove("program.pid");
-
     logEvent(INFO, "Application exiting");
     return 0;
 }
