@@ -347,7 +347,7 @@ void *check_connection(void *arg)
             // Сбрасываем флаг после обработки разрыва соединения
             connection_lost = 0;
         }
-        sleep(8); // Проверка раз в секунду
+        sleep(1); // Проверка раз в секунду
     }
     return NULL;
 }
@@ -439,7 +439,6 @@ void *listenThreadFunction(void *arg)
             if (pthread_create(&thread, NULL, check_connection, NULL) != 0)
             {
                 fprintf(stderr, "Failed to create thread.\n");
-                return EXIT_FAILURE;
             }
 
             // Создание и запуск потока для отправки данных серверу
