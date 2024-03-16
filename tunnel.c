@@ -154,7 +154,7 @@ void info_callback(const SSL *ssl, int where, int ret) {
 
 
 void ssl_msg_callback(int write_p, int version, int content_type, const void *buf, size_t len, SSL *ssl, void *arg) {
-    const char *msg_type;
+    //const char *msg_type;
     const char *msg_type = write_p ? "Sent" : "Received";
     printf("[SSL] %s %zu bytes: ", msg_type, len);
 
@@ -176,9 +176,6 @@ void ssl_msg_callback(int write_p, int version, int content_type, const void *bu
             break;
         case SSL3_RT_APPLICATION_DATA:
             msg_type = "ApplicationData";
-            break;
-        case SSL3_RT_HEARTBEAT:
-            msg_type = "Heartbeat";
             break;
         default:
             msg_type = "Unknown";
