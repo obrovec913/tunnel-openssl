@@ -155,6 +155,15 @@ void info_callback(const SSL *ssl, int where, int ret) {
 
 void ssl_msg_callback(int write_p, int version, int content_type, const void *buf, size_t len, SSL *ssl, void *arg) {
     const char *msg_type;
+    const char *msg_type = write_p ? "Sent" : "Received";
+    printf("[SSL] %s %zu bytes: ", msg_type, len);
+
+    // Вывод содержимого буфера в шестнадцатеричном виде
+    const unsigned char *data = (const unsigned char *)buf;
+    for (size_t i = 0; i < len; ++i) {
+        printf("%02X ", data[i]);
+    }
+    printf("\n");
     switch (content_type) {
         case SSL3_RT_CHANGE_CIPHER_SPEC:
             msg_type = "ChangeCipherSpec";
