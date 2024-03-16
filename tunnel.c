@@ -10,7 +10,7 @@
 #include <openssl/ssl.h>
 #include <pthread.h>
 #include <sys/stat.h>
-#include <stdbool.h>
+#include <signal.h>
 
 #define PORT 12345
 #define UNENCRYPTED_PORT 5412
