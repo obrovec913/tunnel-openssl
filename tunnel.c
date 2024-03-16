@@ -22,6 +22,9 @@
 #define SERVER_KEY_FILE "./keys/bign-curve256v1.key" // Путь к файлу с закрытым ключом сервера
 #define SERVER_CERT_FILE "./keys/cert.pem"           // Путь к файлу с сертификатом сервера
 
+// Флаг для отслеживания разрыва соединения
+volatile sig_atomic_t connection_lost = 0;
+
 pthread_t receiveThread, sendThread;
 int unencrypted_sockfd;
 SSL *ssl;
@@ -38,7 +41,6 @@ enum LogType
     WARNING,
     ERROR
 };
-
 
 // Функция для записи события в лог
 void logEvent(enum LogType type, const char *format, ...)
@@ -120,24 +122,14 @@ int psk_client_callback(SSL *ssl, const char *hint, char *identity, unsigned int
     return strlen(psk_k);
 }
 
+// Callback функция для обработки информационных сообщений SSL
 void info_callback(const SSL *ssl, int type, int val)
 {
     if (type & SSL_CB_ALERT)
     {
-        fprintf(stderr, "SSL/TLS ALERT: %s:%s:%s\n", SSL_alert_type_string_long(val),
-                SSL_alert_desc_string_long(val), SSL_alert_desc_string(val));
-    }
-    else if (type & SSL_CB_HANDSHAKE_START)
-    {
-        fprintf(stderr, "SSL/TLS HANDSHAKE начат\n");
-    }
-    else if (type & SSL_CB_HANDSHAKE_DONE)
-    {
-        fprintf(stderr, "SSL/TLS HANDSHAKE завершен\n");
-    }
-    else
-    {
-        fprintf(stderr, "SSL/TLS INFO: %s\n", SSL_state_string_long(ssl));
+        fprintf(stderr, "SSL alert: type %d, value %d\n", type, val);
+        // Установка флага для обозначения разрыва соединения
+        connection_lost = 1;
     }
 }
 
@@ -158,23 +150,9 @@ SSL_CTX *createSSLContextcl()
     SSL_CTX_set_info_callback(ctx, info_callback);
 
     // Установка параметров алгоритмов шифрования
-   
 
     // Загрузка PSK
     SSL_CTX_set_psk_client_callback(ctx, psk_client_callback);
-
-    // Загрузка корневого сертификата сервера (если необходимо)
-    // SSL_CTX_load_verify_locations(ctx, "server.crt", NULL);
-
-    // Загрузка сертификата клиента
-    // SSL_CTX_use_certificate_file(ctx, CLIENT_CERT_FILE, SSL_FILETYPE_PEM);
-
-    // if (SSL_CTX_use_certificate_file(ctx, CLIENT_CERT_FILE, SSL_FILETYPE_PEM) != 1 ||
-    // SSL_CTX_use_PrivateKey_file(ctx, CLIENT_KEY_FILE, SSL_FILETYPE_PEM) != 1)
-    // handleErrors("Failed to load client certificate or key");
-
-    // if (SSL_CTX_check_private_key(ctx) != 1)
-    //   handleErrors("Client private key check failed");
 
     return ctx;
 }
@@ -204,10 +182,7 @@ SSL_CTX *createSSLContext()
     {
         handleErrors("Failed to load Cipher");
     }
-    // Загрузка корневого сертификата
-    logEvent(INFO, "Loading root certificate");
-    // if (SSL_CTX_load_verify_locations(ctx, "./keys/root_cert.pem", NULL) != 1)
-    //   handleErrors("Failed to load root certificate");
+
     SSL_CTX_set_psk_server_callback(ctx, psk_server_callback);
 
     // Загрузка сертификата и ключа сервера
@@ -215,11 +190,6 @@ SSL_CTX *createSSLContext()
     if (SSL_CTX_use_certificate_file(ctx, certS, SSL_FILETYPE_PEM) != 1 ||
         SSL_CTX_use_PrivateKey_file(ctx, pkey, SSL_FILETYPE_PEM) != 1)
         handleErrors("Failed to load server certificate or key");
-
-    // Проверка правильности ключа
-    logEvent(INFO, "Checking server private key");
-    // if (SSL_CTX_check_private_key(ctx) != 1)
-    //   handleErrors("Server private key check failed");
 
     return ctx;
 }
@@ -365,6 +335,23 @@ int connectToUnencryptedPort()
     return sockfd; // Возвращаем файловый дескриптор подключенного сокета
 }
 
+// Функция, выполняемая в отдельном потоке для проверки разрыва соединения
+void *check_connection(void *arg)
+{
+    while (1)
+    {
+        if (connection_lost)
+        {
+            printf("Connection lost!\n");
+            // Здесь можно добавить логику для переподключения или других действий
+            // Сбрасываем флаг после обработки разрыва соединения
+            connection_lost = 0;
+        }
+        sleep(8); // Проверка раз в секунду
+    }
+    return NULL;
+}
+
 void *receiveThreadFunction(void *arg)
 {
     logEvent(INFO, "Receive thread started");
@@ -433,6 +420,7 @@ void *sendThreadFunction(void *arg)
 void *listenThreadFunction(void *arg)
 {
     logEvent(INFO, "Listen thread started");
+    pthread_t thread;
     while (1)
     {
         int unencrypted_connfd = accept(unencrypted_sockfd, NULL, NULL);
@@ -447,6 +435,13 @@ void *listenThreadFunction(void *arg)
         {
             printf("Establishing encrypted connection... \n");
             ssl = establishEncryptedConnectionCl();
+
+            if (pthread_create(&thread, NULL, check_connection, NULL) != 0)
+            {
+                fprintf(stderr, "Failed to create thread.\n");
+                return EXIT_FAILURE;
+            }
+
             // Создание и запуск потока для отправки данных серверу
             if (pthread_create(&sendThread, NULL, sendThreadFunction, NULL) != 0)
             {
@@ -473,6 +468,7 @@ void *listenThreadFunction(void *arg)
     }
     logEvent(INFO, "Listen thread exiting");
     // Ожидание завершения потоков
+    pthread_join(thread, NULL);
     pthread_join(sendThread, NULL);
     pthread_join(receiveThread, NULL);
     pthread_exit(NULL);
@@ -495,7 +491,7 @@ void *receiveThreadFunctions(void *arg)
 
             // Теперь мы можем использовать unencrypted_connfd для чтения или записи данных
 
-            //printf("\n");
+            // printf("\n");
             if (send(unencrypted_con, buffer, bytes_received, 0) < 0)
             {
                 handleErrors("Failed to send decrypted data");
@@ -631,10 +627,15 @@ int main(int argc, char *argv[])
     else if (reg == 1)
     {
 
-
         printf("Establishing encrypted connection...\n");
         ssl = establishEncryptedConnection();
         unencrypted_con = connectToUnencryptedPort();
+        pthread_t thread;
+        if (pthread_create(&thread, NULL, check_connection, NULL) != 0)
+        {
+            fprintf(stderr, "Failed to create thread.\n");
+            return EXIT_FAILURE;
+        }
 
         // Создание и запуск потока для отправки данных серверу
         if (pthread_create(&sendThread, NULL, sendThreadFunctions, NULL) != 0)
@@ -649,7 +650,8 @@ int main(int argc, char *argv[])
             fprintf(stderr, "Failed to create receive thread.\n");
             handleErrors("Failed to create receive thread");
         }
-        //pthread_join(listenThread, NULL);
+        // pthread_join(listenThread, NULL);
+        pthread_join(thread, NULL);
         pthread_join(sendThread, NULL);
         pthread_join(receiveThread, NULL);
         close(unencrypted_con);
