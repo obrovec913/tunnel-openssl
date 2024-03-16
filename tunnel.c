@@ -125,7 +125,7 @@ int psk_client_callback(SSL *ssl, const char *hint, char *identity, unsigned int
 // Callback функция для обработки информационных сообщений SSL
 void info_callback(const SSL *ssl, int type, int val)
 {
-    if (type & SSL_CB_ALERT)
+      if (type == SSL_CB_ALERT && val == SSL3_AL_FATAL)
     {
         fprintf(stderr, "SSL alert: type %d, value %d\n", type, val);
         // Установка флага для обозначения разрыва соединения
