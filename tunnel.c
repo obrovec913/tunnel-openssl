@@ -152,6 +152,34 @@ void info_callback(const SSL *ssl, int where, int ret) {
 }
 
 
+
+void ssl_msg_callback(int write_p, int version, int content_type, const void *buf, size_t len, SSL *ssl, void *arg) {
+    const char *msg_type;
+    switch (content_type) {
+        case SSL3_RT_CHANGE_CIPHER_SPEC:
+            msg_type = "ChangeCipherSpec";
+            break;
+        case SSL3_RT_ALERT:
+            msg_type = "Alert";
+            break;
+        case SSL3_RT_HANDSHAKE:
+            msg_type = "Handshake";
+            break;
+        case SSL3_RT_APPLICATION_DATA:
+            msg_type = "ApplicationData";
+            break;
+        case SSL3_RT_HEARTBEAT:
+            msg_type = "Heartbeat";
+            break;
+        default:
+            msg_type = "Unknown";
+            break;
+    }
+
+    printf("SSL message received: type=%s, length=%zu\n", msg_type, len);
+}
+
+
 SSL_CTX *createSSLContextcl()
 {
     logEvent(INFO, "Creating SSL context");
@@ -172,6 +200,7 @@ SSL_CTX *createSSLContextcl()
 
     // Загрузка PSK
     SSL_CTX_set_psk_client_callback(ctx, psk_client_callback);
+    SSL_CTX_set_msg_callback(ctx, ssl_msg_callback);
 
     return ctx;
 }
@@ -195,6 +224,7 @@ SSL_CTX *createSSLContext()
         handleErrors("Failed to create SSL context");
     }
     SSL_CTX_set_info_callback(ctx, info_callback);
+    SSL_CTX_set_msg_callback(ctx, ssl_msg_callback);
 
     // Установка параметров алгоритмов шифрования
     if (SSL_CTX_set_cipher_list(ctx, ciphers) != 1)
