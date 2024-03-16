@@ -123,15 +123,34 @@ int psk_client_callback(SSL *ssl, const char *hint, char *identity, unsigned int
 }
 
 // Callback функция для обработки информационных сообщений SSL
-void info_callback(const SSL *ssl, int type, int val)
-{
-      if (type == SSL_CB_ALERT && val == SSL3_AL_FATAL)
-    {
-        fprintf(stderr, "SSL alert: type %d, value %d\n", type, val);
-        // Установка флага для обозначения разрыва соединения
-        connection_lost = 1;
+void info_callback(const SSL *ssl, int where, int ret) {
+    const char *str;
+    int w;
+
+    w = where & ~SSL_ST_MASK;
+
+    if (w & SSL_ST_CONNECT) {
+        str = "SSL_connect";
+    } else if (w & SSL_ST_ACCEPT) {
+        str = "SSL_accept";
+    } else {
+        str = "undefined";
+    }
+
+    if (where & SSL_CB_LOOP) {
+        printf("%s:%s\n", str, SSL_state_string_long(ssl));
+    } else if (where & SSL_CB_ALERT) {
+        str = (where & SSL_CB_READ) ? "read" : "write";
+        printf("SSL3 alert %s:%s:%s\n", str, SSL_alert_type_string_long(ret), SSL_alert_desc_string_long(ret));
+    } else if (where & SSL_CB_EXIT) {
+        if (ret == 0) {
+            printf("%s:failed in %s\n", str, SSL_state_string_long(ssl));
+        } else if (ret < 0) {
+            printf("%s:error in %s\n", str, SSL_state_string_long(ssl));
+        }
     }
 }
+
 
 SSL_CTX *createSSLContextcl()
 {
