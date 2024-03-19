@@ -741,8 +741,8 @@ int main(int argc, char *argv[])
 
     // Закрытие соединения и освобождение ресурсов
     close(unencrypted_sockfd);
-    SSL_shutdown(ssl);
-    SSL_free(ssl);
+ //   SSL_shutdown(ssl);
+   // SSL_free(ssl);
     logEvent(INFO, "Application exiting");
     return 0;
 }
