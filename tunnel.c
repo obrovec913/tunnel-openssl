@@ -320,7 +320,7 @@ void setupUnencryptedSocket()
     if (listen(unencrypted_sockfd, 1) < 0)
         handleErrors("Failed to listen on unencrypted socket");
 }
-SSL *createSSLConnection(int sockfd, SSL_CTX ssl_ctx)
+SSL *createSSLConnection(int sockfd, SSL_CTX *ssl_ctx)
 {
     SSL *ssl = SSL_new(ssl_ctx);
     if (!ssl)
@@ -350,7 +350,7 @@ void *establishEncryptedConnection()
     struct sockaddr_in server_addr, client_addr;
     socklen_t len;
 
-    if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+    if ((sockfds = socket(AF_INET, SOCK_STREAM, 0)) < 0)
         handleErrors("Failed to create socket for encrypted connection");
 
     memset(&server_addr, 0, sizeof(server_addr));
@@ -568,7 +568,6 @@ void *sendThreadFunctions(void *arg)
 void *listenThreadFunctionss(void *arg)
 {
     logEvent(INFO, "Listen thread started");
-    pthread_t thread;
     SSL_CTX *ssl_ctx = createSSLContext();
     while (1)
     {
