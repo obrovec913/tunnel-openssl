@@ -535,7 +535,7 @@ void *listenThreadFunctionss(void *arg)
         else if (reg == 2)
         {
             int u_cone = accept(unencrypted_sockfd, NULL, NULL);
-            if (u_con < 0)
+            if (u_cone < 0)
             {
                 handleErrors("Failed to accept unencrypted connection");
             }
