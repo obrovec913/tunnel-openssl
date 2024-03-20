@@ -283,7 +283,7 @@ SSL *establishEncryptedConnectionCl()
     if (SSL_connect(ssl) != 1)
         handleErrors("Failed to establish SSL connection");
 
-    logEvent(INFO, "ssl connection ok.")
+    logEvent(INFO, "ssl connection ok.");
 
     return ssl;
 }
