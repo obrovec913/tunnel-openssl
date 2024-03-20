@@ -461,7 +461,7 @@ void *sendThreadFunction(void *arg)
             printf("Timeout. No data received from client.\n");
             // Обработка отключения клиента
             connected = 1;
-            close(data->sockfd)
+            close(data->sockfd);
             break;
         }
         else
