@@ -491,7 +491,7 @@ void *prosseThreadFunction(void *arg)
         {
             pthread_join(sendThread, NULL);
             pthread_join(receiveThread, NULL);
-            SSL_shutdown(data->ssl);
+  //          SSL_shutdown(data->ssl);
             //SSL_free(data->ssl);
             close(data->sockfd);
             connected = 0;
@@ -518,7 +518,7 @@ void *listenThreadFunctionss(void *arg)
         if (reg == 1)
         {
             SSL_CTX *ssl_ctx = createSSLContext();
-            printf("слушаем ssl порт.\n");
+//            printf("слушаем ssl порт.\n");
             int ssl_connfd = accept(sockfds, NULL, NULL);
             if (ssl_connfd < 0)
             {
