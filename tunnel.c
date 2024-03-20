@@ -505,14 +505,14 @@ void *prosseThreadFunction(void *arg)
 void *listenThreadFunctionss(void *arg)
 {
     logEvent(INFO, "Listen thread started");
-    SSL_CTX *ssl_ctx = createSSLContext();
+    SSL_CTX *ssl_ctx;
     int u_con;
     SSL *ssl;
     while (1)
     {
         if (reg == 1)
         {
-
+            ssl_ctx = createSSLContext();
             printf("слушаем ssl порт.\n");
             int ssl_connfd = accept(sockfds, NULL, NULL);
             if (ssl_connfd < 0)
