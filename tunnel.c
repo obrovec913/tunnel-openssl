@@ -11,6 +11,7 @@
 #include <pthread.h>
 #include <sys/stat.h>
 #include <signal.h>
+#include <poll.h>
 
 #define PORT 12345
 #define UNENCRYPTED_PORT 5412
@@ -407,6 +408,12 @@ void *receiveThreadFunction(void *arg)
 
     while (1)
     {
+        if (connected == 1)
+        {
+            break;
+            /* code */
+        }
+        
         // Принятие зашифрованных данных от сервера
         bytes_received = SSL_read(data->ssl, buffer, sizeof(buffer));
         if (bytes_received > 0)
@@ -435,22 +442,46 @@ void *sendThreadFunction(void *arg)
     logEvent(INFO, "Send thread started");
     char buffer[MAX_BUFFER_SIZE];
     int bytes_received;
+    struct pollfd fds[1];
+    int timeout = 5000; // Таймаут в миллисекундах
+
+    fds[0].fd = data->sockfd;
+    fds[0].events = POLLIN; // Проверяем наличие данных для чтения
 
     while (1)
     {
+        int ret = poll(fds, 1, timeout);
 
-        // Принятие зашифрованных данных от сервера
-        bytes_received = recv(data->sockfd, buffer, sizeof(buffer), 0);
-        if (bytes_received > 0)
+        if (ret == -1)
         {
-            logEvent(INFO, "Received unencrypted data ");
-            // printf("Received unencrypted data.\n");
-            if (SSL_write(data->ssl, buffer, bytes_received) <= 0)
+            handleErrors("poll error");
+        }
+        else if (ret == 0)
+        {
+            printf("Timeout. No data received from client.\n");
+            // Обработка отключения клиента
+            connected = 1;
+            close(data->sockfd)
+            break;
+        }
+        else
+        {
+            if (fds[0].revents & POLLIN)
             {
-                handleErrors("Failed to write encrypted data");
+                // Принятие зашифрованных данных от сервера
+                bytes_received = recv(data->sockfd, buffer, sizeof(buffer), 0);
+                if (bytes_received > 0)
+                {
+                    logEvent(INFO, "Received unencrypted data ");
+                    // printf("Received unencrypted data.\n");
+                    if (SSL_write(data->ssl, buffer, bytes_received) <= 0)
+                    {
+                        handleErrors("Failed to write encrypted data");
+                    }
+                    // Очистка буфера
+                    memset(buffer, 0, sizeof(buffer));
+                }
             }
-            // Очистка буфера
-            memset(buffer, 0, sizeof(buffer));
         }
     }
 
@@ -526,6 +557,7 @@ void *receiveThreadFunctions(void *arg)
             {
                 handleErrors("Failed to send decrypted data");
             }
+            
 
             // Очистка буфера
             memset(buffer, 0, sizeof(buffer));
@@ -591,14 +623,14 @@ void *listenThreadFunctionss(void *arg)
         data->ssl = ssl;
 
         // Создание и запуск потока для отправки данных серверу
-        if (pthread_create(&sendThread, NULL, sendThreadFunctions, data) != 0)
+        if (pthread_create(&sendThread, NULL, sendThreadFunction, data) != 0)
         {
             fprintf(stderr, "Failed to create send thread.\n");
             handleErrors("Failed to create send thread");
         }
 
         // Создание и запуск потока для чтения данных от сервера
-        if (pthread_create(&receiveThread, NULL, receiveThreadFunctions, data) != 0)
+        if (pthread_create(&receiveThread, NULL, receiveThreadFunction, data) != 0)
         {
             fprintf(stderr, "Failed to create receive thread.\n");
             handleErrors("Failed to create receive thread");
@@ -606,7 +638,7 @@ void *listenThreadFunctionss(void *arg)
     }
     logEvent(INFO, "Listen thread exiting");
     // Ожидание завершения потоков
-    //pthread_join(thread, NULL);
+    // pthread_join(thread, NULL);
     pthread_join(sendThread, NULL);
     pthread_join(receiveThread, NULL);
     pthread_exit(NULL);
@@ -716,10 +748,8 @@ int main(int argc, char *argv[])
 
         pthread_join(listenThread, NULL);
 
-
-      
         // pthread_join(listenThread, NULL);
-        //close(unencrypted_con);
+        // close(unencrypted_con);
     }
     else if (reg == 2)
     {
@@ -741,8 +771,8 @@ int main(int argc, char *argv[])
 
     // Закрытие соединения и освобождение ресурсов
     close(unencrypted_sockfd);
- //   SSL_shutdown(ssl);
-   // SSL_free(ssl);
+    //   SSL_shutdown(ssl);
+    // SSL_free(ssl);
     logEvent(INFO, "Application exiting");
     return 0;
 }
