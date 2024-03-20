@@ -505,11 +505,16 @@ void *prosseThreadFunction(void *arg)
 void *listenThreadFunctionss(void *arg)
 {
     logEvent(INFO, "Listen thread started");
-    //SSL_CTX *ssl_ctx;
-    //int u_con;
-    //SSL *ssl;
+    // SSL_CTX *ssl_ctx;
+    // int u_con;
+    // SSL *ssl;
     while (1)
     {
+        SSLThreadData *data = malloc(sizeof(SSLThreadData));
+        if (!data)
+        {
+            handleErrors("Failed to allocate memory for connection fd");
+        }
         if (reg == 1)
         {
             SSL_CTX *ssl_ctx = createSSLContext();
@@ -524,10 +529,12 @@ void *listenThreadFunctionss(void *arg)
             // Можно добавить здесь логику для обработки нового подключения
             int u_con = connectToUnencryptedPort();
             SSL *ssl = createSSLConnection(ssl_connfd, ssl_ctx);
+            data->sockfd = u_con;
+            data->ssl = ssl;
         }
         else if (reg == 2)
         {
-            int u_con = accept(unencrypted_sockfd, NULL, NULL);
+            int u_cone = accept(unencrypted_sockfd, NULL, NULL);
             if (u_con < 0)
             {
                 handleErrors("Failed to accept unencrypted connection");
@@ -535,15 +542,10 @@ void *listenThreadFunctionss(void *arg)
             // Обработка нового подключения
             logEvent(INFO, "Accepted new unencrypted connection.\n");
             SSL *ssl = establishEncryptedConnectionCl();
+            data->sockfd = u_cone;
+            data->ssl = ssl;
         }
 
-        SSLThreadData *data = malloc(sizeof(SSLThreadData));
-        if (!data)
-        {
-            handleErrors("Failed to allocate memory for connection fd");
-        }
-        data->sockfd = u_con;
-        data->ssl = ssl;
 
         // Создание и запуск потока для отправки данных серверу
         if (pthread_create(&sendThread, NULL, sendThreadFunction, data) != 0)
