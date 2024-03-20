@@ -283,7 +283,7 @@ SSL *establishEncryptedConnectionCl()
     if (SSL_connect(ssl) != 1)
         handleErrors("Failed to establish SSL connection");
 
-    printf("подключился : \n");
+    logEvent(INFO, "ssl connection ok.")
 
     return ssl;
 }
@@ -339,7 +339,7 @@ void *establishEncryptedConnection()
 
     // Устанавливаем серверный сокет
 
-    struct sockaddr_in server_addr, client_addr;
+    struct sockaddr_in server_addr;
     socklen_t len;
 
     if ((sockfds = socket(AF_INET, SOCK_STREAM, 0)) < 0)
@@ -434,7 +434,7 @@ void *sendThreadFunction(void *arg)
     char buffer[MAX_BUFFER_SIZE];
     int bytes_received;
     struct pollfd fds[1];
-    int timeout = 7200000; // Таймаут в миллисекундах
+    int timeout = 3600000; // Таймаут в миллисекундах
 
     fds[0].fd = data->sockfd;
     fds[0].events = POLLIN; // Проверяем наличие данных для чтения
@@ -452,7 +452,7 @@ void *sendThreadFunction(void *arg)
             logEvent(INFO, "Timeout. No data received from client.\n");
             // Обработка отключения клиента
             connected = 1;
-            close(data->sockfd);
+            //close(data->sockfd);
             break;
         }
         else
@@ -492,7 +492,7 @@ void *prosseThreadFunction(void *arg)
             pthread_join(sendThread, NULL);
             pthread_join(receiveThread, NULL);
             SSL_shutdown(data->ssl);
-            SSL_free(data->ssl);
+            //SSL_free(data->ssl);
             close(data->sockfd);
             connected = 0;
         }
