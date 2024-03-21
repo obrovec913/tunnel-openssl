@@ -313,7 +313,7 @@ SSL *establishEncryptedConnectionCl()
         handleErrors("Failed to create socket for encrypted connection");
 
     // Установка сокета в неблокирующий режим
-    if (fcntl(encrypted_sockfd, F_SETFL, O_NONBLOCK) < 0)
+    if (fcntl(encrypted_sockfd, F_SETFL, SOCK_NONBLOCK) < 0)
     {
         handleErrors("Failed to set socket to non-blocking mode");
     }
@@ -345,7 +345,7 @@ void setupUnencryptedSocket()
         handleErrors("Failed to create unencrypted socket");
 
     // Установка сокета в неблокирующий режим
-    if (fcntl(unencrypted_sockfd, F_SETFL, O_NONBLOCK) < 0)
+    if (fcntl(unencrypted_sockfd, F_SETFL, SOCK_NONBLOCK) < 0)
     {
         handleErrors("Failed to set socket to non-blocking mode");
     }
@@ -399,7 +399,7 @@ void *establishEncryptedConnection()
         handleErrors("Failed to create socket for encrypted connection");
 
     // Установка сокета в неблокирующий режим
-    if (fcntl(sockfds, F_SETFL, O_NONBLOCK) < 0)
+    if (fcntl(sockfds, F_SETFL, SOCK_NONBLOCK) < 0)
     {
         handleErrors("Failed to set socket to non-blocking mode");
     }
@@ -430,7 +430,7 @@ int connectToUnencryptedPort()
         return -1;
     }
     // Установка сокета в неблокирующий режим
-    if (fcntl(sockfd, F_SETFL, O_NONBLOCK) < 0)
+    if (fcntl(sockfd, F_SETFL, SOCK_NONBLOCK) < 0)
     {
         handleErrors("Failed to set socket to non-blocking mode");
     }
