@@ -562,7 +562,7 @@ void *listenThreadFunctionss(void *arg)
             fprintf(stderr, "Failed to create receive thread.\n");
             handleErrors("Failed to create receive thread");
         }
-        if (pthread_create(&data->prosseThread, NULL, prosseThreadFunction, data) != 0)
+        if (pthread_create(&prosseThread, NULL, prosseThreadFunction, data) != 0)
         {
             handleErrors("Failed to create send thread");
         }
