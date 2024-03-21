@@ -11,6 +11,8 @@
 #include <pthread.h>
 #include <signal.h>
 #include <poll.h>
+#include <fcntl.h>
+
 
 #define PORT 12345
 #define UNENCRYPTED_PORT 5412
