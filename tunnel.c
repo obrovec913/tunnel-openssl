@@ -116,7 +116,7 @@ typedef struct
     char *psk_hint;
     char *ciphers;
 } ConfigParams;
-
+/*
 void readConfig(const char *filename, ConfigParams *params)
 {
     config_t cfg;
@@ -145,7 +145,7 @@ void readConfig(const char *filename, ConfigParams *params)
     // Освобождение ресурсов
     config_destroy(&cfg);
 }
-
+*/
 void handleErrors(const char *message)
 {
     logEvent(ERROR, "Error occurred: %s", message);
