@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-//#include <libconfig.h>
+// #include <libconfig.h>
 #include <openssl/crypto.h>
 #include <arpa/inet.h>
 #include <openssl/evp.h>
@@ -439,49 +439,26 @@ void *receiveThreadFunction(void *arg)
     logEvent(INFO, "Receive thread started");
     char buffer[MAX_BUFFER_SIZE];
     int bytes_received;
-    struct pollfd fds[1];
-    int timeout = 800000; // Таймаут в миллисекундах
 
-    fds[0].fd = data->encrypt;
-    fds[0].events = POLLIN; // Проверяем наличие данных для чтения
 
-    while (1)
+    while (!connected)
     {
-        int ret = poll(fds, 1, timeout);
 
-        if (ret == -1)
+        // Принятие зашифрованных данных от сервера
+        bytes_received = SSL_read(data->ssl, buffer, sizeof(buffer));
+        if (bytes_received > 0)
         {
-            handleErrors("poll error");
-        }
-        else if (ret == 0)
-        {
-            logEvent(INFO, "Timeout. No data received from server.\n");
-            // Обработка отключения клиента
-            // close(data->sockfd);
-            break;
-        }
-        else
-        {
-            if (fds[0].revents & POLLIN)
+            logEvent(INFO, "Received encrypted data from server");
+            // printf("Received encrypted data from server.\n");
+
+            printf("\n");
+            if (send(data->sockfd, buffer, bytes_received, 0) < 0)
             {
-
-                // Принятие зашифрованных данных от сервера
-                bytes_received = SSL_read(data->ssl, buffer, sizeof(buffer));
-                if (bytes_received > 0)
-                {
-                    logEvent(INFO, "Received encrypted data from server");
-                    // printf("Received encrypted data from server.\n");
-
-                    printf("\n");
-                    if (send(data->sockfd, buffer, bytes_received, 0) < 0)
-                    {
-                        handleErrors("Failed to send decrypted data");
-                    }
-
-                    // Очистка буфера
-                    memset(buffer, 0, sizeof(buffer));
-                }
+                handleErrors("Failed to send decrypted data");
             }
+
+            // Очистка буфера
+            memset(buffer, 0, sizeof(buffer));
         }
     }
 
@@ -501,7 +478,7 @@ void *sendThreadFunction(void *arg)
     fds[0].fd = data->sockfd;
     fds[0].events = POLLIN; // Проверяем наличие данных для чтения
 
-    while (1)
+    while (!connected)
     {
         int ret = poll(fds, 1, timeout);
 
@@ -549,12 +526,16 @@ void *prosseThreadFunction(void *arg)
 
     while (1)
     {
+        printf("thread data.\n");
         pthread_join(data->sendThread, NULL);
         pthread_join(data->receiveThread, NULL);
         //          SSL_shutdown(data->ssl);
         // SSL_free(data->ssl);
         close(data->sockfd);
         close(data->encrypt);
+        connected = 0;
+        printf("Received prosse.\n");
+
     }
 
     logEvent(INFO, "Receive thread exiting");
