@@ -312,6 +312,11 @@ SSL *establishEncryptedConnectionCl()
     if ((encrypted_sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
         handleErrors("Failed to create socket for encrypted connection");
 
+    // Установка сокета в неблокирующий режим
+    if (fcntl(encrypted_sockfd, F_SETFL, O_NONBLOCK) < 0)
+    {
+        handleErrors("Failed to set socket to non-blocking mode");
+    }
     memset(&encrypted_serv_addr, 0, sizeof(encrypted_serv_addr));
     encrypted_serv_addr.sin_family = AF_INET;
     encrypted_serv_addr.sin_port = htons(eport);
@@ -339,6 +344,11 @@ void setupUnencryptedSocket()
     if ((unencrypted_sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
         handleErrors("Failed to create unencrypted socket");
 
+    // Установка сокета в неблокирующий режим
+    if (fcntl(unencrypted_sockfd, F_SETFL, O_NONBLOCK) < 0)
+    {
+        handleErrors("Failed to set socket to non-blocking mode");
+    }
     // Опция для повторного использования адреса
     int enable = 1;
     if (setsockopt(unencrypted_sockfd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)
@@ -388,6 +398,12 @@ void *establishEncryptedConnection()
     if ((sockfds = socket(AF_INET, SOCK_STREAM, 0)) < 0)
         handleErrors("Failed to create socket for encrypted connection");
 
+    // Установка сокета в неблокирующий режим
+    if (fcntl(sockfds, F_SETFL, O_NONBLOCK) < 0)
+    {
+        handleErrors("Failed to set socket to non-blocking mode");
+    }
+
     memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(eport);
@@ -412,6 +428,11 @@ int connectToUnencryptedPort()
     {
         perror("Ошибка при создании сокета");
         return -1;
+    }
+    // Установка сокета в неблокирующий режим
+    if (fcntl(sockfd, F_SETFL, O_NONBLOCK) < 0)
+    {
+        handleErrors("Failed to set socket to non-blocking mode");
     }
 
     // Заполнение структуры sockaddr_in для сервера
@@ -440,7 +461,6 @@ void *receiveThreadFunction(void *arg)
     char buffer[MAX_BUFFER_SIZE];
     int bytes_received;
 
-
     while (!connected)
     {
 
@@ -451,7 +471,7 @@ void *receiveThreadFunction(void *arg)
             logEvent(INFO, "Received encrypted data from server");
             // printf("Received encrypted data from server.\n");
 
-            printf("\n");
+            // printf("\n");
             if (send(data->sockfd, buffer, bytes_received, 0) < 0)
             {
                 handleErrors("Failed to send decrypted data");
@@ -535,7 +555,6 @@ void *prosseThreadFunction(void *arg)
         close(data->encrypt);
         connected = 0;
         printf("Received prosse.\n");
-
     }
 
     logEvent(INFO, "Receive thread exiting");
@@ -558,11 +577,20 @@ void *listenThreadFunctionss(void *arg)
         if (reg == 1)
         {
             SSL_CTX *ssl_ctx = createSSLContext();
-            //            printf("слушаем ssl порт.\n");
+         
             int ssl_connfd = accept(sockfds, NULL, NULL);
             if (ssl_connfd < 0)
             {
-                handleErrors("Failed to accept unencrypted connection");
+                if (errno == EWOULDBLOCK || errno == EAGAIN)
+                {
+                    printf("слушаем ssl порт.\n");
+                    // Нет новых соединений в данный момент
+                    continue;
+                }
+                else
+                {
+                    perror("Failed to accept connection");
+                }
             }
             // Обработка нового подключения
             logEvent(INFO, " new ssl connection.\n");
@@ -578,7 +606,17 @@ void *listenThreadFunctionss(void *arg)
             int u_cone = accept(unencrypted_sockfd, NULL, NULL);
             if (u_cone < 0)
             {
-                handleErrors("Failed to accept unencrypted connection");
+
+                if (errno == EWOULDBLOCK || errno == EAGAIN)
+                {
+                    // Нет новых соединений в данный момент
+                    continue;
+                }
+                else
+                {
+                    perror("Failed to accept connection");
+                
+                }
             }
             // Обработка нового подключения
             logEvent(INFO, "Accepted new unencrypted connection.\n");
