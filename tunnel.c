@@ -437,7 +437,7 @@ void *sendThreadFunction(void *arg)
     char buffer[MAX_BUFFER_SIZE];
     int bytes_received;
     struct pollfd fds[1];
-    int timeout = 1800000; // Таймаут в миллисекундах
+    int timeout = 800000; // Таймаут в миллисекундах
 
     fds[0].fd = data->sockfd;
     fds[0].events = POLLIN; // Проверяем наличие данных для чтения
@@ -492,8 +492,8 @@ void *prosseThreadFunction(void *arg)
     {
         if (connected == 1)
         {
-            pthread_join(data->sendThread, NULL);
-            pthread_join(data->receiveThread, NULL);
+            //pthread_join(data->sendThread, NULL);
+            //pthread_join(data->receiveThread, NULL);
   //          SSL_shutdown(data->ssl);
             //SSL_free(data->ssl);
             close(data->sockfd);
