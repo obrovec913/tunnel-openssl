@@ -30,10 +30,10 @@ typedef struct
     SSL *ssl;   //  SSL
     pthread_t receiveThread;
     pthread_t sendThread;
-    pthread_t prosseThread;
+    //    pthread_t prosseThread;
 } SSLThreadData;
 
-//pthread_t receiveThread, sendThread, prosseThread;
+pthread_t prosseThread;
 int unencrypted_sockfd;
 int sockfds;
 int unencrypted_con;
@@ -569,7 +569,7 @@ void *listenThreadFunctionss(void *arg)
     }
     logEvent(INFO, "Listen thread exiting");
     // Ожидание завершения потоков
-    pthread_join(data->prosseThread, NULL);
+    pthread_join(prosseThread, NULL);
 
     pthread_exit(NULL);
 }
