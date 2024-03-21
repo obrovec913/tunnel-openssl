@@ -2,14 +2,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <openssl/conf.h>
+#include <libconfig.h>
 #include <openssl/crypto.h>
 #include <arpa/inet.h>
 #include <openssl/evp.h>
 #include <openssl/engine.h>
 #include <openssl/ssl.h>
 #include <pthread.h>
-#include <sys/stat.h>
 #include <signal.h>
 #include <poll.h>
 
@@ -28,6 +27,7 @@ typedef struct
 {
     int sockfd; // Идентификатор сокета
     SSL *ssl;   //  SSL
+    int encrypt;
     pthread_t receiveThread;
     pthread_t sendThread;
     //    pthread_t prosseThread;
@@ -104,6 +104,46 @@ void logEvent(enum LogType type, const char *format, ...)
 
     // Закрываем файл
     fclose(logfile);
+}
+typedef struct
+{
+    char *ip_address;
+    int unencrypted_port;
+    int encrypted_port;
+    char *private_key;
+    char *certificate;
+    char *psk_key;
+    char *psk_hint;
+    char *ciphers;
+} ConfigParams;
+
+void readConfig(const char *filename, ConfigParams *params)
+{
+    config_t cfg;
+
+    // Инициализация конфигурации
+    config_init(&cfg);
+
+    // Загрузка конфигурационного файла
+    if (!config_read_file(&cfg, filename))
+    {
+        fprintf(stderr, "Error reading config file.\n");
+        config_destroy(&cfg);
+        exit(1);
+    }
+
+    // Получение параметров из конфига
+    config_lookup_string(&cfg, "server.ip_address", &params->ip_address);
+    config_lookup_int(&cfg, "server.unencrypted_port", &params->unencrypted_port);
+    config_lookup_int(&cfg, "server.encrypted_port", &params->encrypted_port);
+    config_lookup_string(&cfg, "server.private_key", &params->private_key);
+    config_lookup_string(&cfg, "server.certificate", &params->certificate);
+    config_lookup_string(&cfg, "server.psk_key", &params->psk_key);
+    config_lookup_string(&cfg, "server.psk_hint", &params->psk_hint);
+    config_lookup_string(&cfg, "server.ciphers", &params->ciphers);
+
+    // Освобождение ресурсов
+    config_destroy(&cfg);
 }
 
 void handleErrors(const char *message)
@@ -399,30 +439,49 @@ void *receiveThreadFunction(void *arg)
     logEvent(INFO, "Receive thread started");
     char buffer[MAX_BUFFER_SIZE];
     int bytes_received;
+    struct pollfd fds[1];
+    int timeout = 800000; // Таймаут в миллисекундах
+
+    fds[0].fd = data->encrypt;
+    fds[0].events = POLLIN; // Проверяем наличие данных для чтения
 
     while (1)
     {
-        if (connected == 1)
+        int ret = poll(fds, 1, timeout);
+
+        if (ret == -1)
         {
-            break;
-            /* code */
+            handleErrors("poll error");
         }
-
-        // Принятие зашифрованных данных от сервера
-        bytes_received = SSL_read(data->ssl, buffer, sizeof(buffer));
-        if (bytes_received > 0)
+        else if (ret == 0)
         {
-            logEvent(INFO, "Received encrypted data from server");
-            // printf("Received encrypted data from server.\n");
-
-            printf("\n");
-            if (send(data->sockfd, buffer, bytes_received, 0) < 0)
+            logEvent(INFO, "Timeout. No data received from server.\n");
+            // Обработка отключения клиента
+            // close(data->sockfd);
+            break;
+        }
+        else
+        {
+            if (fds[0].revents & POLLIN)
             {
-                handleErrors("Failed to send decrypted data");
-            }
 
-            // Очистка буфера
-            memset(buffer, 0, sizeof(buffer));
+                // Принятие зашифрованных данных от сервера
+                bytes_received = SSL_read(data->ssl, buffer, sizeof(buffer));
+                if (bytes_received > 0)
+                {
+                    logEvent(INFO, "Received encrypted data from server");
+                    // printf("Received encrypted data from server.\n");
+
+                    printf("\n");
+                    if (send(data->sockfd, buffer, bytes_received, 0) < 0)
+                    {
+                        handleErrors("Failed to send decrypted data");
+                    }
+
+                    // Очистка буфера
+                    memset(buffer, 0, sizeof(buffer));
+                }
+            }
         }
     }
 
@@ -455,14 +514,14 @@ void *sendThreadFunction(void *arg)
             logEvent(INFO, "Timeout. No data received from client.\n");
             // Обработка отключения клиента
             connected = 1;
-            //close(data->sockfd);
+            // close(data->sockfd);
             break;
         }
         else
         {
             if (fds[0].revents & POLLIN)
             {
-                // Принятие зашифрованных данных от сервера
+                // Принятие незашифрованных данных от клиента
                 bytes_received = recv(data->sockfd, buffer, sizeof(buffer), 0);
                 if (bytes_received > 0)
                 {
@@ -490,15 +549,12 @@ void *prosseThreadFunction(void *arg)
 
     while (1)
     {
-        if (connected == 1)
-        {
-            //pthread_join(data->sendThread, NULL);
-            //pthread_join(data->receiveThread, NULL);
-  //          SSL_shutdown(data->ssl);
-            //SSL_free(data->ssl);
-            close(data->sockfd);
-            connected = 0;
-        }
+        pthread_join(data->sendThread, NULL);
+        pthread_join(data->receiveThread, NULL);
+        //          SSL_shutdown(data->ssl);
+        // SSL_free(data->ssl);
+        close(data->sockfd);
+        close(data->encrypt);
     }
 
     logEvent(INFO, "Receive thread exiting");
@@ -521,7 +577,7 @@ void *listenThreadFunctionss(void *arg)
         if (reg == 1)
         {
             SSL_CTX *ssl_ctx = createSSLContext();
-//            printf("слушаем ssl порт.\n");
+            //            printf("слушаем ssl порт.\n");
             int ssl_connfd = accept(sockfds, NULL, NULL);
             if (ssl_connfd < 0)
             {
@@ -534,6 +590,7 @@ void *listenThreadFunctionss(void *arg)
             SSL *ssl = createSSLConnection(ssl_connfd, ssl_ctx);
             data->sockfd = u_con;
             data->ssl = ssl;
+            data->encrypt = ssl_connfd;
         }
         else if (reg == 2)
         {
@@ -548,7 +605,6 @@ void *listenThreadFunctionss(void *arg)
             data->sockfd = u_cone;
             data->ssl = ssl;
         }
-
 
         // Создание и запуск потока для отправки данных серверу
         if (pthread_create(&data->sendThread, NULL, sendThreadFunction, data) != 0)
