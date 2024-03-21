@@ -437,7 +437,7 @@ void *sendThreadFunction(void *arg)
     char buffer[MAX_BUFFER_SIZE];
     int bytes_received;
     struct pollfd fds[1];
-    int timeout = 3600000; // Таймаут в миллисекундах
+    int timeout = 1800000; // Таймаут в миллисекундах
 
     fds[0].fd = data->sockfd;
     fds[0].events = POLLIN; // Проверяем наличие данных для чтения
