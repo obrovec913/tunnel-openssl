@@ -13,7 +13,6 @@
 #include <poll.h>
 #include <fcntl.h>
 
-
 #define PORT 12345
 #define UNENCRYPTED_PORT 5412
 #define MAX_BUFFER_SIZE 2024
@@ -462,8 +461,11 @@ void *receiveThreadFunction(void *arg)
     logEvent(INFO, "Receive thread started");
     char buffer[MAX_BUFFER_SIZE];
     int bytes_received;
-
-    while (!connected)
+    char *rc = NULL;
+    int TotalReceived = 0;
+    fd_set fds;
+    int timeout = 800000; // Таймаут в миллисекундах
+    while (1)
     {
 
         // Принятие зашифрованных данных от сервера
@@ -482,7 +484,84 @@ void *receiveThreadFunction(void *arg)
             // Очистка буфера
             memset(buffer, 0, sizeof(buffer));
         }
+        else
+        {
+            int err = SSL_get_error(data->ssl, bytes_received);
+            switch (err)
+            {
+            case SSL_ERROR_NONE:
+            {
+                // no real error, just try again...
+
+                continue;
+            }
+
+            case SSL_ERROR_ZERO_RETURN:
+            {
+                // peer disconnect
+                break;
+            }
+
+            case SSL_ERROR_WANT_READ:
+            {
+                // no data available right now, wait a few seconds in case new data arrives...
+
+                int sock = SSL_get_rfd(data->ssl);
+                FD_ZERO(&fds);
+                FD_SET(sock, &fds);
+
+                err = select(sock + 1, &fds, NULL, NULL, &timeout);
+                if (err > 0)
+                    continue; // more data to read...
+
+                if (err == 0)
+                {
+                    // timeout...
+                    connected = 1;
+                    break;
+                }
+                else
+                {
+                    // error...
+                }
+
+                break;
+            }
+
+            case SSL_ERROR_WANT_WRITE:
+            {
+                // socket not writable right now, wait a few seconds and try again...
+
+                int sock = SSL_get_wfd(data->ssl);
+                FD_ZERO(&fds);
+                FD_SET(sock, &fds);
+
+                err = select(sock + 1, NULL, &fds, NULL, &timeout);
+                if (err > 0)
+                    continue; // can write more data now...
+
+                if (err == 0)
+                {
+                    // timeout..
+                    connected = 1;
+                    break;
+                }
+                else
+                {
+                    // error...
+                }
+
+                break;
+            }
+
+            default:
+            {
+                break;
+            }
+            }
+        }
     }
+    free(data);
 
     logEvent(INFO, "Receive thread exiting");
     pthread_exit(NULL);
@@ -536,6 +615,7 @@ void *sendThreadFunction(void *arg)
             }
         }
     }
+    free(data);
 
     logEvent(INFO, "Send thread exiting");
     pthread_exit(NULL);
@@ -548,15 +628,20 @@ void *prosseThreadFunction(void *arg)
 
     while (1)
     {
-        printf("thread data.\n");
-        pthread_join(data->sendThread, NULL);
-        pthread_join(data->receiveThread, NULL);
-        //          SSL_shutdown(data->ssl);
-        // SSL_free(data->ssl);
-        close(data->sockfd);
-        close(data->encrypt);
-        connected = 0;
-        printf("Received prosse.\n");
+        if (connected == 1)
+        {
+            /* code */
+
+            printf("thread data.\n");
+            pthread_join(data->sendThread, NULL);
+            pthread_join(data->receiveThread, NULL);
+            SSL_shutdown(data->ssl);
+            SSL_free(data->ssl);
+            close(data->sockfd);
+            close(data->encrypt);
+            connected = 0;
+            printf("Received prosse.\n");
+        }
     }
 
     logEvent(INFO, "Receive thread exiting");
@@ -579,13 +664,13 @@ void *listenThreadFunctionss(void *arg)
         if (reg == 1)
         {
             SSL_CTX *ssl_ctx = createSSLContext();
-         
+
             int ssl_connfd = accept(sockfds, NULL, NULL);
             if (ssl_connfd < 0)
             {
                 if (errno == EWOULDBLOCK || errno == EAGAIN)
                 {
-                    printf("слушаем ssl порт.\n");
+             //       printf("слушаем ssl порт.\n");
                     // Нет новых соединений в данный момент
                     continue;
                 }
@@ -617,7 +702,6 @@ void *listenThreadFunctionss(void *arg)
                 else
                 {
                     perror("Failed to accept connection");
-                
                 }
             }
             // Обработка нового подключения
