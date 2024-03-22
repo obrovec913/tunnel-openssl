@@ -314,10 +314,9 @@ SSL *establishEncryptedConnectionCl()
         handleErrors("Failed to create socket for encrypted connection");
 
     // Установка сокета в неблокирующий режим
-    if (fcntl(encrypted_sockfd, F_SETFL, O_NONBLOCK) < 0)
-    {
-        handleErrors("Failed to set socket to non-blocking mode");
-    }
+   // if (fcntl(encrypted_sockfd, F_SETFL, O_NONBLOCK) < 0)
+    //    handleErrors("Failed to set socket to non-blocking mode");
+    
     memset(&encrypted_serv_addr, 0, sizeof(encrypted_serv_addr));
     encrypted_serv_addr.sin_family = AF_INET;
     encrypted_serv_addr.sin_port = htons(eport);
