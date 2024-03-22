@@ -314,9 +314,9 @@ SSL *establishEncryptedConnectionCl()
         handleErrors("Failed to create socket for encrypted connection");
 
     // Установка сокета в неблокирующий режим
-   // if (fcntl(encrypted_sockfd, F_SETFL, O_NONBLOCK) < 0)
+    // if (fcntl(encrypted_sockfd, F_SETFL, O_NONBLOCK) < 0)
     //    handleErrors("Failed to set socket to non-blocking mode");
-    
+
     memset(&encrypted_serv_addr, 0, sizeof(encrypted_serv_addr));
     encrypted_serv_addr.sin_family = AF_INET;
     encrypted_serv_addr.sin_port = htons(eport);
@@ -430,8 +430,8 @@ int connectToUnencryptedPort()
         return -1;
     }
     // Установка сокета в неблокирующий режим
-    //if (fcntl(sockfd, F_SETFL, O_NONBLOCK) < 0)
-      //  handleErrors("Failed to set socket to non-blocking mode");
+    // if (fcntl(sockfd, F_SETFL, O_NONBLOCK) < 0)
+    //  handleErrors("Failed to set socket to non-blocking mode");
 
     // Заполнение структуры sockaddr_in для сервера
     struct sockaddr_in server_addr;
@@ -483,6 +483,7 @@ void *receiveThreadFunction(void *arg)
         }
         else
         {
+            printf("vv\n");
             int err = SSL_get_error(data->ssl, bytes_received);
             switch (err)
             {
@@ -650,14 +651,15 @@ void *listenThreadFunctionss(void *arg)
     logEvent(INFO, "Listen thread started");
     // SSL_CTX *ssl_ctx;
     // int u_con;
+    SSLThreadData *data = malloc(sizeof(SSLThreadData));
+    if (!data)
+    {
+        handleErrors("Failed to allocate memory for connection fd");
+    }
     // SSL *ssl;
     while (1)
     {
-        SSLThreadData *data = malloc(sizeof(SSLThreadData));
-        if (!data)
-        {
-            handleErrors("Failed to allocate memory for connection fd");
-        }
+
         if (reg == 1)
         {
             SSL_CTX *ssl_ctx = createSSLContext();
@@ -667,7 +669,7 @@ void *listenThreadFunctionss(void *arg)
             {
                 if (errno == EWOULDBLOCK || errno == EAGAIN)
                 {
-             //       printf("слушаем ssl порт.\n");
+                    //       printf("слушаем ssl порт.\n");
                     // Нет новых соединений в данный момент
                     continue;
                 }
