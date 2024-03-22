@@ -430,10 +430,8 @@ int connectToUnencryptedPort()
         return -1;
     }
     // Установка сокета в неблокирующий режим
-    if (fcntl(sockfd, F_SETFL, O_NONBLOCK) < 0)
-    {
-        handleErrors("Failed to set socket to non-blocking mode");
-    }
+    //if (fcntl(sockfd, F_SETFL, O_NONBLOCK) < 0)
+      //  handleErrors("Failed to set socket to non-blocking mode");
 
     // Заполнение структуры sockaddr_in для сервера
     struct sockaddr_in server_addr;
