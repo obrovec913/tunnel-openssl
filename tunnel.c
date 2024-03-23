@@ -689,6 +689,7 @@ void *receiveThreadFunction(void *arg)
             }
             }
         }
+        break;
     }
     free(data);
 
@@ -708,7 +709,7 @@ void *sendThreadFunction(void *arg)
     fds[0].fd = data->sockfd;
     fds[0].events = POLLIN; // Проверяем наличие данных для чтения
 
-    while (!connected)
+    while (1)
     {
         int ret = poll(fds, 1, timeout);
 
