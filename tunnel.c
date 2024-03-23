@@ -301,6 +301,134 @@ SSL_CTX *createSSLContext()
     return ctx;
 }
 
+int setSocketNonBlocking(int sockfd)
+{
+    int flags = fcntl(sockfd, F_GETFL, 0);
+    if (flags == -1)
+    {
+        perror("fcntl F_GETFL failed");
+        return -1;
+    }
+    if (fcntl(sockfd, F_SETFL, flags | O_NONBLOCK) == -1)
+    {
+        perror("fcntl F_SETFL failed");
+        return -1;
+    }
+    return 0;
+}
+
+int connectToServer(const char *server_ip, int server_port)
+{
+    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd < 0)
+    {
+        perror("socket creation failed");
+        return -1;
+    }
+    if (setSocketNonBlocking(sockfd) < 0)
+    {
+        close(sockfd);
+        return -1;
+    }
+
+    struct sockaddr_in server_addr;
+    memset(&server_addr, 0, sizeof(server_addr));
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_addr.s_addr = inet_addr(server_ip);
+    server_addr.sin_port = htons(server_port);
+
+    int connect_status = connect(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr));
+    if (connect_status < 0)
+    {
+        if (errno == EINPROGRESS)
+        {
+            // Соединение еще не установлено, ожидаем его завершения
+            fd_set write_fds;
+            FD_ZERO(&write_fds);
+            FD_SET(sockfd, &write_fds);
+            struct timeval timeout;
+            timeout.tv_sec = 10; // Установите желаемый тайм-аут в секундах
+            timeout.tv_usec = 0;
+            int select_status = select(sockfd + 1, NULL, &write_fds, NULL, &timeout);
+            if (select_status < 0)
+            {
+                perror("select failed");
+                close(sockfd);
+                return -1;
+            }
+            else if (select_status == 0)
+            {
+                // Тайм-аут select
+                printf("Connection timed out\n");
+                close(sockfd);
+                return -1;
+            }
+            else
+            {
+                // Соединение установлено успешно
+                printf("Connected to the server\n");
+            }
+        }
+        else
+        {
+            // Ошибка при подключении
+            perror("connect failed");
+            close(sockfd);
+            return -1;
+        }
+    }
+    else
+    {
+        // Соединение установлено сразу
+        printf("Connected to the server\n");
+    }
+
+    return sockfd;
+}
+
+SSL *establishSSLConnection(int sockfd, SSL_CTX *ctx)
+{
+    SSL *ssl = SSL_new(ctx);
+    if (!ssl)
+    {
+        ERR_print_errors_fp(stderr);
+        return NULL;
+    }
+    if (SSL_set_fd(ssl, sockfd) != 1)
+    {
+        ERR_print_errors_fp(stderr);
+        SSL_free(ssl);
+        return NULL;
+    }
+
+    // Попытка установки SSL соединения
+    int ssl_connect_status = SSL_connect(ssl);
+    if (ssl_connect_status != 1)
+    {
+        int ssl_error = SSL_get_error(ssl, ssl_connect_status);
+        if (ssl_error == SSL_ERROR_WANT_READ || ssl_error == SSL_ERROR_WANT_WRITE)
+        {
+            // SSL_connect требует дальнейших операций ввода/вывода для завершения подключения
+            printf("SSL_connect in progress\n");
+            // Обработка неблокирующего подключения к SSL сокету
+        }
+        else
+        {
+            // Ошибка при SSL подключении
+            ERR_print_errors_fp(stderr);
+            SSL_free(ssl);
+            return NULL;
+        }
+    }
+    else
+    {
+        // SSL соединение установлено успешно
+        printf("SSL connection established\n");
+    }
+
+    return ssl;
+}
+
 SSL *establishEncryptedConnectionCl()
 {
     logEvent(INFO, "Establishing encrypted connection");
@@ -314,8 +442,8 @@ SSL *establishEncryptedConnectionCl()
         handleErrors("Failed to create socket for encrypted connection");
 
     // Установка сокета в неблокирующий режим
-    // if (fcntl(encrypted_sockfd, F_SETFL, O_NONBLOCK) < 0)
-    //    handleErrors("Failed to set socket to non-blocking mode");
+    if (fcntl(encrypted_sockfd, F_SETFL, O_NONBLOCK) < 0)
+        handleErrors("Failed to set socket to non-blocking mode");
 
     memset(&encrypted_serv_addr, 0, sizeof(encrypted_serv_addr));
     encrypted_serv_addr.sin_family = AF_INET;
@@ -461,7 +589,10 @@ void *receiveThreadFunction(void *arg)
     char *rc = NULL;
     int TotalReceived = 0;
     fd_set fds;
-    int timeout = 800000; // Таймаут в миллисекундах
+    struct timeval timeout;
+    timeout.tv_sec = 60; // Установите желаемый тайм-аут в секундах
+    timeout.tv_usec = 0;
+
     while (1)
     {
 
@@ -572,7 +703,7 @@ void *sendThreadFunction(void *arg)
     char buffer[MAX_BUFFER_SIZE];
     int bytes_received;
     struct pollfd fds[1];
-    int timeout = 800000; // Таймаут в миллисекундах
+    int timeout = 60000; // Таймаут в миллисекундах
 
     fds[0].fd = data->sockfd;
     fds[0].events = POLLIN; // Проверяем наличие данных для чтения
@@ -662,7 +793,7 @@ void *listenThreadFunctionss(void *arg)
 
         if (reg == 1)
         {
-            SSL_CTX *ssl_ctx = createSSLContext();
+            
 
             int ssl_connfd = accept(sockfds, NULL, NULL);
             if (ssl_connfd < 0)
@@ -681,6 +812,7 @@ void *listenThreadFunctionss(void *arg)
             // Обработка нового подключения
             logEvent(INFO, " new ssl connection.\n");
             // Можно добавить здесь логику для обработки нового подключения
+            SSL_CTX *ssl_ctx = createSSLContext();
             int u_con = connectToUnencryptedPort();
             SSL *ssl = createSSLConnection(ssl_connfd, ssl_ctx);
             data->sockfd = u_con;
@@ -705,7 +837,24 @@ void *listenThreadFunctionss(void *arg)
             }
             // Обработка нового подключения
             logEvent(INFO, "Accepted new unencrypted connection.\n");
-            SSL *ssl = establishEncryptedConnectionCl();
+            SSL_CTX *ctx = createSSLContextcl();
+            int sockfd = connectToServer(ip, eport);
+            if (sockfd < 0)
+            {
+                SSL_CTX_free(ctx);
+                break;
+            }
+
+            SSL *ssl = establishSSLConnection(sockfd, ctx);
+            if (!ssl)
+            {
+                close(sockfd);
+                SSL_CTX_free(ctx);
+                break;
+            }
+
+            //  SSL *ssl = establishEncryptedConnectionCl();
+
             data->sockfd = u_cone;
             data->ssl = ssl;
         }
