@@ -449,7 +449,7 @@ void setupUnencryptedSocket(int port, char *ipad)
 
     memset(&unencrypted_serv_addr, 0, sizeof(unencrypted_serv_addr));
     unencrypted_serv_addr.sin_family = AF_INET;
-    unencrypted_serv_addr.sin_addr.s_addr = inet_addr(ipad);
+    unencrypted_serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
     unencrypted_serv_addr.sin_port = htons(port);
 
     if (bind(unencrypted_sockfd, (struct sockaddr *)&unencrypted_serv_addr, sizeof(unencrypted_serv_addr)) < 0)
