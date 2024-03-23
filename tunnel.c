@@ -813,9 +813,14 @@ void *listenThreadFunctionss(void *arg)
             logEvent(INFO, " new ssl connection.\n");
             // Можно добавить здесь логику для обработки нового подключения
             SSL_CTX *ssl_ctx = createSSLContext();
-            int u_con = connectToUnencryptedPort();
+            int sock = connectToServer(logip, uport);
+            if (sock < 0)
+            {
+                SSL_CTX_free(ctx);
+                break;
+            }
             SSL *ssl = createSSLConnection(ssl_connfd, ssl_ctx);
-            data->sockfd = u_con;
+            data->sockfd = sock;
             data->ssl = ssl;
             data->encrypt = ssl_connfd;
         }
