@@ -815,7 +815,7 @@ void *listenThreadFunctionss(void *arg)
             int sock = connectToServer(logip, uport);
             if (sock < 0)
             {
-                SSL_CTX_free(ctx);
+                SSL_CTX_free(ssl_ctx);
                 break;
             }
             SSL *ssl = createSSLConnection(ssl_connfd, ssl_ctx);
