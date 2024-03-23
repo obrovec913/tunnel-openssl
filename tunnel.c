@@ -793,7 +793,6 @@ void *listenThreadFunctionss(void *arg)
 
         if (reg == 1)
         {
-            
 
             int ssl_connfd = accept(sockfds, NULL, NULL);
             if (ssl_connfd < 0)
