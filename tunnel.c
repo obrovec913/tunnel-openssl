@@ -429,42 +429,7 @@ SSL *establishSSLConnection(int sockfd, SSL_CTX *ctx)
     return ssl;
 }
 
-SSL *establishEncryptedConnectionCl()
-{
-    logEvent(INFO, "Establishing encrypted connection");
-    SSL_CTX *ssl_ctx = createSSLContextcl();
-    SSL *ssl;
-
-    int encrypted_sockfd;
-    struct sockaddr_in encrypted_serv_addr;
-
-    if ((encrypted_sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-        handleErrors("Failed to create socket for encrypted connection");
-
-    // Установка сокета в неблокирующий режим
-    if (fcntl(encrypted_sockfd, F_SETFL, O_NONBLOCK) < 0)
-        handleErrors("Failed to set socket to non-blocking mode");
-
-    memset(&encrypted_serv_addr, 0, sizeof(encrypted_serv_addr));
-    encrypted_serv_addr.sin_family = AF_INET;
-    encrypted_serv_addr.sin_port = htons(eport);
-    encrypted_serv_addr.sin_addr.s_addr = inet_addr(ip); // Замените на IP вашего сервера
-
-    if (connect(encrypted_sockfd, (struct sockaddr *)&encrypted_serv_addr, sizeof(encrypted_serv_addr)) < 0)
-        handleErrors("Failed to connect to encrypted port");
-
-    ssl = SSL_new(ssl_ctx);
-    SSL_set_fd(ssl, encrypted_sockfd);
-
-    if (SSL_connect(ssl) != 1)
-        handleErrors("Failed to establish SSL connection");
-
-    logEvent(INFO, "ssl connection ok.");
-
-    return ssl;
-}
-
-void setupUnencryptedSocket()
+void setupUnencryptedSocket(int port)
 {
     logEvent(INFO, "Setting up unencrypted socket");
     struct sockaddr_in unencrypted_serv_addr;
@@ -485,7 +450,7 @@ void setupUnencryptedSocket()
     memset(&unencrypted_serv_addr, 0, sizeof(unencrypted_serv_addr));
     unencrypted_serv_addr.sin_family = AF_INET;
     unencrypted_serv_addr.sin_addr.s_addr = inet_addr(logip);
-    unencrypted_serv_addr.sin_port = htons(uport);
+    unencrypted_serv_addr.sin_port = htons(port);
 
     if (bind(unencrypted_sockfd, (struct sockaddr *)&unencrypted_serv_addr, sizeof(unencrypted_serv_addr)) < 0)
         handleErrors("Failed to bind unencrypted socket");
@@ -493,6 +458,7 @@ void setupUnencryptedSocket()
     if (listen(unencrypted_sockfd, 1) < 0)
         handleErrors("Failed to listen on unencrypted socket");
 }
+
 SSL *createSSLConnection(int sockfd, SSL_CTX *ssl_ctx)
 {
     SSL *ssl = SSL_new(ssl_ctx);
@@ -511,72 +477,8 @@ SSL *createSSLConnection(int sockfd, SSL_CTX *ssl_ctx)
     return ssl;
 }
 
-void *establishEncryptedConnection()
-{
-    logEvent(INFO, "Establishing encrypted connection");
-    // Устанавливаем защищенное соединение
-    // SSL *ssl;
-    //
 
-    // Устанавливаем серверный сокет
 
-    struct sockaddr_in server_addr;
-    socklen_t len;
-
-    if ((sockfds = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-        handleErrors("Failed to create socket for encrypted connection");
-
-    // Установка сокета в неблокирующий режим
-    if (fcntl(sockfds, F_SETFL, O_NONBLOCK) < 0)
-    {
-        handleErrors("Failed to set socket to non-blocking mode");
-    }
-
-    memset(&server_addr, 0, sizeof(server_addr));
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(eport);
-    server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-
-    if (bind(sockfds, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
-        handleErrors("Failed to bind socket for encrypted connection");
-
-    if (listen(sockfds, 5) < 0)
-        handleErrors("Failed to listen on socket for encrypted connection");
-
-    // бесконечный цикл для прослушивания порта
-
-    // Освобождение контекста шифрования (не освобождаем ssl_ctx, так как он используется в основной функции)
-    // SSL_CTX_free(ssl_ctx);
-}
-int connectToUnencryptedPort()
-{
-    // Создание сокета
-    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sockfd < 0)
-    {
-        perror("Ошибка при создании сокета");
-        return -1;
-    }
-    // Установка сокета в неблокирующий режим
-    // if (fcntl(sockfd, F_SETFL, O_NONBLOCK) < 0)
-    //  handleErrors("Failed to set socket to non-blocking mode");
-
-    // Заполнение структуры sockaddr_in для сервера
-    struct sockaddr_in server_addr;
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(uport);
-    server_addr.sin_addr.s_addr = inet_addr(logip);
-
-    // Подключение к серверу
-    if (connect(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
-    {
-        handleErrors("Ошибка при подключении к серверу");
-        close(sockfd);
-        return -1;
-    }
-
-    return sockfd; // Возвращаем файловый дескриптор подключенного сокета
-}
 
 // Функция, выполняемая в отдельном потоке для проверки разрыва соединения
 
@@ -795,7 +697,7 @@ void *listenThreadFunctionss(void *arg)
         if (reg == 1)
         {
 
-            int ssl_connfd = accept(sockfds, NULL, NULL);
+            int ssl_connfd = accept(unencrypted_sockfd, NULL, NULL);
             if (ssl_connfd < 0)
             {
                 if (errno == EWOULDBLOCK || errno == EAGAIN)
@@ -982,7 +884,7 @@ int main(int argc, char *argv[])
     {
 
         printf("Establishing encrypted connection...\n");
-        establishEncryptedConnection();
+         setupUnencryptedSocket(eport);
         pthread_t listenThread;
         if (pthread_create(&listenThread, NULL, listenThreadFunctionss, NULL) != 0)
         {
@@ -1002,7 +904,7 @@ int main(int argc, char *argv[])
             handleErrors("error not ip server");
         }
         printf("Initializing unencrypted socket...\n");
-        setupUnencryptedSocket();
+        setupUnencryptedSocket(uport);
         pthread_t listenThread;
         if (pthread_create(&listenThread, NULL, listenThreadFunctionss, NULL) != 0)
         {
