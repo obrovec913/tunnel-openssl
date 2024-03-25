@@ -485,7 +485,7 @@ void *receiveThreadFunction(void *arg)
     printf("Receive thread started\n");
     char buffer[MAX_BUFFER_SIZE];
     int bytes_received;
-    int flags;
+    int flags = 0;
     int err;
     int ssl_fd = SSL_get_fd(data->ssl);
     fd_set fds;
@@ -534,11 +534,11 @@ void *receiveThreadFunction(void *arg)
             if (err == SSL_ERROR_WANT_READ || err == SSL_ERROR_WANT_WRITE)
             {
                 // Нет данных доступных на чтение/запись, продолжаем ожидание
-                if (flags > 20)
+                if (flags >= 20)
                 {
                     break;
                 }
-                flags++;
+                flags+=1;
                 continue;
             }
             else
@@ -561,7 +561,7 @@ void *sendThreadFunction(void *arg)
     printf("Send thread started\n");
     char buffer[MAX_BUFFER_SIZE];
     int bytes_received;
-    int flags;
+    int flags = 0;
     fd_set fds;
     struct timeval timeout;
 
@@ -607,11 +607,11 @@ void *sendThreadFunction(void *arg)
             if (errno == EWOULDBLOCK || errno == EAGAIN)
             {
                 // Нет данных доступных на чтение, продолжаем ожидание
-                if (flags > 20)
+                if (flags >= 20)
                 {
                     break;
                 }
-                flags++;
+                flags+=1;
                 continue;
             }
             else
