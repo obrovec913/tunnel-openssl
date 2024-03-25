@@ -645,8 +645,8 @@ void *prosseThreadFunction(void *arg)
 
     pthread_join(data->sendThread, NULL);
     pthread_join(data->receiveThread, NULL);
-   // SSL_shutdown(data->ssl);
-    //SSL_free(data->ssl);
+    SSL_shutdown(data->ssl);
+    SSL_free(data->ssl);
     close(data->sockfd);
     printf("R prosse.\n");
     close(data->encrypt);
