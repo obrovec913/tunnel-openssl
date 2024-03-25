@@ -550,7 +550,7 @@ void *receiveThreadFunction(void *arg)
             }
         }
     }
-    free(data);
+    //free(data);
 
     printf("Receive thread exiting\n");
     pthread_exit(NULL);
@@ -624,7 +624,7 @@ void *sendThreadFunction(void *arg)
             }
         }
     }
-    free(data);
+    //free(data);
 
     printf("Send thread exiting\n");
     pthread_exit(NULL);
@@ -648,6 +648,7 @@ void *prosseThreadFunction(void *arg)
    // SSL_shutdown(data->ssl);
     //SSL_free(data->ssl);
     close(data->sockfd);
+    printf("R prosse.\n");
     close(data->encrypt);
     //    connected = 0;
     printf("Received prosse.\n");
