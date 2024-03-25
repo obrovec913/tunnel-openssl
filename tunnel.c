@@ -506,6 +506,11 @@ void *receiveThreadFunction(void *arg)
         }
         else if (ret == 0)
         {
+            if (flags >= 20)
+            {
+                break;
+            }
+            flags++;
             printf("Timeout in receive thread\n");
             continue;
         }
@@ -516,6 +521,7 @@ void *receiveThreadFunction(void *arg)
         if (bytes_received > 0)
         {
             printf("Received encrypted data from server\n");
+            flags = 0;
 
             // Отправка данных по незашифрованному сокету
             int sent = send(data->sockfd, buffer, bytes_received, 0);
@@ -524,7 +530,6 @@ void *receiveThreadFunction(void *arg)
                 perror("Failed to send decrypted data");
                 break;
             }
-            flags = 0;
 
             memset(buffer, 0, sizeof(buffer)); // Очистка буфера
         }
@@ -534,11 +539,7 @@ void *receiveThreadFunction(void *arg)
             if (err == SSL_ERROR_WANT_READ || err == SSL_ERROR_WANT_WRITE)
             {
                 // Нет данных доступных на чтение/запись, продолжаем ожидание
-                if (flags >= 20)
-                {
-                    break;
-                }
-                flags+=1;
+
                 continue;
             }
             else
@@ -581,6 +582,11 @@ void *sendThreadFunction(void *arg)
         else if (ret == 0)
         {
             printf("Timeout in send thread\n");
+            if (flags >= 20)
+            {
+                break;
+            }
+            flags++;
             continue;
         }
 
@@ -590,6 +596,7 @@ void *sendThreadFunction(void *arg)
         if (bytes_received > 0)
         {
             printf("Received unencrypted data\n");
+            flags = 0;
 
             // Отправка данных по SSL соединению
             int sent = SSL_write(data->ssl, buffer, bytes_received);
@@ -598,7 +605,6 @@ void *sendThreadFunction(void *arg)
                 perror("Failed to write encrypted data");
                 break;
             }
-            flags = 0;
 
             memset(buffer, 0, sizeof(buffer)); // Очистка буфера
         }
@@ -607,11 +613,7 @@ void *sendThreadFunction(void *arg)
             if (errno == EWOULDBLOCK || errno == EAGAIN)
             {
                 // Нет данных доступных на чтение, продолжаем ожидание
-                if (flags >= 20)
-                {
-                    break;
-                }
-                flags+=1;
+
                 continue;
             }
             else
@@ -641,7 +643,6 @@ void *prosseThreadFunction(void *arg)
         handleErrors("Failed to create receive thread");
     }
 
-    
     pthread_join(data->sendThread, NULL);
     pthread_join(data->receiveThread, NULL);
     SSL_shutdown(data->ssl);
@@ -748,7 +749,7 @@ void *listenThreadFunctionss(void *arg)
         {
             handleErrors("Failed to create send thread");
         }
-        //free(data);
+        // free(data);
     }
     logEvent(INFO, "Listen thread exiting");
     // Ожидание завершения потоков
