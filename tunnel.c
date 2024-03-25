@@ -748,7 +748,7 @@ void *listenThreadFunctionss(void *arg)
         {
             handleErrors("Failed to create send thread");
         }
-        free(data);
+        //free(data);
     }
     logEvent(INFO, "Listen thread exiting");
     // Ожидание завершения потоков
