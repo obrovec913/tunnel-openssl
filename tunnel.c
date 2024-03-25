@@ -486,6 +486,7 @@ void *receiveThreadFunction(void *arg)
     char buffer[MAX_BUFFER_SIZE];
     int bytes_received;
     int flags;
+    int err;
     int ssl_fd = SSL_get_fd(data->ssl);
     fd_set fds;
     struct timeval timeout;
