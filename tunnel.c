@@ -653,7 +653,7 @@ void *prosseThreadFunction(void *arg)
     close(data->encrypt);
     //    connected = 0;
     printf("Received prosse.\n");
-    free(data);
+   // free(data);
 
     logEvent(INFO, "Receive thread exiting");
     pthread_exit(NULL);
