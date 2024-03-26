@@ -29,8 +29,7 @@ typedef struct
     int sockfd; // Идентификатор сокета
     SSL *ssl;   //  SSL
     int encrypt;
-    pthread_t receiveThread;
-    pthread_t sendThread;
+    
     //    pthread_t prosseThread;
 } SSLThreadData;
 
@@ -632,19 +631,21 @@ void *sendThreadFunction(void *arg)
 void *prosseThreadFunction(void *arg)
 {
     SSLThreadData *data = (SSLThreadData *)arg;
+    pthread_t receiveThread;
+    pthread_t sendThread;
     logEvent(INFO, "pros thread started");
-    if (pthread_create(&data->sendThread, NULL, sendThreadFunction, data) != 0)
+    if (pthread_create(&sendThread, NULL, sendThreadFunction, data) != 0)
     {
         handleErrors("Failed to create send thread");
     }
     // Создание и запуск потока для чтения данных от сервера
-    if (pthread_create(&data->receiveThread, NULL, receiveThreadFunction, data) != 0)
+    if (pthread_create(&receiveThread, NULL, receiveThreadFunction, data) != 0)
     {
         handleErrors("Failed to create receive thread");
     }
 
-    pthread_join(data->sendThread, NULL);
-    pthread_join(data->receiveThread, NULL);
+    pthread_join(sendThread, NULL);
+    pthread_join(receiveThread, NULL);
     SSL_shutdown(data->ssl);
     SSL_free(data->ssl);
     close(data->sockfd);
