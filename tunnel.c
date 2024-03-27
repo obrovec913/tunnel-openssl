@@ -647,7 +647,7 @@ void *prosseThreadFunction(void *arg)
     thread_list = realloc(thread_list, thread_count * sizeof(ThreadData));
     if (thread_list == NULL)
     {
-        handleErrors ("Failed to allocate memory for thread list\n");
+        handleErrors("Failed to allocate memory for thread list\n");
     }
     printf(" in  %b\n", thread_count);
     logEvent(INFO, "pros thread started");
@@ -688,6 +688,7 @@ void *listenThreadFunctionss(void *arg)
     {
         handleErrors("Failed to allocate memory for connection fd");
     }
+
     // SSL *ssl;
     while (1)
     {
@@ -768,15 +769,13 @@ void *listenThreadFunctionss(void *arg)
         // Создание и запуск потока для отправки данных серверу
         thread_li = realloc(thread_list, thread_count * sizeof(ThreadData));
         if (thread_list == NULL)
-        
-        handleErrors ("Failed to allocate memory for thread list\n");
-        }
+            handleErrors("Failed to allocate memory for thread list\n");
 
         if (pthread_create(&thread_list[thread_count].thread_id, NULL, prosseThreadFunction, data) != 0)
         {
             handleErrors("Failed to create send thread");
         }
-        
+
         // free(data);
     }
     logEvent(INFO, "Listen thread exiting");
