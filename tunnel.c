@@ -780,7 +780,7 @@ void *listenThreadFunctionss(void *arg)
     }
     logEvent(INFO, "Listen thread exiting");
     // Ожидание завершения потоков
-    pthread_join(thread_li[thread_count].thread_id, NULL);
+    pthread_join(thread_list[thread_count].thread_id, NULL);
 
     pthread_exit(NULL);
 }
