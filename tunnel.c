@@ -515,8 +515,8 @@ void *receiveThreadFunction(void *arg)
         {
             if (flags >= 20)
             {
-                SSL_shutdown(data->ssl);
-                close(data->encrypt);
+       //         SSL_shutdown(data->ssl);
+         //       close(data->encrypt);
                 break;
             }
             flags++;
@@ -593,7 +593,7 @@ void *sendThreadFunction(void *arg)
             printf("Timeout in send thread %b \n", flags);
             if (flags >= 20)
             {
-                close(data->sockfd);
+    //            close(data->sockfd);
                 break;
             }
             flags++;
@@ -665,10 +665,10 @@ void *prosseThreadFunction(void *arg)
     pthread_join(thread_list[thread_count].receiveThread, NULL);
     // SSL_shutdown(data->ssl);
     // SSL_free(data->ssl);
-    // close(data->sockfd);
+     close(data->sockfd);
     printf("Receive thread exiting  %b\n", thread_count);
 
-    // close(data->encrypt);
+     close(data->encrypt);
     //     connected = 0;
     //  free(data);
 
