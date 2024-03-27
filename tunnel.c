@@ -681,6 +681,7 @@ void *listenThreadFunctionss(void *arg)
     logEvent(INFO, "Listen thread started");
     // SSL_CTX *ssl_ctx;
     // int u_con;
+    ThreadData *thread_li = NULL;
     pthread_t prosseThread;
     SSLThreadData *data = malloc(sizeof(SSLThreadData));
     if (!data)
@@ -765,7 +766,7 @@ void *listenThreadFunctionss(void *arg)
         thread_count++;
 
         // Создание и запуск потока для отправки данных серверу
-        thread_list = realloc(thread_list, thread_count * sizeof(ThreadData));
+        thread_li = realloc(thread_list, thread_count * sizeof(ThreadData));
         if (thread_list == NULL)
         
         handleErrors ("Failed to allocate memory for thread list\n");
@@ -780,7 +781,7 @@ void *listenThreadFunctionss(void *arg)
     }
     logEvent(INFO, "Listen thread exiting");
     // Ожидание завершения потоков
-    pthread_join(thread_list[thread_count].thread_id, NULL);
+    pthread_join(thread_li[thread_count].thread_id, NULL);
 
     pthread_exit(NULL);
 }
