@@ -671,7 +671,7 @@ void *prosseThreadFunction(void *arg)
      close(data->encrypt);
      thread_count--;
     //     connected = 0;
-      free();
+      free(thread_list);
 
     logEvent(INFO, "Receive thread exiting");
     pthread_exit(NULL);
