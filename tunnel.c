@@ -669,7 +669,7 @@ void *prosseThreadFunction(void *arg)
     printf("Receive thread exiting  %b\n", thread_count);
 
      close(data->encrypt);
-     thread_count--.
+     thread_count--;
     //     connected = 0;
       free();
 
