@@ -29,15 +29,13 @@ typedef struct
     int sockfd; // Идентификатор сокета
     SSL *ssl;   //  SSL
     int encrypt;
-    
+
     //    pthread_t prosseThread;
 } SSLThreadData;
 
-pthread_t prosseThread;
 int unencrypted_sockfd;
-int sockfds;
 int unencrypted_con;
-int connected, cl = 0;
+int connected = 0;
 int uport, eport, reg = 0;
 char *logip, *ip, *ciphers, *certS, *pkey, *psk_k, *psk_i = NULL;
 // Определяем возможные типы событий
@@ -500,7 +498,7 @@ void *receiveThreadFunction(void *arg)
         int ret = select(ssl_fd + 1, &fds, NULL, NULL, &timeout);
         if (ret == -1)
         {
-            perror("Error in select");
+            logEvent(WARNING,"Error in select");
             break;
         }
         else if (ret == 0)
@@ -510,7 +508,7 @@ void *receiveThreadFunction(void *arg)
                 break;
             }
             flags++;
-            printf("Timeout in receive thread\n");
+            printf("Timeout in receive thread  %b\n",flags);
             continue;
         }
 
@@ -519,14 +517,14 @@ void *receiveThreadFunction(void *arg)
 
         if (bytes_received > 0)
         {
-            printf("Received encrypted data from server\n");
+            logEvent(WARNING,"Received encrypted data from server");
             flags = 0;
 
             // Отправка данных по незашифрованному сокету
             int sent = send(data->sockfd, buffer, bytes_received, 0);
             if (sent < 0)
             {
-                perror("Failed to send decrypted data");
+                logEvent(WARNING,"Failed to send decrypted data");
                 break;
             }
 
@@ -544,12 +542,12 @@ void *receiveThreadFunction(void *arg)
             else
             {
                 // Произошла ошибка при чтении данных
-                perror("Failed to read encrypted data");
+                logEvent(WARNING,"Failed to read encrypted data");
                 break;
             }
         }
     }
-    //free(data);
+    // free(data);
 
     printf("Receive thread exiting\n");
     pthread_exit(NULL);
@@ -575,12 +573,12 @@ void *sendThreadFunction(void *arg)
         int ret = select(data->sockfd + 1, &fds, NULL, NULL, &timeout);
         if (ret == -1)
         {
-            perror("Error in select");
+            logEvent(WARNING,"Error in select");
             break;
         }
         else if (ret == 0)
         {
-            printf("Timeout in send thread\n");
+            printf("Timeout in send thread %b \n", flags);
             if (flags >= 20)
             {
                 break;
@@ -594,14 +592,14 @@ void *sendThreadFunction(void *arg)
 
         if (bytes_received > 0)
         {
-            printf("Received unencrypted data\n");
+            logEvent(INFO, "Received unencrypted data");
             flags = 0;
 
             // Отправка данных по SSL соединению
             int sent = SSL_write(data->ssl, buffer, bytes_received);
             if (sent <= 0)
             {
-                perror("Failed to write encrypted data");
+                logEvent(WARNING, "Failed to write encrypted data");
                 break;
             }
 
@@ -618,12 +616,12 @@ void *sendThreadFunction(void *arg)
             else
             {
                 // Произошла ошибка при чтении данных
-                perror("Failed to read unencrypted data");
+                logEvent(WARNING, "Failed to read unencrypted data");
                 break;
             }
         }
     }
-    //free(data);
+    // free(data);
 
     printf("Send thread exiting\n");
     pthread_exit(NULL);
@@ -634,18 +632,18 @@ void *prosseThreadFunction(void *arg)
     pthread_t receiveThread;
     pthread_t sendThread;
     logEvent(INFO, "pros thread started");
-    if (pthread_create(&sendThread, NULL, sendThreadFunction, data) != 0)
+    if (pthread_create(&sendThread[connected], NULL, sendThreadFunction, data) != 0)
     {
         handleErrors("Failed to create send thread");
     }
     // Создание и запуск потока для чтения данных от сервера
-    if (pthread_create(&receiveThread, NULL, receiveThreadFunction, data) != 0)
+    if (pthread_create(&receiveThread[connected], NULL, receiveThreadFunction, data) != 0)
     {
         handleErrors("Failed to create receive thread");
     }
 
-    pthread_join(sendThread, NULL);
-    pthread_join(receiveThread, NULL);
+    pthread_join(sendThread[connected], NULL);
+    pthread_join(receiveThread[connected], NULL);
     SSL_shutdown(data->ssl);
     SSL_free(data->ssl);
     close(data->sockfd);
@@ -653,7 +651,7 @@ void *prosseThreadFunction(void *arg)
     close(data->encrypt);
     //    connected = 0;
     printf("Received prosse.\n");
-   // free(data);
+    // free(data);
 
     logEvent(INFO, "Receive thread exiting");
     pthread_exit(NULL);
@@ -664,6 +662,7 @@ void *listenThreadFunctionss(void *arg)
     logEvent(INFO, "Listen thread started");
     // SSL_CTX *ssl_ctx;
     // int u_con;
+    pthread_t prosseThread;
     SSLThreadData *data = malloc(sizeof(SSLThreadData));
     if (!data)
     {
@@ -747,10 +746,11 @@ void *listenThreadFunctionss(void *arg)
 
         // Создание и запуск потока для отправки данных серверу
 
-        if (pthread_create(&prosseThread, NULL, prosseThreadFunction, data) != 0)
+        if (pthread_create(&prosseThread[connected], NULL, prosseThreadFunction, data) != 0)
         {
             handleErrors("Failed to create send thread");
         }
+        connected++;
         // free(data);
     }
     logEvent(INFO, "Listen thread exiting");
