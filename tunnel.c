@@ -520,7 +520,7 @@ void *receiveThreadFunction(void *arg)
                 break;
             }
             flags++;
-            printf("Timeout in receive thread  %b\n", flags);
+            //printf("Timeout in receive thread  %b\n", flags);
             continue;
         }
 
@@ -590,7 +590,7 @@ void *sendThreadFunction(void *arg)
         }
         else if (ret == 0)
         {
-            printf("Timeout in send thread %b \n", flags);
+           // printf("Timeout in send thread %b \n", flags);
             if (flags >= 20)
             {
     //            close(data->sockfd);
@@ -651,26 +651,27 @@ void *prosseThreadFunction(void *arg)
     }
     printf(" in  %b\n", thread_count);
     logEvent(INFO, "pros thread started");
-    if (pthread_create(&thread_list[thread_count].sendThread, NULL, sendThreadFunction, data) != 0)
+    if (pthread_create(&thread_list[thread_count -1].sendThread, NULL, sendThreadFunction, data) != 0)
     {
         handleErrors("Failed to create send thread");
     }
     // Создание и запуск потока для чтения данных от сервера
-    if (pthread_create(&thread_list[thread_count].receiveThread, NULL, receiveThreadFunction, data) != 0)
+    if (pthread_create(&thread_list[thread_count -1].receiveThread, NULL, receiveThreadFunction, data) != 0)
     {
         handleErrors("Failed to create receive thread");
     }
 
-    pthread_join(thread_list[thread_count].sendThread, NULL);
-    pthread_join(thread_list[thread_count].receiveThread, NULL);
+    pthread_join(thread_list[thread_count -1].sendThread, NULL);
+    pthread_join(thread_list[thread_count -1].receiveThread, NULL);
     // SSL_shutdown(data->ssl);
     // SSL_free(data->ssl);
      close(data->sockfd);
     printf("Receive thread exiting  %b\n", thread_count);
 
      close(data->encrypt);
+     thread_count--.
     //     connected = 0;
-    //  free(data);
+      free();
 
     logEvent(INFO, "Receive thread exiting");
     pthread_exit(NULL);
