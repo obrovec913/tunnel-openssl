@@ -647,7 +647,7 @@ void *prosseThreadFunction(void *arg)
     thread_list = realloc(thread_list, thread_count * sizeof(ThreadData));
     if (thread_list == NULL)
     {
-        handleErrors "Failed to allocate memory for thread list\n");
+        handleErrors ("Failed to allocate memory for thread list\n");
     }
     printf(" in  %b\n", thread_count);
     logEvent(INFO, "pros thread started");
@@ -768,7 +768,7 @@ void *listenThreadFunctionss(void *arg)
         thread_list = realloc(thread_list, thread_count * sizeof(ThreadData));
         if (thread_list == NULL)
         
-        handleErrors "Failed to allocate memory for thread list\n");
+        handleErrors ("Failed to allocate memory for thread list\n");
         }
 
         if (pthread_create(&thread_list[thread_count].thread_id, NULL, prosseThreadFunction, data) != 0)
