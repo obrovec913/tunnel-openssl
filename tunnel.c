@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-// #include <libconfig.h>
+#include <libconfig.h>
 #include <openssl/crypto.h>
 #include <arpa/inet.h>
 #include <openssl/evp.h>
@@ -39,6 +39,9 @@ typedef struct
     int sockfd; // Идентификатор сокета
     SSL *ssl;   //  SSL
     int encrypt;
+    pthread_t thread_id; // Идентификатор потока
+    pthread_t receiveThread;
+    pthread_t sendThread;
 
     //    pthread_t prosseThread;
 } SSLThreadData;
@@ -55,6 +58,20 @@ enum LogType
     WARNING,
     ERROR
 };
+
+void closeAndRestart()
+{
+    SSL_shutdown(data->ssl);
+    SSL_free(data->ssl);
+    close(data->sockfd);
+
+    // Пример перезапуска приложения
+    char *argv[] = {"./tunnel_malidi", "-s", "1", "-d", "127.0.0.1", "-u", "5412", "-e", "12345", "-y", "./bign-curve256v1.key", "-r", "./cert.pem", "-k", "1025285123456", "-p", "1025285", NULL};
+    execv(argv[0], argv);
+
+    // Если execv() вернется, значит возникла ошибка перезапуска приложения
+    handleErrors("Failed to restart application");
+}
 
 // Функция для записи события в лог
 void logEvent(enum LogType type, const char *format, ...)
@@ -330,12 +347,12 @@ int connectToServer(const char *server_ip, int server_port)
     if (sockfd < 0)
     {
         perror("socket creation failed");
-        return -1;
+        closeAndRestart()
     }
     if (setSocketNonBlocking(sockfd) < 0)
     {
-        close(sockfd);
-        return -1;
+        
+        closeAndRestart()
     }
 
     struct sockaddr_in server_addr;
@@ -345,49 +362,57 @@ int connectToServer(const char *server_ip, int server_port)
     server_addr.sin_port = htons(server_port);
 
     int connect_status = connect(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr));
-    if (connect_status < 0)
+    while (1)
     {
-        if (errno == EINPROGRESS)
+
+        if (connect_status < 0)
         {
-            // Соединение еще не установлено, ожидаем его завершения
-            fd_set write_fds;
-            FD_ZERO(&write_fds);
-            FD_SET(sockfd, &write_fds);
-            struct timeval timeout;
-            timeout.tv_sec = 10; // Установите желаемый тайм-аут в секундах
-            timeout.tv_usec = 0;
-            int select_status = select(sockfd + 1, NULL, &write_fds, NULL, &timeout);
-            if (select_status < 0)
+            if (errno == EINPROGRESS)
             {
-                perror("select failed");
-                close(sockfd);
-                return -1;
-            }
-            else if (select_status == 0)
-            {
-                // Тайм-аут select
-                printf("Connection timed out\n");
-                close(sockfd);
-                return -1;
+                // Соединение еще не установлено, ожидаем его завершения
+                fd_set write_fds;
+                FD_ZERO(&write_fds);
+                FD_SET(sockfd, &write_fds);
+                struct timeval timeout;
+                timeout.tv_sec = 10; // Установите желаемый тайм-аут в секундах
+                timeout.tv_usec = 0;
+                int select_status = select(sockfd + 1, NULL, &write_fds, NULL, &timeout);
+                if (select_status < 0)
+                {
+                    perror("select failed");
+                    close(sockfd);
+                    closeAndRestart()
+                    break;
+                    return -1;
+                }
+                else if (select_status == 0)
+                {
+                    // Тайм-аут select
+                    logEvent(WARNING,"Connection timed out\n");
+                    continue;
+                    return -1;
+                }
+                else
+                {
+                    // Соединение установлено успешно
+                    logEvent(WARNING,"Connected to the server\n");
+                    continue;
+                }
             }
             else
             {
-                // Соединение установлено успешно
-                printf("Connected to the server\n");
+                // Ошибка при подключении
+                logEvent(WARNING, "connect failed");
+                continue;
+                return -1;
             }
         }
         else
         {
-            // Ошибка при подключении
-            perror("connect failed");
-            close(sockfd);
-            return -1;
+            // Соединение установлено сразу
+            printf("Connected to the server\n");
+            break;
         }
-    }
-    else
-    {
-        // Соединение установлено сразу
-        printf("Connected to the server\n");
     }
 
     return sockfd;
@@ -513,14 +538,13 @@ void *receiveThreadFunction(void *arg)
         }
         else if (ret == 0)
         {
-            if (flags >= 20)
+            if (thread_count >= 100)
             {
-       //         SSL_shutdown(data->ssl);
-         //       close(data->encrypt);
+                //         SSL_shutdown(data->ssl);
+                //       close(data->encrypt);
                 break;
             }
-            flags++;
-            //printf("Timeout in receive thread  %b\n", flags);
+            // printf("Timeout in receive thread  %b\n", flags);
             continue;
         }
 
@@ -559,6 +583,7 @@ void *receiveThreadFunction(void *arg)
             }
         }
     }
+    closeAndRestart()
     // free(data);
 
     printf("Receive thread exiting\n");
@@ -590,13 +615,12 @@ void *sendThreadFunction(void *arg)
         }
         else if (ret == 0)
         {
-           // printf("Timeout in send thread %b \n", flags);
-            if (flags >= 20)
+            // printf("Timeout in send thread %b \n", flags);
+            if (thread_count >= 100)
             {
-    //            close(data->sockfd);
+                //            close(data->sockfd);
                 break;
             }
-            flags++;
             continue;
         }
 
@@ -606,7 +630,6 @@ void *sendThreadFunction(void *arg)
         if (bytes_received > 0)
         {
             logEvent(INFO, "Received unencrypted data");
-            flags = 0;
 
             // Отправка данных по SSL соединению
             int sent = SSL_write(data->ssl, buffer, bytes_received);
@@ -634,6 +657,7 @@ void *sendThreadFunction(void *arg)
             }
         }
     }
+    closeAndRestart()
     // free(data);
 
     printf("Send thread exiting\n");
@@ -644,34 +668,26 @@ void *prosseThreadFunction(void *arg)
     SSLThreadData *data = (SSLThreadData *)arg;
     // pthread_t receiveThread;
     // pthread_t sendThread;
-    thread_list = realloc(thread_list, thread_count * sizeof(ThreadData));
-    if (thread_list == NULL)
-    {
-        handleErrors("Failed to allocate memory for thread list\n");
-    }
-    printf(" in  %b\n", thread_count);
     logEvent(INFO, "pros thread started");
-    if (pthread_create(&thread_list[thread_count -1].sendThread, NULL, sendThreadFunction, data) != 0)
+    if (pthread_create(&data->sendThread, NULL, sendThreadFunction, data) != 0)
     {
         handleErrors("Failed to create send thread");
     }
     // Создание и запуск потока для чтения данных от сервера
-    if (pthread_create(&thread_list[thread_count -1].receiveThread, NULL, receiveThreadFunction, data) != 0)
+    if (pthread_create(&data->receiveThread, NULL, receiveThreadFunction, data) != 0)
     {
         handleErrors("Failed to create receive thread");
     }
 
-    pthread_join(thread_list[thread_count -1].sendThread, NULL);
-    pthread_join(thread_list[thread_count -1].receiveThread, NULL);
-    // SSL_shutdown(data->ssl);
-    // SSL_free(data->ssl);
-     close(data->sockfd);
+    pthread_join(tdata->sendThread, NULL);
+    pthread_join(data->receiveThread, NULL);
+
     printf("Receive thread exiting  %b\n", thread_count);
 
-     close(data->encrypt);
-     thread_count--;
+    close(data->encrypt);
     //     connected = 0;
-      free(thread_list);
+    free(thread_list);
+    closeAndRestart()
 
     logEvent(INFO, "Receive thread exiting");
     pthread_exit(NULL);
@@ -682,11 +698,12 @@ void *listenThreadFunctionss(void *arg)
     logEvent(INFO, "Listen thread started");
     // SSL_CTX *ssl_ctx;
     // int u_con;
-    //ThreadData *thread_li = NULL;
+    // ThreadData *thread_li = NULL;
     pthread_t prosseThread;
     SSLThreadData *data = malloc(sizeof(SSLThreadData));
     if (!data)
     {
+        closeAndRestart()
         handleErrors("Failed to allocate memory for connection fd");
     }
 
@@ -768,20 +785,18 @@ void *listenThreadFunctionss(void *arg)
         thread_count++;
 
         // Создание и запуск потока для отправки данных серверу
-        thread_list = realloc(thread_list, thread_count * sizeof(ThreadData));
-        if (thread_list == NULL)
-            handleErrors("Failed to allocate memory for thread list\n");
 
-        if (pthread_create(&thread_list[thread_count -1].thread_id, NULL, prosseThreadFunction, data) != 0)
+        if (pthread_create(&data->thread_id, NULL, prosseThreadFunction, data) != 0)
         {
-            handleErrors("Failed to create send thread");
+            closeAndRestart()
+            //handleErrors("Failed to create send thread");
         }
 
         // free(data);
     }
     logEvent(INFO, "Listen thread exiting");
     // Ожидание завершения потоков
-    pthread_join(thread_list[thread_count].thread_id, NULL);
+    pthread_join(data->thread_id, NULL);
 
     pthread_exit(NULL);
 }

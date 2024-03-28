@@ -20,7 +20,7 @@ openssl_patch=OpenSSL_1_1_1i.patch
 
 install_prereq(){
   sudo apt-get update
-    sudo apt-get install git gcc cmake python3
+    sudo apt-get install git gcc cmake python3 libconfig-dev
   git clone https://github.com/bcrypto/bee2evp.git $bee2evpinstall
   git clone https://github.com/agievich/bee2.git $bee2evpinstall/bee2
   mkdir $tunnelMalidi
