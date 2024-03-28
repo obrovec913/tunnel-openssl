@@ -45,7 +45,6 @@ enum LogType
     ERROR
 };
 
-
 // Функция для записи события в лог
 void logEvent(enum LogType type, const char *format, ...)
 {
@@ -53,7 +52,7 @@ void logEvent(enum LogType type, const char *format, ...)
     FILE *logfile = fopen("server.log", "a");
     if (logfile == NULL)
     {
-        //handleErrors("Failed to open log file");
+        // handleErrors("Failed to open log file");
     }
 
     // Получаем текущее время
@@ -79,8 +78,7 @@ void logEvent(enum LogType type, const char *format, ...)
     case ERROR:
         prefix = "[ERROR]";
         break;
-    default
-        prefix = "[UNKNOWN]";
+        default prefix = "[UNKNOWN]";
     }
 
     // Форматируем строку сообщения
@@ -103,14 +101,12 @@ void logEvent(enum LogType type, const char *format, ...)
     fclose(logfile);
 }
 
-
 int unencrypted_sockfd;
 int unencrypted_con;
 int connected, cl = 0;
 int uport, eport, reg = 0;
 char *logip, *ip, *ciphers, *certS, *pkey, *psk_k, *psk_i = NULL;
 // Определяем возможные типы событий
-
 
 void handleErrors(const char *message)
 {
@@ -122,8 +118,8 @@ void handleErrors(const char *message)
 
 void closeAndRestart()
 {
-    //SSL_shutdown(data->ssl);
-    //SSL_free(data->ssl);
+    // SSL_shutdown(data->ssl);
+    // SSL_free(data->ssl);
     close(unencrypted_sockfd);
 
     // Пример перезапуска приложения
@@ -133,7 +129,6 @@ void closeAndRestart()
     // Если execv() вернется, значит возникла ошибка перезапуска приложения
     handleErrors("Failed to restart application");
 }
-
 
 typedef struct
 {
@@ -175,8 +170,6 @@ void readConfig(const char *filename, ConfigParams *params)
     // Освобождение ресурсов
     config_destroy(&cfg);
 }
-
-
 
 unsigned int psk_server_callback(SSL *ssl, const char *identity, unsigned char *psk, unsigned int max_psk_len)
 {
@@ -258,7 +251,7 @@ void ssl_msg_callback(int write_p, int version, int content_type, const void *bu
         break;
     }
 
-    logEvent(INFO,"SSL message received: type=%s, length=%zu\n", msg_type, len);
+    // logEvent(INFO,"SSL message received: type=%s, length=%zu\n", msg_type, len);
 }
 
 SSL_CTX *createSSLContextcl()
@@ -360,58 +353,55 @@ int connectToServer(const char *server_ip, int server_port)
     server_addr.sin_addr.s_addr = inet_addr(server_ip);
     server_addr.sin_port = htons(server_port);
 
-    while (1)
-    {
-        int connect_status = connect(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr));
+    int connect_status = connect(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr));
 
-        if (connect_status < 0)
+    if (connect_status < 0)
+    {
+        if (errno == EINPROGRESS)
         {
-            if (errno == EINPROGRESS)
+            // Соединение еще не установлено, ожидаем его завершения
+            fd_set write_fds;
+            FD_ZERO(&write_fds);
+            FD_SET(sockfd, &write_fds);
+            struct timeval timeout;
+            timeout.tv_sec = 10; // Установите желаемый тайм-аут в секундах
+            timeout.tv_usec = 0;
+            int select_status = select(sockfd + 1, NULL, &write_fds, NULL, &timeout);
+            if (select_status < 0)
             {
-                // Соединение еще не установлено, ожидаем его завершения
-                fd_set write_fds;
-                FD_ZERO(&write_fds);
-                FD_SET(sockfd, &write_fds);
-                struct timeval timeout;
-                timeout.tv_sec = 10; // Установите желаемый тайм-аут в секундах
-                timeout.tv_usec = 0;
-                int select_status = select(sockfd + 1, NULL, &write_fds, NULL, &timeout);
-                if (select_status < 0)
-                {
-                    perror("select failed");
-                    close(sockfd);
-                    closeAndRestart();
-                    break;
-                    return -1;
-                }
-                else if (select_status == 0)
-                {
-                    // Тайм-аут select
-                    logEvent(WARNING, "Connection timed out\n");
-                    continue;
-                    return -1;
-                }
-                else
-                {
-                    // Соединение установлено успешно
-                    logEvent(WARNING, "Connected to the server\n");
-                    break;
-                }
+                perror("select failed");
+                close(sockfd);
+                closeAndRestart();
+                //                break;
+                return -1;
+            }
+            else if (select_status == 0)
+            {
+                // Тайм-аут select
+                logEvent(WARNING, "Connection timed out\n");
+                //              continue;
+                return -1;
             }
             else
             {
-                // Ошибка при подключении
-                logEvent(WARNING, "connect failed");
-                continue;
-                return -1;
+                // Соединение установлено успешно
+                logEvent(WARNING, "Connected to the server\n");
+                //            break;
             }
         }
         else
         {
-            // Соединение установлено сразу
-            printf("Connected to the server\n");
-            break;
+            // Ошибка при подключении
+            logEvent(WARNING, "connect failed");
+          //  continue;
+            return -1;
         }
+    }
+    else
+    {
+        // Соединение установлено сразу
+        printf("Connected to the server\n");
+        //            break;
     }
 
     return sockfd;
@@ -541,7 +531,7 @@ void *receiveThreadFunction(void *arg)
             {
                 //         SSL_shutdown(data->ssl);
                 //       close(data->encrypt);
-               // break;
+                // break;
             }
             // printf("Timeout in receive thread  %b\n", flags);
             continue;
@@ -618,7 +608,7 @@ void *sendThreadFunction(void *arg)
             if (thread_count >= 100)
             {
                 //            close(data->sockfd);
-                //break;
+                // break;
             }
             continue;
         }
@@ -681,8 +671,8 @@ void *prosseThreadFunction(void *arg)
     pthread_join(sendThread, NULL);
     pthread_join(receiveThread, NULL);
 
-    //close(data->encrypt);
-    //     connected = 0;
+    // close(data->encrypt);
+    //      connected = 0;
     free(data);
     closeAndRestart();
 
