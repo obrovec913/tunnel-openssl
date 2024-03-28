@@ -59,11 +59,19 @@ enum LogType
     ERROR
 };
 
+void handleErrors(const char *message)
+{
+    logEvent(ERROR, "Error occurred: %s", message);
+    fprintf(stderr, "Error occurred: %s\n", message);
+    ERR_print_errors_fp(stderr);
+    exit(EXIT_FAILURE);
+}
+
 void closeAndRestart()
 {
-    SSL_shutdown(data->ssl);
-    SSL_free(data->ssl);
-    close(data->sockfd);
+    //SSL_shutdown(data->ssl);
+    //SSL_free(data->ssl);
+    close(unencrypted_sockfd);
 
     // Пример перезапуска приложения
     char *argv[] = {"./tunnel_malidi", "-s", "1", "-d", "127.0.0.1", "-u", "5412", "-e", "12345", "-y", "./bign-curve256v1.key", "-r", "./cert.pem", "-k", "1025285123456", "-p", "1025285", NULL};
@@ -170,13 +178,7 @@ void readConfig(const char *filename, ConfigParams *params)
     config_destroy(&cfg);
 }
 
-void handleErrors(const char *message)
-{
-    logEvent(ERROR, "Error occurred: %s", message);
-    fprintf(stderr, "Error occurred: %s\n", message);
-    ERR_print_errors_fp(stderr);
-    exit(EXIT_FAILURE);
-}
+
 
 unsigned int psk_server_callback(SSL *ssl, const char *identity, unsigned char *psk, unsigned int max_psk_len)
 {
@@ -258,7 +260,7 @@ void ssl_msg_callback(int write_p, int version, int content_type, const void *bu
         break;
     }
 
-    printf("SSL message received: type=%s, length=%zu\n", msg_type, len);
+    logEvent(INFO,"SSL message received: type=%s, length=%zu\n", msg_type, len);
 }
 
 SSL_CTX *createSSLContextcl()
