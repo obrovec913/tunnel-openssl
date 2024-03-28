@@ -45,6 +45,15 @@ typedef struct
 
     //    pthread_t prosseThread;
 } SSLThreadData;
+
+enum LogType
+{
+    INFO,
+    WARNING,
+    ERROR
+};
+
+
 // Функция для записи события в лог
 void logEvent(enum LogType type, const char *format, ...)
 {
@@ -109,12 +118,7 @@ int connected, cl = 0;
 int uport, eport, reg = 0;
 char *logip, *ip, *ciphers, *certS, *pkey, *psk_k, *psk_i = NULL;
 // Определяем возможные типы событий
-enum LogType
-{
-    INFO,
-    WARNING,
-    ERROR
-};
+
 
 void handleErrors(const char *message)
 {
