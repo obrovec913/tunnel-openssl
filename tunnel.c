@@ -680,10 +680,8 @@ void *prosseThreadFunction(void *arg)
         handleErrors("Failed to create receive thread");
     }
 
-    pthread_join(tdata->sendThread, NULL);
+    pthread_join(data->sendThread, NULL);
     pthread_join(data->receiveThread, NULL);
-
-    printf("Receive thread exiting  %b\n", thread_count);
 
     close(data->encrypt);
     //     connected = 0;
