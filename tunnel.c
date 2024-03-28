@@ -61,7 +61,7 @@ void logEvent(enum LogType type, const char *format, ...)
     FILE *logfile = fopen("server.log", "a");
     if (logfile == NULL)
     {
-        handleErrors("Failed to open log file");
+        //handleErrors("Failed to open log file");
     }
 
     // Получаем текущее время
