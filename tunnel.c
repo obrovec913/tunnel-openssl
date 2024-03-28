@@ -22,17 +22,9 @@
 #define PSK_HINT "123"
 #define SERVER_KEY_FILE "./keys/bign-curve256v1.key" // Путь к файлу с закрытым ключом сервера
 #define SERVER_CERT_FILE "./keys/cert.pem"           // Путь к файлу с сертификатом сервера
-typedef struct ThreadData
-{
-    pthread_t thread_id; // Идентификатор потока
-    pthread_t receiveThread;
-    pthread_t sendThread;
-    // Добавьте здесь дополнительные поля, если необходимо
-} ThreadData;
 
-// Глобальный указатель на список потоков
-ThreadData *thread_list = NULL;
 size_t thread_count = 0;
+pthread_t thread_id;
 // Структура для передачи параметров в поток обработки SSL-соединения
 typedef struct
 {
@@ -87,7 +79,7 @@ void logEvent(enum LogType type, const char *format, ...)
     case ERROR:
         prefix = "[ERROR]";
         break;
-    default:
+    default
         prefix = "[UNKNOWN]";
     }
 
@@ -689,7 +681,7 @@ void *prosseThreadFunction(void *arg)
     pthread_join(data->sendThread, NULL);
     pthread_join(data->receiveThread, NULL);
 
-    close(data->encrypt);
+    //close(data->encrypt);
     //     connected = 0;
     free(data);
     closeAndRestart();
@@ -791,7 +783,7 @@ void *listenThreadFunctionss(void *arg)
 
         // Создание и запуск потока для отправки данных серверу
 
-        if (pthread_create(&data->thread_id, NULL, prosseThreadFunction, data) != 0)
+        if (pthread_create(&thread_id, NULL, prosseThreadFunction, data) != 0)
         {
             closeAndRestart();
             // handleErrors("Failed to create send thread");
@@ -801,7 +793,7 @@ void *listenThreadFunctionss(void *arg)
     }
     logEvent(INFO, "Listen thread exiting");
     // Ожидание завершения потоков
-    pthread_join(data->thread_id, NULL);
+    pthread_join(thread_id, NULL);
 
     pthread_exit(NULL);
 }
