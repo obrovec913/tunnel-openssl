@@ -46,6 +46,8 @@ typedef struct
     //    pthread_t prosseThread;
 } SSLThreadData;
 
+void logEvent(enum LogType type, const char *format, ...);
+
 int unencrypted_sockfd;
 int unencrypted_con;
 int connected, cl = 0;
