@@ -329,12 +329,12 @@ int setSocketNonBlocking(int sockfd)
     int flags = fcntl(sockfd, F_GETFL, 0);
     if (flags == -1)
     {
-        logEvent(ERROR,"fcntl F_GETFL failed");
+        logEvent(ERROR, "fcntl F_GETFL failed");
         return -1;
     }
     if (fcntl(sockfd, F_SETFL, flags | O_NONBLOCK) == -1)
     {
-        logEvent(ERROR,"fcntl F_SETFL failed");
+        logEvent(ERROR, "fcntl F_SETFL failed");
         return -1;
     }
     return 0;
@@ -350,7 +350,7 @@ int connectToServer(const char *server_ip, int server_port)
     }
     if (setSocketNonBlocking(sockfd) < 0)
     {
-        
+
         closeAndRestart();
     }
 
@@ -360,9 +360,9 @@ int connectToServer(const char *server_ip, int server_port)
     server_addr.sin_addr.s_addr = inet_addr(server_ip);
     server_addr.sin_port = htons(server_port);
 
-    int connect_status = connect(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr));
     while (1)
     {
+        int connect_status = connect(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr));
 
         if (connect_status < 0)
         {
@@ -387,14 +387,14 @@ int connectToServer(const char *server_ip, int server_port)
                 else if (select_status == 0)
                 {
                     // Тайм-аут select
-                    logEvent(WARNING,"Connection timed out\n");
+                    logEvent(WARNING, "Connection timed out\n");
                     continue;
                     return -1;
                 }
                 else
                 {
                     // Соединение установлено успешно
-                    logEvent(WARNING,"Connected to the server\n");
+                    logEvent(WARNING, "Connected to the server\n");
                     continue;
                 }
             }
@@ -585,7 +585,7 @@ void *receiveThreadFunction(void *arg)
     closeAndRestart();
     // free(data);
 
-    logEvent(INFO,"Receive thread exiting\n");
+    logEvent(INFO, "Receive thread exiting\n");
     pthread_exit(NULL);
 }
 
@@ -659,7 +659,7 @@ void *sendThreadFunction(void *arg)
     closeAndRestart();
     // free(data);
 
-    logEvent(INFO,"Send thread exiting\n");
+    logEvent(INFO, "Send thread exiting\n");
     pthread_exit(NULL);
 }
 void *prosseThreadFunction(void *arg)
@@ -702,7 +702,7 @@ void *listenThreadFunctionss(void *arg)
     SSLThreadData *data = malloc(sizeof(SSLThreadData));
     if (!data)
     {
-        closeAndRestart()
+        closeAndRestart();
         handleErrors("Failed to allocate memory for connection fd");
     }
 
@@ -788,7 +788,7 @@ void *listenThreadFunctionss(void *arg)
         if (pthread_create(&data->thread_id, NULL, prosseThreadFunction, data) != 0)
         {
             closeAndRestart();
-            //handleErrors("Failed to create send thread");
+            // handleErrors("Failed to create send thread");
         }
 
         // free(data);
