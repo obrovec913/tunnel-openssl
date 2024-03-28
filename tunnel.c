@@ -80,8 +80,7 @@ void logEvent(enum LogType type, const char *format, ...)
     FILE *logfile = fopen("server.log", "a");
     if (logfile == NULL)
     {
-        perror("Failed to open log file");
-        exit(EXIT_FAILURE);
+        handleErrors("Failed to open log file");
     }
 
     // Получаем текущее время
@@ -141,7 +140,7 @@ typedef struct
     char *psk_hint;
     char *ciphers;
 } ConfigParams;
-/*
+
 void readConfig(const char *filename, ConfigParams *params)
 {
     config_t cfg;
@@ -170,7 +169,7 @@ void readConfig(const char *filename, ConfigParams *params)
     // Освобождение ресурсов
     config_destroy(&cfg);
 }
-*/
+
 void handleErrors(const char *message)
 {
     logEvent(ERROR, "Error occurred: %s", message);
@@ -330,12 +329,12 @@ int setSocketNonBlocking(int sockfd)
     int flags = fcntl(sockfd, F_GETFL, 0);
     if (flags == -1)
     {
-        perror("fcntl F_GETFL failed");
+        logEvent(ERROR,"fcntl F_GETFL failed");
         return -1;
     }
     if (fcntl(sockfd, F_SETFL, flags | O_NONBLOCK) == -1)
     {
-        perror("fcntl F_SETFL failed");
+        logEvent(ERROR,"fcntl F_SETFL failed");
         return -1;
     }
     return 0;
@@ -347,12 +346,12 @@ int connectToServer(const char *server_ip, int server_port)
     if (sockfd < 0)
     {
         perror("socket creation failed");
-        closeAndRestart()
+        closeAndRestart();
     }
     if (setSocketNonBlocking(sockfd) < 0)
     {
         
-        closeAndRestart()
+        closeAndRestart();
     }
 
     struct sockaddr_in server_addr;
@@ -381,7 +380,7 @@ int connectToServer(const char *server_ip, int server_port)
                 {
                     perror("select failed");
                     close(sockfd);
-                    closeAndRestart()
+                    closeAndRestart();
                     break;
                     return -1;
                 }
@@ -583,10 +582,10 @@ void *receiveThreadFunction(void *arg)
             }
         }
     }
-    closeAndRestart()
+    closeAndRestart();
     // free(data);
 
-    printf("Receive thread exiting\n");
+    logEvent(INFO,"Receive thread exiting\n");
     pthread_exit(NULL);
 }
 
@@ -657,10 +656,10 @@ void *sendThreadFunction(void *arg)
             }
         }
     }
-    closeAndRestart()
+    closeAndRestart();
     // free(data);
 
-    printf("Send thread exiting\n");
+    logEvent(INFO,"Send thread exiting\n");
     pthread_exit(NULL);
 }
 void *prosseThreadFunction(void *arg)
@@ -686,8 +685,8 @@ void *prosseThreadFunction(void *arg)
 
     close(data->encrypt);
     //     connected = 0;
-    free(thread_list);
-    closeAndRestart()
+    free(data);
+    closeAndRestart();
 
     logEvent(INFO, "Receive thread exiting");
     pthread_exit(NULL);
@@ -788,7 +787,7 @@ void *listenThreadFunctionss(void *arg)
 
         if (pthread_create(&data->thread_id, NULL, prosseThreadFunction, data) != 0)
         {
-            closeAndRestart()
+            closeAndRestart();
             //handleErrors("Failed to create send thread");
         }
 
