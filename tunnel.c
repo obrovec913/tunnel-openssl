@@ -341,11 +341,11 @@ int connectToServer(const char *server_ip, int server_port)
         perror("socket creation failed");
         closeAndRestart();
     }
-    //if (setSocketNonBlocking(sockfd) < 0)
-    //{
+    if (setSocketNonBlocking(sockfd) < 0)
+    {
 
-      //  closeAndRestart();
-    //}
+        closeAndRestart();
+    }
 
     struct sockaddr_in server_addr;
     memset(&server_addr, 0, sizeof(server_addr));
@@ -459,10 +459,10 @@ void setupUnencryptedSocket(int port, char *ipad)
         handleErrors("Failed to create unencrypted socket");
 
     // Установка сокета в неблокирующий режим
-    //if (fcntl(unencrypted_sockfd, F_SETFL, O_NONBLOCK) < 0)
-    //{
-      //  handleErrors("Failed to set socket to non-blocking mode");
-    //}
+    if (fcntl(unencrypted_sockfd, F_SETFL, O_NONBLOCK) < 0)
+    {
+        handleErrors("Failed to set socket to non-blocking mode");
+    }
     // Опция для повторного использования адреса
     int enable = 1;
     if (setsockopt(unencrypted_sockfd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)

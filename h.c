@@ -390,93 +390,118 @@ int connectToUnencryptedPort()
 
 // Функция, выполняемая в отдельном потоке для проверки разрыва соединения
 
-void *receiveThreadFunction(void *arg)
-{
+void *receiveThreadFunction(void *arg) {
     SSLThreadData *data = (SSLThreadData *)arg;
-    logEvent(INFO, "Receive thread started");
+    printf("Receive thread started\n");
     char buffer[MAX_BUFFER_SIZE];
     int bytes_received;
+    int err;
+    int ssl_fd = SSL_get_fd(data->ssl);
+    fd_set fds;
+    struct timeval timeout;
 
-    while (1)
-    {
-        if (connected == 1)
-        {
+    while (1) {
+        FD_ZERO(&fds);
+        FD_SET(ssl_fd, &fds);
+        timeout.tv_sec = 10; // Установите желаемый тайм-аут в секундах
+        timeout.tv_usec = 0;
+
+        int ret = select(ssl_fd + 1, &fds, NULL, NULL, &timeout);
+        if (ret == -1) {
+            perror("Error in select");
             break;
-            /* code */
+        } else if (ret == 0) {
+            printf("Timeout in receive thread\n");
+            continue;
         }
 
         // Принятие зашифрованных данных от сервера
         bytes_received = SSL_read(data->ssl, buffer, sizeof(buffer));
-        if (bytes_received > 0)
-        {
-            logEvent(INFO, "Received encrypted data from server");
-            // printf("Received encrypted data from server.\n");
 
-            printf("\n");
-            if (send(data->sockfd, buffer, bytes_received, 0) < 0)
-            {
-                handleErrors("Failed to send decrypted data");
+        if (bytes_received > 0) {
+            printf("Received encrypted data from server\n");
+
+            // Отправка данных по незашифрованному сокету
+            int sent = send(data->sockfd, buffer, bytes_received, 0);
+            if (sent < 0) {
+                perror("Failed to send decrypted data");
+                break;
             }
 
-            // Очистка буфера
-            memset(buffer, 0, sizeof(buffer));
+            memset(buffer, 0, sizeof(buffer)); // Очистка буфера
+        } else {
+            err = SSL_get_error(data->ssl, bytes_received);
+            if (err == SSL_ERROR_WANT_READ || err == SSL_ERROR_WANT_WRITE) {
+                // Нет данных доступных на чтение/запись, продолжаем ожидание
+                continue;
+            } else {
+                // Произошла ошибка при чтении данных
+                perror("Failed to read encrypted data");
+                break;
+            }
         }
     }
 
-    logEvent(INFO, "Receive thread exiting");
+    printf("Receive thread exiting\n");
     pthread_exit(NULL);
 }
 
-void *sendThreadFunction(void *arg)
-{
+void *sendThreadFunction(void *arg) {
     SSLThreadData *data = (SSLThreadData *)arg;
-    logEvent(INFO, "Send thread started");
+    printf("Send thread started\n");
     char buffer[MAX_BUFFER_SIZE];
     int bytes_received;
-    struct pollfd fds[1];
-    int timeout = 3600000; // Таймаут в миллисекундах
+    int err;
+    int flags;
+    fd_set fds;
+    struct timeval timeout;
 
-    fds[0].fd = data->sockfd;
-    fds[0].events = POLLIN; // Проверяем наличие данных для чтения
+    // Установка флагов для неблокирующего сокета
+    //flags = fcntl(data->sockfd, F_GETFL, 0);
+    //fcntl(data->sockfd, F_SETFL, flags | O_NONBLOCK);
 
-    while (1)
-    {
-        int ret = poll(fds, 1, timeout);
+    while (1) {
+        FD_ZERO(&fds);
+        FD_SET(data->sockfd, &fds);
+        timeout.tv_sec = 10; // Установите желаемый тайм-аут в секундах
+        timeout.tv_usec = 0;
 
-        if (ret == -1)
-        {
-            handleErrors("poll error");
+        int ret = select(data->sockfd + 1, &fds, NULL, NULL, &timeout);
+        if (ret == -1) {
+            perror("Error in select");
+            break;
+        } else if (ret == 0) {
+            printf("Timeout in send thread\n");
+            continue;
         }
-        else if (ret == 0)
-        {
-            logEvent(INFO, "Timeout. No data received from client.\n");
-            // Обработка отключения клиента
-            //connected = 1;
-            //close(data->sockfd);
-            //break;
-        }
-        else
-        {
-            if (fds[0].revents & POLLIN)
-            {
-                // Принятие зашифрованных данных от сервера
-                bytes_received = recv(data->sockfd, buffer, sizeof(buffer), 0);
-                if (bytes_received > 0)
-                {
-                    logEvent(INFO, "Received unencrypted data ");
-                    // printf("Received unencrypted data.\n");
-                    if (SSL_write(data->ssl, buffer, bytes_received) <= 0)
-                    {
-                        handleErrors("Failed to write encrypted data");
-                    }
-                    // Очистка буфера
-                    memset(buffer, 0, sizeof(buffer));
-                }
+
+        // Принятие незашифрованных данных от клиента
+        bytes_received = recv(data->sockfd, buffer, sizeof(buffer), 0);
+
+        if (bytes_received > 0) {
+            printf("Received unencrypted data\n");
+
+            // Отправка данных по SSL соединению
+            int sent = SSL_write(data->ssl, buffer, bytes_received);
+            if (sent <= 0) {
+                perror("Failed to write encrypted data");
+                break;
+            }
+
+            memset(buffer, 0, sizeof(buffer)); // Очистка буфера
+        } else {
+            if (errno == EWOULDBLOCK || errno == EAGAIN) {
+                // Нет данных доступных на чтение, продолжаем ожидание
+                continue;
+            } else {
+                // Произошла ошибка при чтении данных
+                perror("Failed to read unencrypted data");
+                break;
             }
         }
     }
 
-    logEvent(INFO, "Send thread exiting");
+    printf("Send thread exiting\n");
     pthread_exit(NULL);
 }
 
