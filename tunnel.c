@@ -686,7 +686,7 @@ void *listenThreadFunctionss(void *arg)
     // int u_con;
     // ThreadData *thread_li = NULL;
     pthread_t prosseThread;
-    SSLThreadData *data = malloc(sizeof(SSLThreadData));
+    SSLThreadData *data = malloc(100 * sizeof(SSLThreadData));
     if (!data)
     {
         closeAndRestart();
@@ -725,9 +725,9 @@ void *listenThreadFunctionss(void *arg)
                 break;
             }
             SSL *ssl = createSSLConnection(ssl_connfd, ssl_ctx);
-            data->sockfd = sock;
-            data->ssl = ssl;
-            data->encrypt = ssl_connfd;
+            data[thread_count].sockfd = sock;
+            data[thread_count].ssl = ssl;
+            data[thread_count].encrypt = ssl_connfd;
         }
         else if (reg == 2)
         {
@@ -765,33 +765,34 @@ void *listenThreadFunctionss(void *arg)
 
             //  SSL *ssl = establishEncryptedConnectionCl();
 
-            data->sockfd = u_cone;
-            data->ssl = ssl;
+            data[thread_count].sockfd = u_cone;
+            data[thread_count].ssl = ssl;
         }
-        thread_count++;
+        
 
         // Создание и запуск потока для отправки данных серверу
-        if (pthread_create(&data->sendThread, NULL, sendThreadFunction, data) != 0)
+        if (pthread_create(&data[thread_count].sendThread, NULL, sendThreadFunction, data) != 0)
         {
             handleErrors("Failed to create send thread");
         }
         // Создание и запуск потока для чтения данных от сервера
-        if (pthread_create(&data->receiveThread, NULL, receiveThreadFunction, data) != 0)
+        if (pthread_create(&data[thread_count]receiveThread, NULL, receiveThreadFunction, data) != 0)
         {
             handleErrors("Failed to create receive thread");
         }
 
-        if (pthread_create(&thread_id, NULL, prosseThreadFunction, data) != 0)
+        if (pthread_create(&data[thread_count].thread_id, NULL, prosseThreadFunction, data) != 0)
         {
             closeAndRestart();
             // handleErrors("Failed to create send thread");
         }
+        thread_count++;
 
         // free(data);
     }
     logEvent(INFO, "Listen thread exiting");
     // Ожидание завершения потоков
-    pthread_join(thread_id, NULL);
+    pthread_join(data[0].thread_id, NULL);
 
     pthread_exit(NULL);
 }
