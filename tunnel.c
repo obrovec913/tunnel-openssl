@@ -541,7 +541,7 @@ void *receiveThreadFunction(void *arg)
             {
                 //         SSL_shutdown(data->ssl);
                 //       close(data->encrypt);
-                break;
+               // break;
             }
             // printf("Timeout in receive thread  %b\n", flags);
             continue;
@@ -618,7 +618,7 @@ void *sendThreadFunction(void *arg)
             if (thread_count >= 100)
             {
                 //            close(data->sockfd);
-                break;
+                //break;
             }
             continue;
         }
