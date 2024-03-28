@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <libconfig.h>
+//#include <libconfig.h>
 #include <openssl/crypto.h>
 #include <arpa/inet.h>
 #include <openssl/evp.h>
@@ -141,7 +141,7 @@ typedef struct
     char *psk_hint;
     char *ciphers;
 } ConfigParams;
-
+/*
 void readConfig(const char *filename, ConfigParams *params)
 {
     config_t cfg;
@@ -170,7 +170,7 @@ void readConfig(const char *filename, ConfigParams *params)
     // Освобождение ресурсов
     config_destroy(&cfg);
 }
-
+*/
 unsigned int psk_server_callback(SSL *ssl, const char *identity, unsigned char *psk, unsigned int max_psk_len)
 {
     strncpy((char *)identity, psk_i, max_psk_len - 1);
