@@ -395,7 +395,7 @@ int connectToServer(const char *server_ip, int server_port)
                 {
                     // Соединение установлено успешно
                     logEvent(WARNING, "Connected to the server\n");
-                    continue;
+                    break;
                 }
             }
             else
