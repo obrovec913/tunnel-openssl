@@ -776,7 +776,7 @@ void *listenThreadFunctionss(void *arg)
             handleErrors("Failed to create send thread");
         }
         // Создание и запуск потока для чтения данных от сервера
-        if (pthread_create(&data[thread_count]receiveThread, NULL, receiveThreadFunction, data) != 0)
+        if (pthread_create(&data[thread_count].receiveThread, NULL, receiveThreadFunction, data) != 0)
         {
             handleErrors("Failed to create receive thread");
         }
