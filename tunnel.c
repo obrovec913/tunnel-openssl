@@ -45,44 +45,6 @@ typedef struct
 
     //    pthread_t prosseThread;
 } SSLThreadData;
-
-void logEvent(enum LogType type, const char *format, ...);
-
-int unencrypted_sockfd;
-int unencrypted_con;
-int connected, cl = 0;
-int uport, eport, reg = 0;
-char *logip, *ip, *ciphers, *certS, *pkey, *psk_k, *psk_i = NULL;
-// Определяем возможные типы событий
-enum LogType
-{
-    INFO,
-    WARNING,
-    ERROR
-};
-
-void handleErrors(const char *message)
-{
-    logEvent(ERROR, "Error occurred: %s", message);
-    fprintf(stderr, "Error occurred: %s\n", message);
-    ERR_print_errors_fp(stderr);
-    exit(EXIT_FAILURE);
-}
-
-void closeAndRestart()
-{
-    //SSL_shutdown(data->ssl);
-    //SSL_free(data->ssl);
-    close(unencrypted_sockfd);
-
-    // Пример перезапуска приложения
-    char *argv[] = {"./tunnel_malidi", "-s", "1", "-d", "127.0.0.1", "-u", "5412", "-e", "12345", "-y", "./bign-curve256v1.key", "-r", "./cert.pem", "-k", "1025285123456", "-p", "1025285", NULL};
-    execv(argv[0], argv);
-
-    // Если execv() вернется, значит возникла ошибка перезапуска приложения
-    handleErrors("Failed to restart application");
-}
-
 // Функция для записи события в лог
 void logEvent(enum LogType type, const char *format, ...)
 {
@@ -139,6 +101,44 @@ void logEvent(enum LogType type, const char *format, ...)
     // Закрываем файл
     fclose(logfile);
 }
+
+
+int unencrypted_sockfd;
+int unencrypted_con;
+int connected, cl = 0;
+int uport, eport, reg = 0;
+char *logip, *ip, *ciphers, *certS, *pkey, *psk_k, *psk_i = NULL;
+// Определяем возможные типы событий
+enum LogType
+{
+    INFO,
+    WARNING,
+    ERROR
+};
+
+void handleErrors(const char *message)
+{
+    logEvent(ERROR, "Error occurred: %s", message);
+    fprintf(stderr, "Error occurred: %s\n", message);
+    ERR_print_errors_fp(stderr);
+    exit(EXIT_FAILURE);
+}
+
+void closeAndRestart()
+{
+    //SSL_shutdown(data->ssl);
+    //SSL_free(data->ssl);
+    close(unencrypted_sockfd);
+
+    // Пример перезапуска приложения
+    char *argv[] = {"./tunnel_malidi", "-s", "1", "-d", "127.0.0.1", "-u", "5412", "-e", "12345", "-y", "./bign-curve256v1.key", "-r", "./cert.pem", "-k", "1025285123456", "-p", "1025285", NULL};
+    execv(argv[0], argv);
+
+    // Если execv() вернется, значит возникла ошибка перезапуска приложения
+    handleErrors("Failed to restart application");
+}
+
+
 typedef struct
 {
     char *ip_address;
