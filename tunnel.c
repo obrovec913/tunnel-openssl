@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-//#include <libconfig.h>
+// #include <libconfig.h>
 #include <openssl/crypto.h>
 #include <arpa/inet.h>
 #include <openssl/evp.h>
@@ -393,7 +393,7 @@ int connectToServer(const char *server_ip, int server_port)
         {
             // Ошибка при подключении
             logEvent(WARNING, "connect failed");
-          //  continue;
+            //  continue;
             return -1;
         }
     }
@@ -531,7 +531,7 @@ void *receiveThreadFunction(void *arg)
             {
                 //         SSL_shutdown(data->ssl);
                 //       close(data->encrypt);
-                // break;
+                break;
             }
             // printf("Timeout in receive thread  %b\n", flags);
             continue;
@@ -608,7 +608,7 @@ void *sendThreadFunction(void *arg)
             if (thread_count >= 100)
             {
                 //            close(data->sockfd);
-                // break;
+                break;
             }
             continue;
         }
@@ -655,27 +655,26 @@ void *sendThreadFunction(void *arg)
 void *prosseThreadFunction(void *arg)
 {
     SSLThreadData *data = (SSLThreadData *)arg;
-    pthread_t receiveThread;
-    pthread_t sendThread;
+    //   pthread_t receiveThread;
+    // pthread_t sendThread;
     logEvent(INFO, "pros thread started");
-    if (pthread_create(&sendThread, NULL, sendThreadFunction, data) != 0)
+
+    while (1)
     {
-        handleErrors("Failed to create send thread");
+        /* code */
+
+        if (thread_count == 100)
+        {
+            free(data);
+            closeAndRestart();
+
+            pthread_join(data->sendThread, NULL);
+            pthread_join(data->receiveThread, NULL);
+
+            // close(data->encrypt);
+            //      connected = 0;
+        }
     }
-    // Создание и запуск потока для чтения данных от сервера
-    if (pthread_create(&receiveThread, NULL, receiveThreadFunction, data) != 0)
-    {
-        handleErrors("Failed to create receive thread");
-    }
-
-    pthread_join(sendThread, NULL);
-    pthread_join(receiveThread, NULL);
-
-    // close(data->encrypt);
-    //      connected = 0;
-    free(data);
-    closeAndRestart();
-
     logEvent(INFO, "Receive thread exiting");
     pthread_exit(NULL);
 }
@@ -772,6 +771,15 @@ void *listenThreadFunctionss(void *arg)
         thread_count++;
 
         // Создание и запуск потока для отправки данных серверу
+        if (pthread_create(&data->sendThread, NULL, sendThreadFunction, data) != 0)
+        {
+            handleErrors("Failed to create send thread");
+        }
+        // Создание и запуск потока для чтения данных от сервера
+        if (pthread_create(&data->receiveThread, NULL, receiveThreadFunction, data) != 0)
+        {
+            handleErrors("Failed to create receive thread");
+        }
 
         if (pthread_create(&thread_id, NULL, prosseThreadFunction, data) != 0)
         {
